@@ -7,6 +7,6 @@ def congestion_function(**parameters):
         if 'b' in parameters:
             return lambda x: parameters['a'] * x * x * x * x + parameters['b']
         else:
-            return lambda x: parameters[0] * x * x * x * x
+            return lambda x: parameters[0] * x * x * x * x + 1
     else:
-        return lambda x: x * x * x * x
+        return lambda x: x * x * x * x + 1

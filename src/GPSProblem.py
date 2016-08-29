@@ -18,10 +18,10 @@ def staticOptimalRouting(file_loc):
     g = generate_graph_from_file(file_loc)
 
     # Define the constants of the problem
-    starting_flow = {n: sum(map(lambda el: el[1], g.getAllDriversFromStartingNode(n)))
+    starting_flow = {n: sum(map(lambda el: el[2], g.getAllDriversFromStartingNode(n)))
                      for n in g.getAllStartingNodes()}
-    ending_flow = {n: sum(map(lambda el: el[1], g.getAllDriversToEndingNode(n)))
-                     for n in g.getAllStartingNodes()}
+    ending_flow = {n: sum(map(lambda el: el[2], g.getAllDriversToEndingNode(n)))
+                   for n in g.getAllStartingNodes()}
 
     # add variables
     x = {}

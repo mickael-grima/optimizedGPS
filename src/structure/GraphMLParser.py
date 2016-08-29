@@ -10,7 +10,7 @@ import math
 class GraphMLParser(object):
 
     def __init__(self):
-        self._conf = yaml.load(open('graphml.yml', 'r')).get('graphml', {})
+        self._conf = yaml.load(open('config.yml', 'r')).get('graphml', {})
         self.traffics = {
             0: 'no-traffic',
             0.1: 'very-light-traffic',
@@ -201,7 +201,7 @@ class GraphMLParser(object):
         for edge in graph.getElementsByTagName("edge"):
             for data in edge.getElementsByTagName("data"):
                 if data.getAttribute("key") == "d10":
-                    if data.getElementsByTagName("y:PolyLineEdge"):
+                    if data.getElementsByTagName("y:GenericEdge"):
                         source = edge.getAttribute('source')
                         target = edge.getAttribute('target')
                         g.addEdge(source, target)
