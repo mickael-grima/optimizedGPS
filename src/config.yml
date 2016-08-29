@@ -18,7 +18,7 @@ logging:
   loggers:
     # Logging from my application
     # Problems
-    problems.GPSProblem:
+    GPSProblem:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: problems.GPSProblem
@@ -27,37 +27,33 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: structure.CongestionGPSGraph
+    structure.Graph:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: structure.Graph
     structure.GPSGraph:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: structure.GPSGraph
-    structure.Node:
+    # Simulator
+    simulator.GPSSimulator:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
-      qualname: structure.Node
-    structure.Edge:
+      qualname: simulator.GPSSimulator
+    simulator.utils.tools:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
-      qualname: structure.Edge
-    # Data
-    data.format_data:
-      level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: data.format_data
-    data.data_generator:
-      level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: data.format_data
+      qualname: simulator.utils.tools
     # Tests
     tests.StructureTest:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.StructureTest
-    tests.DataTest:
+    # worker
+    worker:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
-      qualname: tests.DataTest
-    # Controlling logging of 3rd party libs
+      qualname: worker
   handlers:
     logfile:
       class: logging.FileHandler
@@ -74,3 +70,64 @@ logging:
       class: !!python/name:logging.Formatter
       format: '%(asctime)s %(filename)-30s %(levelname)-8s: %(message)s'
       datefmt: '%Y-%m-%dT%T%Z'
+graphml:
+  traffic-colors:
+    no-traffic: '#C3FE01'
+    very-light-traffic: '#DCFE01'
+    light-traffic: '#EDFE01'
+    middle-light-traffic: '#F6FE01'
+    middle-dense-traffic: '#FEF601'
+    dense-traffic: '#FEBB01'
+    very-dense-traffic: '#FE8801'
+    traffic-jam: '#FE5E01'
+    apocalyptic-traffic: '#FE0101'
+  geometry:
+    node-size: 30.0
+  attributes:
+    xmlns: "http://graphml.graphdrawing.org/xmlns"
+    xmlns:java: "http://www.yworks.com/xml/yfiles-common/1.0/java"
+    xmlns:sy: "http://www.yworks.com/xml/yfiles-common/markup/primitives/2.0"
+    xmlns:x: "http://www.yworks.com/xml/yfiles-common/markup/2.0"
+    xmlns:xsi: "http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:y: "http://www.yworks.com/xml/graphml"
+    xmlns:yed: "http://www.yworks.com/xml/yed/3"
+    xsi:schemaLocation: "http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd"
+  keys:
+    d0:
+      attr.name: "Description"
+      attr.type: "string"
+      for: "graph"
+    d1:
+      for: "port"
+      yfiles.type: "portgraphics"
+    d2:
+      for: "port"
+      yfiles.type: "portgeometry"
+    d3:
+      for: "port"
+      yfiles.type: "portuserdata"
+    d4:
+      attr.name: "url"
+      attr.type: "string"
+      for: "node"
+    d5:
+      attr.name: "description"
+      attr.type: "string"
+      for: "node"
+    d6:
+      for: "node"
+      yfiles.type: "nodegraphics"
+    d7:
+      for: "graphml"
+      yfiles.type: "resources"
+    d8:
+      attr.name: "url"
+      attr.type: "string"
+      for: "edge"
+    d9:
+      attr.name: "description"
+      attr.type: "string"
+      for: "edge"
+    d10:
+      for: "edge"
+      yfiles.type: "edgegraphics"

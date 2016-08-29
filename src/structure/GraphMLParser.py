@@ -4,13 +4,17 @@
 from xml.dom import minidom
 import yaml
 from GPSGraph import GPSGraph
+from utils.tools import assert_has_graph_GUI_infos
 import math
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class GraphMLParser(object):
 
     def __init__(self):
-        self._conf = yaml.load(open('graphml.yml', 'r')).get('graphml', {})
+        self._conf = yaml.load(open('config.yml', 'r')).get('graphml', {})
         self.traffics = {
             0: 'no-traffic',
             0.1: 'very-light-traffic',
@@ -24,20 +28,42 @@ class GraphMLParser(object):
         }
 
     def set_head(self, head):
-        self._conf['head'] = head
+        try:
+            self._conf['head'] = head
+        except KeyError as e:
+            log.error(e.message())
+            raise KeyError(e.message())
 
     def set_attributes(self, attr):
-        self._conf['attributes'] = attr
+        try:
+            self._conf['attributes'] = attr
+        except KeyError as e:
+            log.error(e.message())
+            raise KeyError(e.message())
 
     def set_keys(self, keys):
-        self._conf['keys'] = keys
+        try:
+            self._conf['keys'] = keys
+        except KeyError as e:
+            log.error(e.message())
+            raise KeyError(e.message())
 
     def add_key(self, key_id, attrs):
-        self._conf['keys'][key_id] = attrs
+        try:
+            self._conf['keys'][key_id] = attrs
+        except KeyError as e:
+            log.error(e.message())
+            raise KeyError(e.message())
 
     def createElement(self, doc, element_name, **attributes):
         element = doc.createElement(element_name)
         for key, value in attributes.iteritems():
+            if not isinstance(key, str) and not isinstance(key, unicode):
+                log.error("following element (key) is not a string: element=%s, type=%s", key, type(key))
+                raise TypeError("following element (key) is not a string: element=%s, type=%s" % (key, type(key)))
+            if not isinstance(value, str) and not isinstance(value, unicode):
+                log.error("following element (value) is not a string: element=%s, type=%s", value, type(value))
+                raise TypeError("following element (value) is not a string: element=%s, type=%s" % (value, type(value)))
             element.setAttribute(key, value)
         return element
 
@@ -53,9 +79,9 @@ class GraphMLParser(object):
         shape = self.createElement(doc, 'y:Shape', type='ellipse')
         shapeNode.appendChild(shape)
         # geometry
-        x = str(kwards.get('data', {}).get(node_name, {}).get('geometry', {}).get('x') or 0.0)
-        y = str(kwards.get('data', {}).get(node_name, {}).get('geometry', {}).get('y') or 0.0)
-        node_size = self._conf['geometry']['node_size']
+        x = str(kwards.get('data', {}).get('x') or 0.0)
+        y = str(kwards.get('data', {}).get('y') or 0.0)
+        node_size = self._conf['geometry']['node-size']
         geometry = self.createElement(doc, 'y:Geometry', height=str(node_size), width=str(node_size), x=x, y=y)
         shapeNode.appendChild(geometry)
 
@@ -66,44 +92,33 @@ class GraphMLParser(object):
     def create_edge_element(self, doc, source, target, **kwards):
         edge = self.createElement(doc, 'edge', source=source, target=target)
         data = self.createElement(doc, 'data', key='d10')
-        line = self.createElement(doc, 'y:GenericEdge')
+        line = self.createElement(doc, 'y:GenericEdge', configuration="com.yworks.edge.framed")
 
         # path
-        path = self.createElement(doc, 'y:Path', sx=kwards.get('sx') or 0.0, sy=kwards.get('sy') or 0.0,
-                                  tx=kwards.get('tx') or 0.0, ty=kwards.get('ty') or 0.0)
+        path = self.createElement(doc, 'y:Path', sx=str(kwards.get('sx') or 0.0), sy=str(kwards.get('sy') or 0.0),
+                                  tx=str(kwards.get('tx') or 0.0), ty=str(kwards.get('ty') or 0.0))
         line.appendChild(path)
         # linestyle
-        linestyle = self.createElement(doc, 'y:LineStyle', color=kwards.get('color') or '#000000', type='line',
+        linestyle = self.createElement(doc, 'y:LineStyle', color='#000000', type='line',
                                        width=kwards.get('width') or '1.0')
         line.appendChild(linestyle)
         #  arrows
-        arrows = self.createElement(doc, 'y:Arrows', source='node', target='standard')
+        arrows = self.createElement(doc, 'y:Arrows', source='none', target='standard')
         line.appendChild(arrows)
         # label
         label = self.createElement(doc, 'y:EdgeLabel', alignment='center', configuration='AutoFlippingLabel',
                                    distance='2.0', fontFamily='Dialog', fontSize='12', fontStyle='plain',
                                    hasBackgroundColor='false', hasLineColor='false', modelName='custom',
                                    preferredPlacement='anywhere', ratio='0.5', textColor='#000000', visible='true')
-        # labelModel
-        labelmodel = self.createElement(doc, 'y:LabelModel')
-        smartedgelabelmodel = self.createElement(doc, 'y:SmartEdgeLabelModel', autoRotationEnabled='false',
-                                                 defaultAngle='0.0', defaultDistance='10.0')
-        labelmodel.appendChild(smartedgelabelmodel)
-        label.appendChild(labelmodel)
-        # modelParameter
-        modelparameter = self.createElement(doc, 'y:ModelParameter')
-        smedmopa = self.createElement(doc, 'y:SmartEdgeLabelModelParameter', angle='0.0', distance='30.0',
-                                      distanceToCenter='true', position='right', ratio='0.5', segment='0')
-        modelparameter.appendChild(smedmopa)
-        label.appendChild(modelparameter)
-        # prefferedplacementdescriptor
-        prplde = self.createElement(doc, 'y:PreferredPlacementDescriptor', angle='0.0', distance='-1.0',
-                                    angleOffsetOnRightSide='0', angleRotationOnRightSide='co', side='anywhere',
-                                    angleReference='absolute', frozen='true', placement='anywhere',
-                                    sideReference='relative_to_edge_flow')
-        label.appendChild(prplde)
-        label.string = str(kwards.get('traffic')) or ''
+        text = doc.createTextNode(str(kwards.get('traffic') or 0.0))
+        label.appendChild(text)
         line.appendChild(label)
+        # styleProperties
+        styleprop = self.createElement(doc, 'y:StyleProperties')
+        prop = self.createElement(doc, 'y:Property', name="FramedEdgePainter.fillColor", value=kwards.get('color'))
+        prop.setAttribute('class', 'java.awt.Color')
+        styleprop.appendChild(prop)
+        line.appendChild(styleprop)
 
         data.appendChild(line)
         edge.appendChild(data)
@@ -116,14 +131,14 @@ class GraphMLParser(object):
                 - if both edges are vertical, the edge from bottom to top is always to the right
         """
         if graph.hasEdge(target, source):
-            node_size = self._conf['geometry']['node_size']
+            node_size = self._conf['geometry']['node-size']
             sx, sy = graph.getData(source).get('x') or 0.0, graph.getData(source).get('y') or 0.0
             tx, ty = graph.getData(target).get('x') or 0.0, graph.getData(target).get('y') or 0.0
             dist = math.sqrt(2 * (tx - sx) * (tx - sx) + 2 * (ty - sy) * (ty - sy))
-            Rsx = sx + node_size * (tx + ty - sx - sy) / dist
-            Rsy = sy + node_size * (ty - tx + sx - sy) / dist
-            Rtx = tx + node_size * (ty - tx + sx - sy) / dist
-            Rty = ty + node_size * (ty + tx - sy - sx) / dist
+            Rsx = node_size / 2 * (tx + ty - sx - sy) / dist
+            Rsy = node_size / 2 * (ty - tx + sx - sy) / dist
+            Rtx = node_size / 2 * (ty - tx + sx - sy) / dist
+            Rty = node_size / 2 * (sy + sx - ty - tx) / dist
             return Rsx, Rsy, Rtx, Rty
         return 0.0, 0.0, 0.0, 0.0
 
@@ -131,15 +146,17 @@ class GraphMLParser(object):
         """ time_suppl represents the time we need to road on edge minus the time we need to drive without circulation
             red means time_suppl = +infinity, green: time_suppl = 0
         """
-        traffic_desc = self.traffics[time_suppl]
-        return self._conf['traffic-colors'][traffic_desc]
+        keys = sorted(self.traffics.iterkeys(), reverse=True)
+        for key in keys:
+            if key <= time_suppl:
+                return self._conf['traffic-colors'][self.traffics[key]]
 
     def write(self, graph, fname):
         """
         """
+        assert_has_graph_GUI_infos(graph)
+
         doc = minidom.Document()
-        for k, v in self._conf['head'].iteritems():
-            doc.toxml('%s="%s"' % (k, v))
 
         root = self.createElement(doc, 'graphml', **self._conf['attributes'])
         doc.appendChild(root)
@@ -160,15 +177,17 @@ class GraphMLParser(object):
 
         # Add edge
         for source, target in graph.getAllEdges():
-            sx, sy, tx, ty = self.compute_edge_coords(doc, graph, source, target)
+            sx, sy, tx, ty = self.compute_edge_coords(graph, source, target)
             width = graph.getEdgeProperty(source, target, 'width') or 0.0
             # compute time_suppl
             traffic = graph.getEdgeProperty(source, target, 'traffic') or 0.0
             cong_func = graph.getCongestionFunction(source, target)
-            time_suppl = cong_func(traffic) / cong_func(0.0)
+            time_suppl = (cong_func(traffic) - cong_func(0.0)) / cong_func(0.0)
             color = self.compute_edge_color(time_suppl)
             # add edge
-            edge = self.create_edge_element(doc, source, target, sx=sx, sy=sy, tx=tx, ty=ty, width=width, color=color)
+            edge = self.create_edge_element(doc, source, target, sx=str(sx), sy=str(sy), tx=str(tx), ty=str(ty),
+                                            width=str(width), color=color,
+                                            traffic=graph.getEdgeProperty(source, target, 'traffic'))
             graph_node.appendChild(edge)
 
         f = open(fname, 'w')
@@ -201,7 +220,7 @@ class GraphMLParser(object):
         for edge in graph.getElementsByTagName("edge"):
             for data in edge.getElementsByTagName("data"):
                 if data.getAttribute("key") == "d10":
-                    if data.getElementsByTagName("y:PolyLineEdge"):
+                    if data.getElementsByTagName("y:GenericEdge"):
                         source = edge.getAttribute('source')
                         target = edge.getAttribute('target')
                         g.addEdge(source, target)
