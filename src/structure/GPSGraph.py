@@ -70,9 +70,9 @@ class GPSGraph(object):
     def getAllNodes(self):
         return set([node for node in self.__nodes.itervalues()])
 
-    def addEdge(self, source, target):
+    def addEdge(self, source, target, **kwards):
         if self.hasNode(source) and self.hasNode(target):
-            edge = Edge(source, target)
+            edge = Edge(source, target, **kwards)
             self.__edges.setdefault(get_id(source), {})
             self.__edges[get_id(source)][get_id(target)] = edge
             log.info("Edge %s added in graph %s", edge.name, self.name)

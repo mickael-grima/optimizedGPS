@@ -21,13 +21,14 @@ class CongestionGPSGraph(GPSGraph):
             source_id, target_id = get_id(source), get_id(target)
             self.__congestionFunctions.setdefault(source_id, {})
             self.__congestionFunctions[source_id].setdefault(target_id, func)
-            log.info("Congestion func added to edge (%s, %s)", source.name, target.name)
+            log.info("Congestion func added to edge %s", self.__edges[source_id][target_id].name)
             return True
         return False
 
     def hasCongestionFunction(self, source, target):
         if (self.__congestionFunctions.get(get_id(source)) or {}).get(get_id(target)) is None:
-            log.warning("There exists no congestion function on edge (%s, %s)", source.name, target.name)
+            log.warning("There exists no congestion function on edge %s",
+                        self.__edges[get_id(source)][get_id(target)].name)
             return False
         return True
 
@@ -47,6 +48,6 @@ class CongestionGPSGraph(GPSGraph):
     def removeCongestionFunction(self, source, target):
         if self.hasCongestionFunction(source, target):
             del self.__congestionFunctions[get_id(source)][get_id(target)]
-            log.info("Congestion function on edge (%s, %s) removed", source.name, target.name)
+            log.info("Congestion function on edge %s removed", self.__edges[get_id(source)][get_id(target)].name)
             return True
         return False
