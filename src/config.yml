@@ -17,6 +17,12 @@ logging:
     handlers: [console]
   loggers:
     # Logging from my application
+    # Problems
+    problems.GPSProblem:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: problems.GPSProblem
+    # Structure
     structure.CongestionGPSGraph:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
@@ -33,10 +39,24 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: structure.Edge
+    # Data
+    data.format_data:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: data.format_data
+    data.data_generator:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: data.format_data
+    # Tests
     tests.StructureTest:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.StructureTest
+    tests.DataTest:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: tests.DataTest
     # Controlling logging of 3rd party libs
   handlers:
     logfile:
