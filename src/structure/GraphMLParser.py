@@ -158,7 +158,7 @@ class GraphMLParser(object):
             node = self.create_node_element(doc, n, data=graph.getData(n))
             graph_node.appendChild(node)
 
-        # Add edges
+        # Add edge
         for source, target in graph.getAllEdges():
             sx, sy, tx, ty = self.compute_edge_coords(doc, graph, source, target)
             width = graph.getEdgeProperty(source, target, 'width') or 0.0
