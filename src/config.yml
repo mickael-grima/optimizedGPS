@@ -13,7 +13,7 @@ logging:
   disable_existing_loggers: true
   # Configuring the default (root) logger is highly recommended
   root:
-    level: !!python/name:logging.DEBUG
+    level: !!python/name:logging.WARNING
     handlers: [console]
   loggers:
     # Logging from my application

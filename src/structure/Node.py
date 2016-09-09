@@ -10,8 +10,7 @@ log = logging.getLogger(__name__)
 
 class Node(object):
     def __init__(self, name='', **kwards):
-        for attr, value in kwards.iteritems():
-            setattr(self, attr, value)
+        self.__dict__.update(kwards)
         self.__name = name
 
     @property

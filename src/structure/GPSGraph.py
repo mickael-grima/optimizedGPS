@@ -2,6 +2,7 @@
 # !/bin/env python
 
 from Edge import Edge
+from Node import Node
 import logging
 from logger import configure
 from utils.tools import get_id
@@ -107,3 +108,16 @@ class GPSGraph(object):
 
     def getAllEdges(self):
         return set([edge for dct in self.__edges.itervalues() for edge in dct.itervalues()])
+
+    @classmethod
+    def buildGraph(cls, data):
+        graph = cls(name=data.get('name') or 'graph')
+        for source, dct in data['structure'].iteritems():
+            source_node = Node(name=source)
+            graph.addNode(source_node)
+            for target, props in dct.iteritems():
+                target_node = Node(name=target)
+                graph.addNode(target_node)
+                graph.addEdge(source_node, target_node, **props)
+
+        return graph

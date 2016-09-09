@@ -11,8 +11,8 @@ log = logging.getLogger(__name__)
 
 class Edge(object):
     def __init__(self, source, target, **kwards):
-        for attr, value in kwards.iteritems():
-            setattr(self, attr, value)
+        self.__dict__.update(kwards)
+
         self.__source = source
         self.__target = target
 

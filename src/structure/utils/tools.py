@@ -6,10 +6,10 @@ def get_id(obj):
     return hash(obj)
 
 
-def congestion_function(traffic, size, length, *parameters):
+def congestion_function(size, length, *parameters):
     if len(parameters) >= 2:
-        return parameters[0] * traffic * traffic * traffic * traffic + parameters[1]
+        return lambda x: parameters[0] * x * x * x * x + parameters[1]
     elif len(parameters) == 1:
-        return parameters[0] * traffic * traffic * traffic * traffic
+        return lambda x: parameters[0] * x * x * x * x
     else:
-        return traffic * traffic * traffic * traffic
+        return lambda x: x * x * x * x
