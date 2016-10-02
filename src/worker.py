@@ -32,10 +32,13 @@ def test_graphml_writer():
     }
     simulator = GPSSimulator(graph, paths)
 
-    simulator.next()
-    simulator.next()
+    i = 0
+    while simulator.has_next():
+        simulator.next()
+        i += 1
+    print i
 
-    GraphMLParser().write(simulator.graph, 'static/test_graphml_writer.graphml')
+    # GraphMLParser().write(simulator.graph, 'static/test_graphml_writer.graphml')
 
 
 if __name__ == '__main__':
