@@ -28,3 +28,7 @@ def assert_paths_in_graph(paths, graph):
         if nb != graph.getDrivers(start, end, starting_time=time):
             log.error("Drivers and path's flow don't match in graph %s", graph.name)
             raise Exception("Drivers and path's flow don't match in graph %s" % graph.name)
+
+
+def get_id(obj):
+    return hash(obj)
