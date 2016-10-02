@@ -49,7 +49,11 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.StructureTest
-    # Controlling logging of 3rd party libs
+    # worker
+    worker:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: worker
   handlers:
     logfile:
       class: logging.FileHandler
@@ -79,10 +83,6 @@ graphml:
     apocalyptic-traffic: '#FE0101'
   geometry:
     node-size: 30.0
-  head:
-    version: '1.0'
-    encoding: 'UTF-8'
-    standalone: 'no'
   attributes:
     xmlns: "http://graphml.graphdrawing.org/xmlns"
     xmlns:java: "http://www.yworks.com/xml/yfiles-common/1.0/java"

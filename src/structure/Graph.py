@@ -161,7 +161,7 @@ class Graph(object):
 
     def addNodePosition(self, node, x, y):
         self.__data.setdefault(node, {})
-        self.__data[node]['geometry'] = {'x': x, 'y': y}
+        self.__data[node].update({'x': x, 'y': y})
 
     def getData(self, node):
         return self.__data.get(node, {})
