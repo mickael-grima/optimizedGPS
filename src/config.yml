@@ -14,7 +14,7 @@ logging:
   # Configuring the default (root) logger is highly recommended
   root:
     level: !!python/name:logging.ERROR
-    handlers: [console]
+    handlers: [logfile]
   loggers:
     # Logging from my application
     # Problems
@@ -53,6 +53,14 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.StructureTest
+    tests.SimulatorTest:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: tests.SimulatorTest
+    tests.ProblemsTest:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: tests.ProblemsTest
     # worker
     worker:
       level: !!python/name:logging.DEBUG

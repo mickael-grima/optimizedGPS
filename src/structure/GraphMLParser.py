@@ -203,6 +203,7 @@ class GraphMLParser(object):
 
         g = GPSGraph(name=name)
 
+        nodes = {}
         # Get nodes
         for node in graph.getElementsByTagName("node"):
             # We store in graph only the ellipse nodes
@@ -211,10 +212,13 @@ class GraphMLParser(object):
                     shapenode = data.getElementsByTagName("y:ShapeNode")[0]
                     shape = shapenode.getElementsByTagName("y:Shape")[0]
                     if shape.getAttribute("type") == "ellipse":
-                        n = node.getAttribute('id')
+                        n = node.getElementsByTagName('y:NodeLabel')[0].childNodes[0].nodeValue.strip()
+                        if len(str(n)) == 0:
+                            n = node.getAttribute('id')
                         geometry = shapenode.getElementsByTagName("y:Geometry")[0]
                         g.addNode(n, geometry={'x': geometry.getAttribute('x'),
                                                'y': geometry.getAttribute('y')})
+                        nodes[node.getAttribute('id')] = n
 
         # Get edges
         for edge in graph.getElementsByTagName("edge"):
@@ -223,6 +227,6 @@ class GraphMLParser(object):
                     if data.getElementsByTagName("y:GenericEdge"):
                         source = edge.getAttribute('source')
                         target = edge.getAttribute('target')
-                        g.addEdge(source, target)
+                        g.addEdge(nodes[source], nodes[target])
 
         return g

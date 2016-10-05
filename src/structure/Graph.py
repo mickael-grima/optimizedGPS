@@ -155,6 +155,18 @@ class Graph(object):
                     yield n
                     break
 
+    def assertIsAdjacentEdgeTo(self, edge, next_edge):
+        if not self.hasEdge(*next_edge):
+            log.error("Edge from node %s to node %s doesn't exist in graph %s",
+                      next_edge[0], next_edge[1], self.name)
+            raise KeyError("Edge from node %s to node %s doesn't exist in graph %s"
+                           % (next_edge[0], next_edge[1], self.name))
+        if edge and edge[1] != next_edge[0]:
+            log.error('Current edge %s and next edge %s are not adjacent in graph %s',
+                      str(edge), str(next_edge), self.name)
+            raise Exception('Current edge %s and next edge %s are not adjacent in graph %s'
+                            % (str(edge), str(next_edge), self.name))
+
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ DATA ----------------------------------------------
     # ----------------------------------------------------------------------------------------
@@ -175,6 +187,9 @@ class Graph(object):
             options `length`: if 'min' stop when every nodes have been discovered.
                               if integer >= 0 stop when every path with given length has been discovered
         """
+        if not self.hasNode(start):
+            log.error("Node %s not in graph %s", start, self.name)
+            raise KeyError("Node %s not in graph %s" % (start, self.name))
         # paths: each element is a tuple of nodes, the last one is the length of the path
         paths = {start: set([(start, 0,)])}
 
@@ -232,6 +247,9 @@ class Graph(object):
         return paths
 
     def getPathsFromTo(self, start, end, length='min'):
+        if not self.hasNode(end):
+            log.error("Node %s not in graph %s", end, self.name)
+            raise KeyError("Node %s not in graph %s" % (end, self.name))
         paths = self.djikstra(start, length=length).get(end) or {}
         if type(length) == int:
             for path in paths:
