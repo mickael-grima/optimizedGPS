@@ -13,8 +13,8 @@ logging:
   disable_existing_loggers: true
   # Configuring the default (root) logger is highly recommended
   root:
-    level: !!python/name:logging.WARNING
-    handlers: [console]
+    level: !!python/name:logging.ERROR
+    handlers: [logfile]
   loggers:
     # Logging from my application
     # Problems
@@ -36,6 +36,10 @@ logging:
       handlers: [logfile]
       qualname: structure.GPSGraph
     # Simulator
+    simulator.FiniteHorizonSimulator:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: simulator.FiniteHorizonSimulator
     simulator.GPSSimulator:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
@@ -49,11 +53,28 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.StructureTest
+    tests.SimulatorTest:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: tests.SimulatorTest
+    tests.ProblemsTest:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: tests.ProblemsTest
     # worker
     worker:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: worker
+    # search problem
+    SearchProblem:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: SearchProblem
+    utils.tools:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: utils.tools
   handlers:
     logfile:
       class: logging.FileHandler

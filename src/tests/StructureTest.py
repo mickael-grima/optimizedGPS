@@ -85,7 +85,7 @@ class StructureTest(unittest.TestCase):
         self.assertFalse(graph.removeDriver('node1', 'node0', 2))
 
     def testParser(self):
-        graph = generate_graph_from_file('static/graph-test.graphml')
+        graph = generate_graph_from_file('static/graph-test-0.graphml')
 
         # Nodes
         self.assertTrue(graph.hasNode('n0'))
@@ -107,7 +107,7 @@ class StructureTest(unittest.TestCase):
         self.assertFalse(graph.hasEdge('n0', 'n1'))
 
         # data
-        self.assertEqual(graph.getData('n0'), {'geometry': {'x': '457.0', 'y': '296.0'}})
+        self.assertEqual(graph.getData('n0'), {'x': '457.0', 'y': '296.0'})
 
     def testDjikstra(self):
         graph = generate_graph_from_file('static/djikstra-test.graphml')

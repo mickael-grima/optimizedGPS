@@ -69,7 +69,7 @@ class GPSSimulator(Simulator):
                         nxt_edge = (self.paths[i][e + 1], self.paths[i][e + 2])
                         # compute how long we stay on next edge
                         clock, k = self.computeClock(nxt_edge), 0
-                        while k < len(clocks) and self.clocks[i][e][k] < clock:
+                        while k < len(self.clocks[i][e + 1]) and self.clocks[i][e + 1][k] < clock:
                             k += 1
                         self.clocks[i][e + 1].insert(k, clock)
                         self.times[nxt_edge] += clock
