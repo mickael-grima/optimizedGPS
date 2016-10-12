@@ -54,6 +54,9 @@ class GPSSimulator(Simulator):
     def reinitialize(self):
         self.initialize()
 
+    def get_total_time(self):
+        return sum([time for time in self.times.itervalues()])
+
     def computeClock(self, edge):
         return self.graph.getCongestionFunction(*edge)(self.graph.getEdgeProperty(edge[0], edge[1], 'traffic') or 0.0)
 

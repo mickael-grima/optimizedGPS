@@ -12,6 +12,7 @@ configure()
 import unittest
 from data_generator import generate_graph_from_file
 from SearchProblem import BacktrackingSearch
+from Heuristics import Heuristics
 
 
 class ProblemsTest(unittest.TestCase):
@@ -39,8 +40,8 @@ class ProblemsTest(unittest.TestCase):
 
         problem.simulate()
         print problem.current_value
-        print problem.step
-        print problem.cut
+
+        print Heuristics.shortest_path(graph)
 
 
 if __name__ == '__main__':

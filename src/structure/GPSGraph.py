@@ -114,6 +114,12 @@ class GPSGraph(Graph):
         log.warning("No driver from %s to %s with starting time %s in graph %s", start, end, starting_time, self.name)
         return False
 
+    def countDrivers(self):
+        res = 0
+        for _, _, _, nb in self.getAllDrivers():
+            res += nb
+        return res
+
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------
     # ----------------------------------------------------------------------------------------

@@ -99,6 +99,9 @@ class StructureTest(unittest.TestCase):
         self.assertFalse(graph.hasEdge('n1', 'n0'))  # is directed graph
         self.assertIsNone(graph.getEdgeProperties('n1', 'n0'))
         self.assertEqual({'n0 --> n1'}, set(map(lambda el: '%s --> %s' % (el[0], el[1]), graph.getAllEdges())))
+        for source, target in graph.getAllEdges():
+            self.assertTrue(graph.getEdgeProperty(source, target, "distance"))
+            self.assertGreater(float(graph.getEdgeProperty(source, target, "distance")), 0.0)
 
         # remove
         self.assertFalse(graph.removeNode('n2'))

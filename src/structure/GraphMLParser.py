@@ -222,8 +222,7 @@ class GraphMLParser(object):
                         if len(str(n)) == 0:
                             n = node.getAttribute('id')
                         geometry = shapenode.getElementsByTagName("y:Geometry")[0]
-                        g.addNode(n, geometry={'x': float(geometry.getAttribute('x')),
-                                               'y': float(geometry.getAttribute('y'))})
+                        g.addNode(n, posx=float(geometry.getAttribute('x')), posy=float(geometry.getAttribute('y')))
                         nodes[node.getAttribute('id')] = n
 
         # Get edges
@@ -232,9 +231,9 @@ class GraphMLParser(object):
                 if data.getAttribute("key") == "d10":
                     gen = data.getElementsByTagName("y:GenericEdge")
                     if gen:
-                        source = edge.getAttribute('source')
-                        target = edge.getAttribute('target')
-                        g.addEdge(nodes[source], nodes[target])
+                        source = nodes[edge.getAttribute('source')]
+                        target = nodes[edge.getAttribute('target')]
+                        g.addEdge(source, target)
 
                         distance = distance_default or self.__class__.compute_edge_distance(g, source, target)
                         g.setEdgeProperty(source, target, 'distance', distance / distance_factor)

@@ -33,7 +33,7 @@ class Graph(object):
     def addNode(self, node, **data):
         if not self.hasNode(node):
             self.__nodes[node] = {}
-            x, y = data.get('geometry', {}).get('x') or 0.0, data.get('geometry', {}).get('y') or 0.0
+            x, y = data.get('posx') or 0.0, data.get('posy') or 0.0
             self.addNodePosition(node, x, y)
             log.info("Node %s added in graph %s", node, self.name)
             return True
@@ -74,10 +74,10 @@ class Graph(object):
     def hasEdge(self, source, target):
         return self.hasNode(source) and self.hasNode(target) and target in self.__nodes[source]
 
-    def addEdge(self, source, target, **kwards):
+    def addEdge(self, source, target, **data):
         if self.hasNode(source) and self.hasNode(target):
             if not self.hasEdge(source, target):
-                self.__nodes[source][target] = kwards
+                self.__nodes[source][target] = data
                 log.info("Edge added between nodes %s and %s in graph %s", source, target, self.name)
                 return True
             log.warning("Edge already exists between nodes %s and %s in graph %s", source, target, self.name)
