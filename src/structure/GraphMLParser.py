@@ -193,7 +193,13 @@ class GraphMLParser(object):
         f = open(fname, 'w')
         f.write(doc.toprettyxml(indent='    '))
 
-    def parse(self, fname):
+    @classmethod
+    def compute_edge_distance(cls, graph, source, target):
+        sx, sy = graph.getData(source).get('x') or 0.0, graph.getData(source).get('y') or 0.0
+        tx, ty = graph.getData(target).get('x') or 0.0, graph.getData(target).get('y') or 0.0
+        return math.sqrt((sy - sx) * (sy - sx) + (ty - tx) * (ty - tx))
+
+    def parse(self, fname, distance_factor=1.0, distance_default=0.0):
         """
         """
         dom = minidom.parse(open(fname, 'r'))
@@ -216,17 +222,21 @@ class GraphMLParser(object):
                         if len(str(n)) == 0:
                             n = node.getAttribute('id')
                         geometry = shapenode.getElementsByTagName("y:Geometry")[0]
-                        g.addNode(n, geometry={'x': geometry.getAttribute('x'),
-                                               'y': geometry.getAttribute('y')})
+                        g.addNode(n, geometry={'x': float(geometry.getAttribute('x')),
+                                               'y': float(geometry.getAttribute('y'))})
                         nodes[node.getAttribute('id')] = n
 
         # Get edges
         for edge in graph.getElementsByTagName("edge"):
             for data in edge.getElementsByTagName("data"):
                 if data.getAttribute("key") == "d10":
-                    if data.getElementsByTagName("y:GenericEdge"):
+                    gen = data.getElementsByTagName("y:GenericEdge")
+                    if gen:
                         source = edge.getAttribute('source')
                         target = edge.getAttribute('target')
                         g.addEdge(nodes[source], nodes[target])
+
+                        distance = distance_default or self.__class__.compute_edge_distance(g, source, target)
+                        g.setEdgeProperty(source, target, 'distance', distance / distance_factor)
 
         return g

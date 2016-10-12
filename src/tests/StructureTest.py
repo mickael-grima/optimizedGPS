@@ -107,7 +107,7 @@ class StructureTest(unittest.TestCase):
         self.assertFalse(graph.hasEdge('n0', 'n1'))
 
         # data
-        self.assertEqual(graph.getData('n0'), {'x': '457.0', 'y': '296.0'})
+        self.assertEqual(graph.getData('n0'), {'x': 457.0, 'y': 296.0})
 
     def testDjikstra(self):
         graph = generate_graph_from_file('static/djikstra-test.graphml')

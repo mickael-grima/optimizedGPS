@@ -29,9 +29,9 @@ def generate_grid_data(length=5, width=5, **kwards):
     return graph
 
 
-def generate_graph_from_file(file_loc):
+def generate_graph_from_file(file_loc, **kwards):
     if file_loc.endswith('.graphml'):
-        return GraphMLParser().parse(file_loc)
+        return GraphMLParser().parse(file_loc, **kwards)
     return None
 
 

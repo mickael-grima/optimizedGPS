@@ -17,7 +17,7 @@ from SearchProblem import BacktrackingSearch
 class ProblemsTest(unittest.TestCase):
 
     def testSearchProblem(self):
-        graph = generate_graph_from_file('static/grid-graph-2-3-test.graphml')
+        graph = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)
 
         graph.addDriver('1', '6', starting_time=0)
         graph.addDriver('1', '6', starting_time=1, nb=2)
@@ -26,9 +26,6 @@ class ProblemsTest(unittest.TestCase):
         graph.addDriver('3', '6', starting_time=0)
         graph.addDriver('3', '6', starting_time=1)
         graph.addDriver('3', '6', starting_time=2)
-
-        for source, target in graph.getAllEdges():
-            graph.setEdgeProperty(source, target, 'distance', 1.0)
 
         allowed_paths = []
         # for p in graph.getPathsFromTo('1', '6', length=5):
