@@ -182,9 +182,9 @@ class Graph(object):
     # ------------------------------------ ALGORITHMS ----------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def djikstra(self, start, length='min'):
+    def djikstra(self, start, end, length=0):
         """ find every path from start with given length
-            options `length`: if 'min' stop when every nodes have been discovered.
+            options `length`: if 0 stop when every nodes have been discovered.
                               if integer >= 0 stop when every path with given length has been discovered
         """
         if not self.hasNode(start):
@@ -196,11 +196,12 @@ class Graph(object):
         # Set the distance for the start node to zero
         nexts = {0: set([start])}
         distances = [0]
+        min_length = None
 
         # Unvisited nodes
-        visited = set([start]) if length == 'min' else set()
+        visited = set([start]) if length > 0 else set()
 
-        while len(distances) and distances[0] <= length:
+        while min_length is None or (len(distances) > 0 and distances[0] <= min_length + length):
             # Pops a vertex with the smallest distance
             d = distances[0]
             current = nexts[d].pop()
@@ -216,13 +217,15 @@ class Graph(object):
                     continue
 
                 # else add t in visited
-                if length == 'min':
+                if length == 0:
                     visited.add(n)
 
                 # compute new distance
                 new_dist = d + self.getEdgeProperty(current, n, 'distance')
-                if new_dist > length:
+                if min_length is not None and new_dist > min_length + length:
                     continue
+                if min_length is None and n == end:
+                    min_length = new_dist
 
                 # add new node in nexts and distances
                 nexts.setdefault(new_dist, set())
@@ -244,15 +247,12 @@ class Graph(object):
                     if p[-1] == d:
                         paths[n].add(p[:-1] + (n, new_dist,))
 
-        return paths
+        return {n: set([path for path in ps if path[-2] == end]) for n, ps in paths.iteritems()}
 
-    def getPathsFromTo(self, start, end, length='min'):
+    def getPathsFromTo(self, start, end, length=0):
         if not self.hasNode(end):
             log.error("Node %s not in graph %s", end, self.name)
             raise KeyError("Node %s not in graph %s" % (end, self.name))
-        paths = self.djikstra(start, length=length).get(end) or {}
-        if type(length) == int:
-            for path in paths:
-                yield path[:-1]
-        elif length == 'min':
-            yield min(paths, key=lambda path: path[-1])[:-1]
+        paths = self.djikstra(start, end, length=length).get(end) or {}
+        for path in paths:
+            yield path[:-1]

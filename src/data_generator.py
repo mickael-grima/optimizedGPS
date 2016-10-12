@@ -39,6 +39,7 @@ def generate_graph_from_file(file_loc, **kwards):
     return None
 
 
+# TODO be sure end is reachable from start
 def generate_random_drivers(graph, total_drivers=10, av_drivers=3, seed=None):
     random.seed(seed)
     total = total_drivers

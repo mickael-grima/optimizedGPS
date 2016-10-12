@@ -10,9 +10,10 @@ from logger import configure
 configure()
 
 import unittest
-from data_generator import generate_graph_from_file
+from data_generator import generate_graph_from_file, generate_grid_data, generate_random_drivers
 from SearchProblem import BacktrackingSearch
-from Heuristics import Heuristics
+from Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic
+from Comparator import Comparator, MultipleGraphComparator
 
 
 class ProblemsTest(unittest.TestCase):
@@ -28,20 +29,41 @@ class ProblemsTest(unittest.TestCase):
         graph.addDriver('3', '6', starting_time=1)
         graph.addDriver('3', '6', starting_time=2)
 
-        allowed_paths = []
-        # for p in graph.getPathsFromTo('1', '6', length=5):
-        #     allowed_paths.append(p)
-        # for p in graph.getPathsFromTo('2', '6', length=5):
-        #     allowed_paths.append(p)
-        # for p in graph.getPathsFromTo('3', '6', length=5):
-        #     allowed_paths.append(p)
+        comparator = Comparator()
+        comparator.setGraph(graph)
+        comparator.setOptimalAlgorithm(BacktrackingSearch)
+        comparator.appendAlgorithm(ShortestPathHeuristic)
 
-        problem = BacktrackingSearch(graph, allowed_paths=allowed_paths)
+        print comparator.compare()
 
-        problem.simulate()
-        print problem.current_value
+    def testMultipleGraphComparator(self):
+        graph0 = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)
+        graph0.addDriver('1', '6', starting_time=0)
+        graph0.addDriver('1', '6', starting_time=1, nb=2)
+        graph0.addDriver('2', '6', starting_time=0)
+        graph0.addDriver('2', '6', starting_time=2)
+        graph0.addDriver('3', '6', starting_time=0)
+        graph0.addDriver('3', '6', starting_time=1)
+        graph0.addDriver('3', '6', starting_time=2)
 
-        print Heuristics.shortest_path(graph)
+        graph1 = generate_grid_data(length=3, width=5, graph_name='graph1')
+        graph1.addDriver('n_0_0', 'n_2_4', starting_time=0)
+        graph1.addDriver('n_0_0', 'n_2_4', starting_time=1, nb=2)
+        # graph1.addDriver('n_0_1', 'n_2_4', starting_time=0)
+        # graph1.addDriver('n_0_1', 'n_2_4', starting_time=2)
+        # graph1.addDriver('n_1_0', 'n_2_4', starting_time=0)
+        # graph1.addDriver('n_1_0', 'n_2_4', starting_time=1)
+        # graph1.addDriver('n_1_0', 'n_2_4', starting_time=2)
+
+        graphs = [graph0, graph1]
+
+        comparator = MultipleGraphComparator()
+        comparator.appendGraphs(*graphs)
+        comparator.setOptimalAlgorithm(BacktrackingSearch, timeout=20)
+        comparator.appendAlgorithm(ShortestPathHeuristic, timeout=20)
+        comparator.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=20)
+
+        print comparator.compare()
 
 
 if __name__ == '__main__':

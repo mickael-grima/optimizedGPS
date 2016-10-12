@@ -66,37 +66,37 @@ class SimulatorTest(unittest.TestCase):
 
         # initialization
         self.assertEqual([{-1: [1, 1], 0: []}, {-1: [0, 1], 0: [], 1: []}], simulator.clocks)
-        self.assertEqual({(1, 2): 0, (2, 3): 0}, simulator.times)
+        self.assertEqual(0, simulator.time)
 
         simulator.next()
         # 1st step
         self.assertEqual([{-1: [1, 1], 0: []}, {-1: [1], 0: [1], 1: []}], simulator.clocks)
-        self.assertEqual({(1, 2): 1, (2, 3): 0}, simulator.times)
+        self.assertEqual(1, simulator.time)
 
         simulator.next()
         # 2nd step
         self.assertEqual([{-1: [], 0: [1, 2]}, {-1: [], 0: [2], 1: [17]}], simulator.clocks)
-        self.assertEqual({(1, 2): 3, (2, 3): 20}, simulator.times)
+        self.assertEqual(23, simulator.time)
 
         simulator.next()
         # 3rd step
         self.assertEqual([{-1: [], 0: [1]}, {-1: [], 0: [1], 1: [16]}], simulator.clocks)
-        self.assertEqual({(1, 2): 3, (2, 3): 20}, simulator.times)
+        self.assertEqual(23, simulator.time)
 
         simulator.next()
         # 4th step
         self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: [15, 82]}], simulator.clocks)
-        self.assertEqual({(1, 2): 3, (2, 3): 102}, simulator.times)
+        self.assertEqual(105, simulator.time)
 
         simulator.next()
         # 5th step
         self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: [67]}], simulator.clocks)
-        self.assertEqual({(1, 2): 3, (2, 3): 102}, simulator.times)
+        self.assertEqual(105, simulator.time)
 
         simulator.next()
         # 5th step
         self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: []}], simulator.clocks)
-        self.assertEqual({(1, 2): 3, (2, 3): 102}, simulator.times)
+        self.assertEqual(105, simulator.time)
 
         # end
         self.assertFalse(simulator.has_next())
@@ -111,35 +111,35 @@ class SimulatorTest(unittest.TestCase):
         simulator = FiniteHorizonSimulator(graph)
 
         # Initialization
-        state = "Drivers ('1', '4', 0) are on path () and move in 0.0 time's unit(s). 1 of them are waiting for next edges.\n"
-        state += "Drivers ('1', '4', 1) are on path () and move in 1.0, 1.0 time's unit(s). 2 of them are waiting for next edges.\n"
-        state += "Drivers ('2', '4', 1) are on path () and move in 1.0 time's unit(s). 1 of them are waiting for next edges.\n"
+        state = "Drivers ('1', '4', 0) are on path ('1',) and move in 0.0 time's unit(s). 1 of them are waiting for next edges.\n"
+        state += "Drivers ('1', '4', 1) are on path ('1',) and move in 1.0, 1.0 time's unit(s). 2 of them are waiting for next edges.\n"
+        state += "Drivers ('2', '4', 1) are on path ('2',) and move in 1.0 time's unit(s). 1 of them are waiting for next edges.\n"
         self.assertEqual(state, simulator.print_state())
 
         # 1st step
         nxt_edges = {
-            get_id((('1', '4', 0), ())): {('1', '2'): 1},
-            get_id((('1', '4', 1), ())): {('1', '3'): 1, ('1', '2'): 1},
-            get_id((('2', '4', 1), ())): {('2', '4'): 1}
+            get_id((('1', '4', 0), ('1',))): {('1', '2'): 1},
+            get_id((('1', '4', 1), ('1',))): {('1', '3'): 1, ('1', '2'): 1},
+            get_id((('2', '4', 1), ('2',))): {('2', '4'): 1}
         }
         simulator.updateNextEdges(nxt_edges)
-        state = "Drivers ('1', '4', 0) are on path () and move in 0.0 time's unit(s). 1 will move on edge ('1', '2').\n"
-        state += "Drivers ('1', '4', 1) are on path () and move in 1.0, 1.0 time's unit(s). 1 will move on edge ('1', '2'), 1 will move on edge ('1', '3').\n"
-        state += "Drivers ('2', '4', 1) are on path () and move in 1.0 time's unit(s). 1 will move on edge ('2', '4').\n"
+        state = "Drivers ('1', '4', 0) are on path ('1',) and move in 0.0 time's unit(s). 1 will move on edge ('1', '2').\n"
+        state += "Drivers ('1', '4', 1) are on path ('1',) and move in 1.0, 1.0 time's unit(s). 1 will move on edge ('1', '2'), 1 will move on edge ('1', '3').\n"
+        state += "Drivers ('2', '4', 1) are on path ('2',) and move in 1.0 time's unit(s). 1 will move on edge ('2', '4').\n"
         self.assertEqual(state, simulator.print_state())
 
         simulator.next()
         state = "Drivers ('1', '4', 0) are on path ('1', '2') and move in 1.0 time's unit(s). 1 of them are waiting for next edges.\n"
-        state += "Drivers ('1', '4', 1) are on path () and move in 1.0, 1.0 time's unit(s). 1 will move on edge ('1', '2'), 1 will move on edge ('1', '3').\n"
-        state += "Drivers ('2', '4', 1) are on path () and move in 1.0 time's unit(s). 1 will move on edge ('2', '4').\n"
+        state += "Drivers ('1', '4', 1) are on path ('1',) and move in 1.0, 1.0 time's unit(s). 1 will move on edge ('1', '2'), 1 will move on edge ('1', '3').\n"
+        state += "Drivers ('2', '4', 1) are on path ('2',) and move in 1.0 time's unit(s). 1 will move on edge ('2', '4').\n"
         self.assertEqual(state, simulator.print_state())
 
         # 2nd step
         nxt_edge = {get_id((('1', '4', 0), ('1', '2'))): {('2', '4'): 1}}
         simulator.updateNextEdges(nxt_edge)
         state = "Drivers ('1', '4', 0) are on path ('1', '2') and move in 1.0 time's unit(s). 1 will move on edge ('2', '4').\n"
-        state += "Drivers ('1', '4', 1) are on path () and move in 1.0, 1.0 time's unit(s). 1 will move on edge ('1', '2'), 1 will move on edge ('1', '3').\n"
-        state += "Drivers ('2', '4', 1) are on path () and move in 1.0 time's unit(s). 1 will move on edge ('2', '4').\n"
+        state += "Drivers ('1', '4', 1) are on path ('1',) and move in 1.0, 1.0 time's unit(s). 1 will move on edge ('1', '2'), 1 will move on edge ('1', '3').\n"
+        state += "Drivers ('2', '4', 1) are on path ('2',) and move in 1.0 time's unit(s). 1 will move on edge ('2', '4').\n"
         self.assertEqual(state, simulator.print_state())
 
         simulator.next()
@@ -149,7 +149,7 @@ class SimulatorTest(unittest.TestCase):
         state += "Drivers ('2', '4', 1) are on path ('2', '4') and move in 2.0 time's unit(s). They have reached the ending node.\n"
         self.assertEqual(state, simulator.print_state())
 
-        saved_state = simulator.getCurrentState()
+        saved_state = simulator.get_current_state()
 
         # 3rd step
         nxt_edge = {get_id((('1', '4', 1), ('1', '3'))): {('3', '4'): 1},
@@ -165,6 +165,7 @@ class SimulatorTest(unittest.TestCase):
         state = "Drivers ('1', '4', 1) are on path ('1', '2', '4') and move in 17.0 time's unit(s). They have reached the ending node.\n"
         state += "Drivers ('1', '4', 1) are on path ('1', '3', '4') and move in 1.0 time's unit(s). They have reached the ending node.\n"
         state += "Drivers ('2', '4', 1) are on path ('2', '4') and move in 1.0 time's unit(s). They have reached the ending node.\n"
+        state += "1 drivers ('1', '4', 0) are arrived. They've driven on path ('1', '2', '4').\n"
         self.assertEqual(state, simulator.print_state())
 
         # 4th step
@@ -173,20 +174,27 @@ class SimulatorTest(unittest.TestCase):
         state = "Drivers ('1', '4', 1) are on path ('1', '2', '4') and move in 17.0 time's unit(s). They have reached the ending node.\n"
         state += "Drivers ('1', '4', 1) are on path ('1', '3', '4') and move in 1.0 time's unit(s). They have reached the ending node.\n"
         state += "Drivers ('2', '4', 1) are on path ('2', '4') and move in 1.0 time's unit(s). They have reached the ending node.\n"
+        state += "1 drivers ('1', '4', 0) are arrived. They've driven on path ('1', '2', '4').\n"
         self.assertEqual(state, simulator.print_state())
 
         simulator.next()
         state = "Drivers ('1', '4', 1) are on path ('1', '2', '4') and move in 16.0 time's unit(s). They have reached the ending node.\n"
+        state += "1 drivers ('1', '4', 0) are arrived. They've driven on path ('1', '2', '4').\n"
+        state += "1 drivers ('1', '4', 1) are arrived. They've driven on path ('1', '3', '4').\n"
+        state += "1 drivers ('2', '4', 1) are arrived. They've driven on path ('2', '4').\n"
         self.assertEqual(state, simulator.print_state())
 
         # 5th step
         simulator.next()
-        state = ''
+        state = "1 drivers ('1', '4', 0) are arrived. They've driven on path ('1', '2', '4').\n"
+        state += "1 drivers ('1', '4', 1) are arrived. They've driven on path ('1', '2', '4').\n"
+        state += "1 drivers ('1', '4', 1) are arrived. They've driven on path ('1', '3', '4').\n"
+        state += "1 drivers ('2', '4', 1) are arrived. They've driven on path ('2', '4').\n"
         self.assertEqual(state, simulator.print_state())
 
         # Final
         self.assertFalse(simulator.has_next())
-        self.assertEqual(simulator.get_total_time(), 24)
+        self.assertEqual(simulator.get_value(), 24)
 
         # saved state
         simulator.reinitialize(state=saved_state)

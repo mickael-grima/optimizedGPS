@@ -22,34 +22,32 @@ class FiniteHorizonSimulator(Simulator):
         """ paths = {path: {time: nb_drivers}}
             for each path we associate pairs of time, nb of drivers starting at this time
         """
-        super(Simulator, self).__init__()
         assert_paths_in_graph(allowed_paths, graph, simulator_type=1)
-        self.graph = graph
+        super(FiniteHorizonSimulator, self).__init__(graph)
         # allowed paths: each driver should use one of these paths
         # if for a driver (start, end, time) we don't have any paths associated to (start, end)
         # then the driver can take any paths
         # here is stored the edges that are allowed in one path at least.
-        self.allowed_edges = {}  # TODO to modify completely: doesn't work
+        self.allowed_paths = {}  # TODO to modify completely: doesn't work
         for path in allowed_paths:
-            for edge in graph.getAllEdges():
-                i = 0
-                while i < len(path) and path[i] != edge[0]:
-                    i += 1
-                if i + 2 < len(path) and path[i + 1] == edge[1]:
-                    self.allowed_edges.setdefault(edge, {})
-                    self.allowed_edges[edge].setdefault((path[0], path[-1]), set())
-                    self.allowed_edges[edge][path[0], path[-1]].add(path[i + 1:])
+            s, t = path[0], path[-1]
+            self.allowed_paths.setdefault((s, t), {})
+            for i in range(1, len(path)):
+                self.allowed_paths[s, t].setdefault(path[:i], set())
+                self.allowed_paths[s, t][path[:i]].add(path[i])
         self.initialize()
 
     def initialize(self, initial_time=0):
         """ we declare here every variable which will be modified during the simulation
         """
-        self.previous_states = []
+        super(FiniteHorizonSimulator, self).initialize()
         # we use ids which we store here
         self.ids = {}
         self.drivers = {}  # how many drivers with given idd still on road
         # the drivers for whom we don't know the next edge
         self.moved = {}
+        # who is arrived
+        self.arrived = {}
         # the next edge where drivers will move
         self.next_moves = set()
         # for each edge we store the clocks of drivers on this edge
@@ -63,8 +61,8 @@ class FiniteHorizonSimulator(Simulator):
         self.traffics = {}
         # for the key out, we store the list of driver's clocks who didn't start yet (sorted)
         for s, e, t, n in self.graph.getAllDrivers():
-            idd, ind = get_id(((s, e, t), ())), None
-            self.ids[idd] = ((s, e, t), ())
+            idd, ind = get_id(((s, e, t), (s,))), None
+            self.ids[idd] = ((s, e, t), (s,))
             for _ in range(n):
                 ind = self.insert_new_clock(idd, ind=ind)
             self.drivers[idd] = n
@@ -76,78 +74,55 @@ class FiniteHorizonSimulator(Simulator):
         """ if state is not empty, it describes a previous step of the simulator.
             We restore the current state to this previous one
         """
-        if not state:
-            self.initialize()
-        else:
+        if not super(FiniteHorizonSimulator, self).reinitialize(state=state):
             self.drivers = state.get('drivers', self.drivers)
             self.moved = state.get('moved', self.moved)
+            self.arrived = state.get('arrived', self.arrived)
             self.clocks = state.get('clocks', self.clocks)
             self.time = state.get('time', self.time)
             self.next_edges = state.get('next_edges', self.next_edges)
             self.traffics = state.get('traffics', self.traffics)
             self.next_moves = state.get('next_moves', self.next_moves)
             self.ids = state.get('ids', self.ids)
+            return True
+        return False
 
-    def getCurrentState(self):
-        drivers = {}
+    def get_current_state(self):
+        state = super(FiniteHorizonSimulator, self).get_current_state()
+
+        state['drivers'] = {}
         for idd, n in self.drivers.iteritems():
-            drivers[idd] = n
-        moved = {}
+            state['drivers'][idd] = n
+        state['moved'] = {}
         for idd, n in self.moved.iteritems():
-            moved[idd] = n
-        clocks = {}
+            state['moved'][idd] = n
+        state['arrived'] = {}
+        for key, n in self.arrived.iteritems():
+            state['arrived'][key] = n
+        state['clocks'] = {}
         for e, lst in self.clocks.iteritems():
-            clocks[e] = []
+            state['clocks'][e] = []
             for el in lst:
-                clocks[e].append(el)
-        time = self.time
-        next_edges = {}
+                state['clocks'][e].append(el)
+        state['next_edges'] = {}
         for idd, dct in self.next_edges.iteritems():
-            next_edges[idd] = {}
+            state['next_edges'][idd] = {}
             for edge, value in dct.iteritems():
-                next_edges[idd][edge] = value
-        traffics = {}
+                state['next_edges'][idd][edge] = value
+        state['traffics'] = {}
         for e, traffic in self.traffics.iteritems():
-            traffics[e] = traffic
-        next_moves = set()
+            state['traffics'][e] = traffic
+        state['next_moves'] = set()
         for edge in self.next_moves:
-            next_moves.add(edge)
-        ids = {}
+            state['next_moves'].add(edge)
+        state['ids'] = {}
         for idd, el in self.ids.iteritems():
-            ids[idd] = el
+            state['ids'][idd] = el
 
-        return {
-            'drivers': drivers,
-            'moved': moved,
-            'clocks': clocks,
-            'time': time,
-            'next_edges': next_edges,
-            'traffics': traffics,
-            'next_moves': next_moves,
-            'ids': ids
-        }
+        return state
 
     def getMovedDrivers(self):
         return self.moved.iteritems()
-
-    def get_total_time(self):
-        return self.time
-
-    def has_previous_state(self):
-        return len(self.previous_states) > 0
-
-    def save_current_state(self):
-        self.previous_states.append(self.getCurrentState())
-
-    def previous(self, state=None):
-        if state is not None:
-            self.reinitialize(state=state)
-        elif self.has_previous_state():
-            self.reinitialize(state=self.previous_states[-1])
-            del self.previous_states[-1]
-        else:
-            log.error("No previous state found")
-            raise Exception("No previous state found")
 
     # --------------------------------------------------------------------------------------------------------------
     # ------------------------------------- UPDATE EDGES ----------------------------------------------------------
@@ -161,11 +136,19 @@ class FiniteHorizonSimulator(Simulator):
         """
         # if driver didn't reach his end node
         driver, path = self.ids[idd]
-        if path == () or path[-1] != driver[1]:
+        if path[-1] != driver[1]:
             node = path[-1] if path else driver[0]
-            for n in self.graph.getSuccessors(node):
-                if n not in path:
-                    yield node, n
+            if (driver[0], driver[1]) in self.allowed_paths:
+                try:
+                    for n in self.allowed_paths[driver[0], driver[1]][path]:
+                        yield node, n
+                except KeyError:
+                    log.error("Driver %s on path %s: this path is not allowed", str(driver), str(path))
+                    raise KeyError("Driver %s on path %s: this path is not allowed" % (str(driver), str(path)))
+            else:
+                for n in self.graph.getSuccessors(node):
+                    if n not in path:
+                        yield node, n
 
     def possibilities_iterator(self, idd, n):
         """ IMPORTANT: we need here an iterator to optimize the cutting strategy
@@ -231,7 +214,7 @@ class FiniteHorizonSimulator(Simulator):
 
     def insert_new_clock(self, idd, ind=None):
         driver, path = self.ids[idd]
-        edge = (path[-2], path[-1]) if path else ()
+        edge = (path[-2], path[-1]) if len(path) > 1 else ()
         clock = self.compute_clock(edge) if edge != () else driver[2]
         self.clocks.setdefault(edge, [])
         if ind is None:
@@ -292,6 +275,10 @@ class FiniteHorizonSimulator(Simulator):
             raise ValueError("We removed more drivers %s on path %s than possible"
                              % (str(self.ids[idd][0]), str(self.ids[idd][1])))
 
+    def set_arrived(self, idd, nb=1):
+        self.arrived.setdefault(self.ids[idd], 0)
+        self.arrived[self.ids[idd]] += 1
+
     def moveToNextEdge(self):
         """ simulate the move of drivers to the next edges
         """
@@ -312,7 +299,7 @@ class FiniteHorizonSimulator(Simulator):
                     self.update_ids(idd, nb=-1)
 
                     # create new path and change the id
-                    path = path + (nxt_edge[1],) if path else nxt_edge
+                    path = path + (nxt_edge[1],)
                     idd = get_id((driver, path))
                     self.ids[idd] = (driver, path)
                     self.update_ids(idd)
@@ -320,6 +307,7 @@ class FiniteHorizonSimulator(Simulator):
                     self.update_traffics(nxt_edge)
                     self.update_moved(idd, nxt_edge)
                 else:
+                    self.set_arrived(idd)
                     self.update_ids(idd, nb=-1)
 
                 self.update_traffics(edge, nb=-1)
@@ -364,6 +352,13 @@ class FiniteHorizonSimulator(Simulator):
     # ---------------------------------- PRINT FUNCTIONS FOR TEST --------------------------------------------------
     # --------------------------------------------------------------------------------------------------------------
 
+    def get_current_solution(self):
+        sol = {}
+        for driver, path in self.arrived.iterkeys():
+            sol.setdefault(driver, set())
+            sol[driver].add(path)
+        return sol
+
     def print_state(self):
         """ we print for each driver, path how many drivers we have, and how long they will wait (clocks)
         """
@@ -394,6 +389,10 @@ class FiniteHorizonSimulator(Simulator):
             else:
                 txt += 'They have reached the ending node.'
             txt += '\n'
+
+        for (driver, path), n in sorted(self.arrived.iteritems(), key=lambda el: el):
+            txt += "%s drivers %s are arrived. They've driven on path %s.\n" % (n, str(driver), str(path))
+
         return txt
 
     def assert_consistency(self):
@@ -402,7 +401,7 @@ class FiniteHorizonSimulator(Simulator):
         for idd, (driver, path) in self.ids.iteritems():
             # Check if next_edges are consistent with path
             for e in self.next_edges.get(idd, {}).iterkeys():
-                if path and e[0] != path[-1]:
+                if e[0] != path[-1]:
                     log.error("Driver %s on path %s can't go on edge %s", str(driver), str(path), str(e))
                     raise Exception("Driver %s on path %s can't go on edge %s" % (str(driver), str(path), str(e)))
 
@@ -415,17 +414,17 @@ class FiniteHorizonSimulator(Simulator):
             count['next_edges'] = sum([n for n in self.next_edges.get(idd, {}).itervalues()])
             count['moved'] = self.moved.get(idd, 0)
 
-            if path and driver[1] != path[-1] and count['nb_clock'] != count['moved'] + count['next_edges']:
+            if driver[1] != path[-1] and count['nb_clock'] != count['moved'] + count['next_edges']:
                 log.error('Structure error for driver %s on path %s',
                           str(self.ids[idd][0]), str(self.ids[idd][1]))
                 raise Exception('Structure error for driver %s on path %s' %
                                 (str(self.ids[idd][0]), str(self.ids[idd][1])))
-            elif path and driver[1] == path[-1] and count['nb_clock'] < count['moved'] + count['next_edges']:
+            elif driver[1] == path[-1] and count['nb_clock'] < count['moved'] + count['next_edges']:
                 log.error('Structure error for driver %s on path %s',
                           str(self.ids[idd][0]), str(self.ids[idd][1]))
                 raise Exception('Structure error for driver %s on path %s' %
                                 (str(self.ids[idd][0]), str(self.ids[idd][1])))
-            elif path and driver[1] == path[-1] and count['next_edges'] > 0:
+            elif driver[1] == path[-1] and count['next_edges'] > 0:
                 log.error('Structure error for driver %s on path %s',
                           str(self.ids[idd][0]), str(self.ids[idd][1]))
                 raise Exception('Structure error for driver %s on path %s' %

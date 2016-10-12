@@ -36,6 +36,10 @@ logging:
       handlers: [logfile]
       qualname: structure.GPSGraph
     # Simulator
+    simulator.Simulator:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: simulator.Simulator
     simulator.FiniteHorizonSimulator:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
@@ -66,15 +70,24 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: worker
-    # search problem
+    # problem
+    problems.Problem:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: problems.Problem
     SearchProblem:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: SearchProblem
-    utils.tools:
+    Heuristics:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
-      qualname: utils.tools
+      qualname: Heuristics
+    #Comparator
+    Comparator:
+      level: !!python/name:logging.DEBUG
+      handlers: [logfile]
+      qualname: Comparator
   handlers:
     logfile:
       class: logging.FileHandler

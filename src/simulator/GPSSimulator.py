@@ -8,6 +8,7 @@ Created on Wed Apr 01 21:38:37 2015
 from Simulator import Simulator
 from utils.tools import assert_paths_in_graph
 import logging
+import time
 
 log = logging.getLogger(__name__)
 
@@ -20,22 +21,27 @@ class GPSSimulator(Simulator):
         """ paths = {path: {time: nb_drivers}}
             for each path we associate pairs of time, nb of drivers starting at this time
         """
-        super(GPSSimulator, self).__init__()
         assert_paths_in_graph(paths, graph)
-        self.graph = graph
+        super(GPSSimulator, self).__init__(graph)
         self.paths = list(paths.iterkeys())
         props, i = {}, 0
         for i in range(len(self.paths)):
             path = self.paths[i]
             dct = paths[path]
-            for time, nb in dct.iteritems():
-                props.setdefault((path[0], path[-1], time), {})
-                props[path[0], path[-1], time][i] = nb
-        for (s, e, t), dct in props.iteritems():
+            for t, nb in dct.iteritems():
+                props.setdefault((path[0], path[-1], t), {})
+                props[path[0], path[-1], t][i] = nb
+        for s, e, t, _ in self.graph.getAllDrivers():
+            try:
+                dct = props[s, e, t]
+            except KeyError:
+                log.warning("Drivers %s have no path attribuated in GPSSimulator", str((s, e, t)))
+                continue
             self.graph.setDriversProperty(s, e, 'paths', dct, starting_time=t)
         self.initialize()
 
     def initialize(self, initial_time=0):
+        super(GPSSimulator, self).initialize()
         self.nb_driver = 0  # == number of drivers in graph if there are still drivers in graph
         # for each path's index and for each edge in the path, we store a list of clocks
         self.clocks = [{i: [] for i in range(len(path) - 1)} for path in self.paths]
@@ -48,14 +54,29 @@ class GPSSimulator(Simulator):
                 for k in range(n):
                     self.clocks[i][-1].insert(j, t)
                 self.nb_driver += n
-        # how long has the driver been on the road
-        self.times = {e: 0 for e in self.graph.getAllEdges()}
 
-    def reinitialize(self):
-        self.initialize()
+    def reinitialize(self, state=None):
+        super(GPSSimulator, self).reinitialize(state=state)
 
-    def get_total_time(self):
-        return sum([time for time in self.times.itervalues()])
+    def get_current_state(self):
+        state = super(GPSSimulator, self).get_current_state()
+
+        state['nb_driver'] = self.nb_driver
+        state['clocks'] = {}
+        for dct in self.clocks:
+            state['clocks'].append({idd: [c for c in l] for idd, l in dct.iteritems()})
+
+        return state
+
+    def get_running_time(self):
+        t = time.time()
+        while self.has_next():
+            self.next()
+        return time.time() - t
+
+    # --------------------------------------------------------------------------------------------------------------
+    # ---------------------------------- SIMULATION FUNCTIONS ------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------------------
 
     def computeClock(self, edge):
         return self.graph.getCongestionFunction(*edge)(self.graph.getEdgeProperty(edge[0], edge[1], 'traffic') or 0.0)
@@ -75,7 +96,7 @@ class GPSSimulator(Simulator):
                         while k < len(self.clocks[i][e + 1]) and self.clocks[i][e + 1][k] < clock:
                             k += 1
                         self.clocks[i][e + 1].insert(k, clock)
-                        self.times[nxt_edge] += clock
+                        self.time += clock
                         traffic = self.graph.getEdgeProperty(nxt_edge[0], nxt_edge[1], 'traffic') or 0
                         self.graph.setEdgeProperty(nxt_edge[0], nxt_edge[1], 'traffic', traffic + 1)
                     else:  # we kill the driver
@@ -109,12 +130,10 @@ class GPSSimulator(Simulator):
             log.error("StopIteration: No drivers on graph")
             raise StopIteration("No drivers on graph")
 
-    def previous(self):
-        """ previous step in the simulation
-        """
-        pass
-
-    def to_image(self):
-        """ Produce an image describing the current step
-        """
-        raise NotImplementedError()
+    def get_current_solution(self):
+        sol = {}
+        for s, e, t, n in self.graph.getAllDrivers():
+            sol[s, e, t] = set()
+            for i in self.graph.getDriversProperty(s, e, 'paths', starting_time=t).iterkeys():
+                sol[s, e, t].add(self.paths[i])
+        return sol

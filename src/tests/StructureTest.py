@@ -119,7 +119,7 @@ class StructureTest(unittest.TestCase):
 
         self.assertEqual(('n0', 'n6', 'n1'), graph.getPathsFromTo('n0', 'n1').next())
         self.assertEqual({('n0', 'n6', 'n1'), ('n0', 'n4', 'n5', 'n1')},
-                         set(graph.getPathsFromTo('n0', 'n1', length=3)))
+                         set(graph.getPathsFromTo('n0', 'n1', length=1)))
 
 
 if __name__ == '__main__':
