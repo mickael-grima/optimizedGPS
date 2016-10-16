@@ -16,8 +16,8 @@ class BacktrackingSearch(Problem):
         WARNING: we always handle minimum optimization problem
     """
 
-    def __init__(self, graph, allowed_paths=[], initial_value=sys.maxint, timeout=sys.maxint):
-        super(BacktrackingSearch, self).__init__(timeout=timeout)
+    def __init__(self, graph, name='', allowed_paths=[], initial_value=sys.maxint, timeout=sys.maxint):
+        super(BacktrackingSearch, self).__init__(name=name or self.__class__.__name__, timeout=timeout)
         self.simulator = FiniteHorizonSimulator(graph, allowed_paths=allowed_paths)
         # initial value
         self.value = initial_value
@@ -55,6 +55,8 @@ class BacktrackingSearch(Problem):
                     self.opt_solution = self.simulator.get_current_solution()
 
     def solve(self):
+        super(BacktrackingSearch, self).solve()
         t = time.time()
         self.simulate(timeout=self.timeout)
         self.running_time = time.time() - t
+        log.info("-------------- %s: Solve TERMINATED --------------" % self.name)

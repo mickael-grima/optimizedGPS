@@ -14,8 +14,8 @@ log = logging.getLogger(__name__)
 class ShortestPathHeuristic(Problem):
     """ We handle here the heuristics
     """
-    def __init__(self, graph, timeout=sys.maxint):
-        super(ShortestPathHeuristic, self).__init__(timeout=timeout)
+    def __init__(self, graph, name='', timeout=sys.maxint):
+        super(ShortestPathHeuristic, self).__init__(name=name or self.__class__.__name__, timeout=timeout)
         self.graph = graph
         paths = {}
         for start, end, t, nb in self.graph.getAllDrivers():
@@ -45,9 +45,14 @@ class ShortestPathHeuristic(Problem):
 
 
 class AllowedPathsHeuristic(BacktrackingSearch):
-    def __init__(self, graph, initial_value=sys.maxint, diff_length=0, timeout=sys.maxint):
+    def __init__(self, graph, name='', initial_value=sys.maxint, diff_length=0, timeout=sys.maxint):
         allowed_paths = []
         for s, t, _, _ in graph.getAllDrivers():
             allowed_paths.extend(graph.getPathsFromTo(s, t, length=diff_length))
-        super(AllowedPathsHeuristic, self).__init__(graph, initial_value=initial_value, allowed_paths=allowed_paths,
-                                                    timeout=timeout)
+        super(AllowedPathsHeuristic, self).__init__(
+            graph,
+            name=name or self.__class__.__name__,
+            initial_value=initial_value,
+            allowed_paths=allowed_paths,
+            timeout=timeout
+        )
