@@ -2,7 +2,7 @@
 # !/bin/env python
 
 from simulator.FiniteHorizonSimulator import FiniteHorizonSimulator
-from problems.Problem import Problem
+from Problem import SimulatorProblem
 import sys
 import logging
 import time
@@ -10,7 +10,7 @@ import time
 log = logging.getLogger(__name__)
 
 
-class BacktrackingSearch(Problem):
+class BacktrackingSearch(SimulatorProblem):
     """ class to run a backtracking algorithm using a "finite horizon" simulator
 
         WARNING: we always handle minimum optimization problem
@@ -52,9 +52,4 @@ class BacktrackingSearch(Problem):
                 value = self.simulator.get_value()
                 if value < self.value:
                     self.value = value
-                    self.opt_solution = self.simulator.get_current_solution()
-
-    def solve(self):
-        t = time.time()
-        self.simulate(timeout=self.timeout)
-        self.running_time = time.time() - t
+                    self.setOptimalSolution()

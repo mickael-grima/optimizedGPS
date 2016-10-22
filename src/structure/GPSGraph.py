@@ -3,7 +3,8 @@
 
 import logging
 from Graph import Graph
-from utils.tools import congestion_function
+from Driver import Driver
+from utils.tools import congestion_function, time_congestion_function
 
 log = logging.getLogger(__name__)
 
@@ -87,6 +88,15 @@ class GPSGraph(Graph):
                 for time, props in d.iteritems():
                     yield start, end, time, props['nb']
 
+    def getAllUniqueDrivers(self):
+        """ return the drivers making them unique if more than one for same starting, ending nodes and starting time
+        """
+        for start, dct in self.__drivers.iteritems():
+            for end, d in dct.iteritems():
+                for time, props in d.iteritems():
+                    for _ in range(props['nb']):
+                        yield Driver(start, end, time)
+
     def getAllDriversFromStartingNode(self, start):
         for end, dct in self.__drivers.get(start, {}).iteritems():
             for time, props in dct.iteritems():
@@ -127,3 +137,7 @@ class GPSGraph(Graph):
     def getCongestionFunction(self, source, target):
         if self.hasEdge(source, target):
             return congestion_function(**self.getEdgeProperties(source, target))
+
+    def getTimeCongestionFunction(self, source, target):
+        if self.hasEdge(source, target):
+            return time_congestion_function(**self.getEdgeProperties(source, target))

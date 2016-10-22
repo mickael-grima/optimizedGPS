@@ -10,10 +10,10 @@ from logger import configure
 configure()
 
 import unittest
-from simulator.GPSSimulator import GPSSimulator
-from simulator.FiniteHorizonSimulator import FiniteHorizonSimulator
-from simulator.utils.tools import get_id
-from data_generator import generate_graph_from_file
+from problems.simulator.GPSSimulator import GPSSimulator
+from problems.simulator.FiniteHorizonSimulator import FiniteHorizonSimulator
+from problems.simulator.utils.tools import get_id
+from structure.data_generator import generate_graph_from_file
 from structure.GPSGraph import GPSGraph
 
 
@@ -75,28 +75,28 @@ class SimulatorTest(unittest.TestCase):
 
         simulator.next()
         # 2nd step
-        self.assertEqual([{-1: [], 0: [1, 2]}, {-1: [], 0: [2], 1: [17]}], simulator.clocks)
-        self.assertEqual(23, simulator.time)
+        self.assertEqual([{-1: [], 0: [1, 2]}, {-1: [], 0: [1], 1: [17]}], simulator.clocks)
+        self.assertEqual(22, simulator.time)
 
         simulator.next()
         # 3rd step
-        self.assertEqual([{-1: [], 0: [1]}, {-1: [], 0: [1], 1: [16]}], simulator.clocks)
-        self.assertEqual(23, simulator.time)
+        self.assertEqual([{-1: [], 0: [1]}, {-1: [], 0: [], 1: [16, 17]}], simulator.clocks)
+        self.assertEqual(39, simulator.time)
 
         simulator.next()
         # 4th step
-        self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: [15, 82]}], simulator.clocks)
-        self.assertEqual(105, simulator.time)
+        self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: [15, 16]}], simulator.clocks)
+        self.assertEqual(39, simulator.time)
 
         simulator.next()
         # 5th step
-        self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: [67]}], simulator.clocks)
-        self.assertEqual(105, simulator.time)
+        self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: [1]}], simulator.clocks)
+        self.assertEqual(39, simulator.time)
 
         simulator.next()
         # 5th step
         self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: []}], simulator.clocks)
-        self.assertEqual(105, simulator.time)
+        self.assertEqual(39, simulator.time)
 
         # end
         self.assertFalse(simulator.has_next())

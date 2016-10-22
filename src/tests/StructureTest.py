@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 import unittest
 from structure.Graph import Graph
 from structure.GPSGraph import GPSGraph
-from data_generator import generate_graph_from_file
+from structure.data_generator import generate_graph_from_file
 
 
 class StructureTest(unittest.TestCase):

@@ -3,8 +3,8 @@
 
 # In this file we generate all kind of data: real one, random one, ...
 
-from structure.GPSGraph import GPSGraph
-from structure.GraphMLParser import GraphMLParser
+from GPSGraph import GPSGraph
+from GraphMLParser import GraphMLParser
 import random
 
 

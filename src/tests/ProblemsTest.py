@@ -10,9 +10,10 @@ from logger import configure
 configure()
 
 import unittest
-from data_generator import generate_graph_from_file, generate_grid_data, generate_random_drivers
-from SearchProblem import BacktrackingSearch
-from Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic
+from structure.data_generator import generate_graph_from_file, generate_grid_data, generate_random_drivers
+from problems.SearchProblem import BacktrackingSearch
+from problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic
+from problems.Models import ContinuousTimeModel
 from Comparator import Comparator, MultipleGraphComparator
 
 
@@ -31,7 +32,7 @@ class ProblemsTest(unittest.TestCase):
 
         comparator = Comparator()
         comparator.setGraph(graph)
-        comparator.setOptimalAlgorithm(BacktrackingSearch)
+        comparator.appendAlgorithm(BacktrackingSearch)
         comparator.appendAlgorithm(ShortestPathHeuristic)
 
         print comparator.compare()
@@ -59,9 +60,10 @@ class ProblemsTest(unittest.TestCase):
 
         comparator = MultipleGraphComparator()
         comparator.appendGraphs(*graphs)
-        comparator.setOptimalAlgorithm(BacktrackingSearch, timeout=20)
-        comparator.appendAlgorithm(ShortestPathHeuristic, timeout=20)
-        comparator.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=20)
+        comparator.appendAlgorithm(BacktrackingSearch, timeout=2)
+        comparator.appendAlgorithm(ShortestPathHeuristic, timeout=2)
+        comparator.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=2)
+        comparator.appendAlgorithm(ContinuousTimeModel, timeout=2)
 
         print comparator.compare()
 

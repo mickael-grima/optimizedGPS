@@ -137,18 +137,17 @@ class FiniteHorizonSimulator(Simulator):
         # if driver didn't reach his end node
         driver, path = self.ids[idd]
         if path[-1] != driver[1]:
-            node = path[-1] if path else driver[0]
             if (driver[0], driver[1]) in self.allowed_paths:
                 try:
                     for n in self.allowed_paths[driver[0], driver[1]][path]:
-                        yield node, n
+                        yield path[-1], n
                 except KeyError:
                     log.error("Driver %s on path %s: this path is not allowed", str(driver), str(path))
                     raise KeyError("Driver %s on path %s: this path is not allowed" % (str(driver), str(path)))
             else:
-                for n in self.graph.getSuccessors(node):
+                for n in self.graph.getSuccessors(path[-1]):
                     if n not in path:
-                        yield node, n
+                        yield path[-1], n
 
     def possibilities_iterator(self, idd, n):
         """ IMPORTANT: we need here an iterator to optimize the cutting strategy
@@ -174,7 +173,10 @@ class FiniteHorizonSimulator(Simulator):
                 iterators.append(iterator)
                 ids.append((idd, n))
             except StopIteration:  # without possibility means driver is done
-                continue
+                log.error("No next edge for drivers %s who haven't reach his ending node yet. They drove on path %s",
+                          str(self.ids[idd][0]), str(self.ids[idd][1]))
+                raise Exception("No next edge for drivers %s who haven't reach his ending node yet."
+                                "They drove on path %s" % (str(self.ids[idd][0]), str(self.ids[idd][1])))
         yield possibility
 
         # explore each possibility
@@ -201,11 +203,12 @@ class FiniteHorizonSimulator(Simulator):
         """
         for idd, dct in next_edges.iteritems():
             if idd not in self.ids:
-                driver, path = self.ids[idd]
-                log.error("Driver %s missing in simulator's data for given path %s", str(driver), str(path))
-                raise KeyError("Driver %s missing in simulator's data for given path %s" % (str(driver), str(path)))
+                log.error("Id %s not in simulator's data", idd)
+                raise KeyError("Id %s not in simulator's data" % idd)
             self.next_edges.setdefault(idd, {})
-            self.next_edges[idd].update(dct)
+            for edge, nb in dct.iteritems():
+                self.next_edges[idd].setdefault(edge, 0)
+                self.next_edges[idd][edge] += nb
         self.moved = {}
 
     # --------------------------------------------------------------------------------------------------------------
@@ -259,6 +262,7 @@ class FiniteHorizonSimulator(Simulator):
 
     def update_moved(self, idd, edge, nb=1):
         # we remember that this driver has no next_edges
+        driver, path = self.ids[idd]
         if self.ids[idd][0][1] != edge[1]:
             self.moved.setdefault(idd, 0)
             self.moved[idd] += nb
@@ -276,8 +280,14 @@ class FiniteHorizonSimulator(Simulator):
                              % (str(self.ids[idd][0]), str(self.ids[idd][1])))
 
     def set_arrived(self, idd, nb=1):
+        driver, path = self.ids[idd]
+        if path[-1] != driver[1]:
+            log.error("Drivers %s are done, but they didn't reach final node. They drove on path %s",
+                      str(driver), str(path))
+            raise Exception("Drivers %s are done, but they didn't reach final node. They drove on path %s"
+                            % (str(driver), str(path)))
         self.arrived.setdefault(self.ids[idd], 0)
-        self.arrived[self.ids[idd]] += 1
+        self.arrived[self.ids[idd]] += nb
 
     def moveToNextEdge(self):
         """ simulate the move of drivers to the next edges
@@ -353,11 +363,9 @@ class FiniteHorizonSimulator(Simulator):
     # --------------------------------------------------------------------------------------------------------------
 
     def get_current_solution(self):
-        sol = {}
-        for driver, path in self.arrived.iterkeys():
-            sol.setdefault(driver, set())
-            sol[driver].add(path)
-        return sol
+        for (driver, path), n in self.arrived.iteritems():
+            for _ in range(n):
+                yield driver, path
 
     def print_state(self):
         """ we print for each driver, path how many drivers we have, and how long they will wait (clocks)

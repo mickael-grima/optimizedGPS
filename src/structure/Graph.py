@@ -144,6 +144,9 @@ class Graph(object):
             if edge[0] == node:
                 yield edge
 
+    def hasSuccessors(self, node):
+        return len(self.__nodes[node]) > 0
+
     def getSuccessors(self, node):
         for n in self.__nodes[node].iterkeys():
             yield n
@@ -154,6 +157,11 @@ class Graph(object):
                 if prop in ps:
                     yield n
                     break
+
+    def getPredecessors(self, node):
+        for n in self.getAllNodes():
+            if self.hasEdge(n, node):
+                yield n
 
     def assertIsAdjacentEdgeTo(self, edge, next_edge):
         if not self.hasEdge(*next_edge):
@@ -166,6 +174,13 @@ class Graph(object):
                       str(edge), str(next_edge), self.name)
             raise Exception('Current edge %s and next edge %s are not adjacent in graph %s'
                             % (str(edge), str(next_edge), self.name))
+
+    def isEdgeInPath(self, edge, path):
+        if self.hasEdge(*edge):
+            for i in range(len(path) - 1):
+                if path[i] == edge[0] and path[i + 1] == edge[1]:
+                    return True
+        return False
 
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ DATA ----------------------------------------------
@@ -256,3 +271,21 @@ class Graph(object):
         paths = self.djikstra(start, end, length=length).get(end) or {}
         for path in paths:
             yield path[:-1]
+
+    def djikstra_rec(self, start, end, paths={}):
+        if start != end:
+            for n in self.getSuccessors(start):
+                rec = False
+                for path in paths.get(start, []):
+                    if n not in path:
+                        paths.setdefault(n, set())
+                        if path + (n,) not in paths[n]:
+                            paths[n].add(path + (n,))
+                            rec = True
+                if rec:
+                    self.djikstra_rec(n, end, paths=paths)
+
+    def getAllPathsWithoutCycle(self, start, end):
+        paths = {start: set([(start,)])}
+        self.djikstra_rec(start, end, paths=paths)
+        return paths.get(end, set())

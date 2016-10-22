@@ -16,6 +16,12 @@ def congestion_function(**parameters):
         return lambda x: x * x * x * x + 1
 
 
+def time_congestion_function(**parameters):
+    """ TODO: find a convex pair function
+    """
+    return lambda x: 1
+
+
 def assert_has_graph_GUI_infos(graph):
     for node in graph.getAllNodes():
         if 'x' not in graph.getData(node) or 'y' not in graph.getData(node):

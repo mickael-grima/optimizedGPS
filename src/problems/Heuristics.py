@@ -2,7 +2,7 @@
 # !/bin/env python
 
 from simulator.GPSSimulator import GPSSimulator
-from problems.Problem import Problem
+from Problem import SimulatorProblem
 from SearchProblem import BacktrackingSearch
 import time
 import sys
@@ -11,16 +11,15 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class ShortestPathHeuristic(Problem):
+class ShortestPathHeuristic(SimulatorProblem):
     """ We handle here the heuristics
     """
     def __init__(self, graph, timeout=sys.maxint):
         super(ShortestPathHeuristic, self).__init__(timeout=timeout)
-        self.graph = graph
         paths = {}
-        for start, end, t, nb in self.graph.getAllDrivers():
+        for start, end, t, nb in graph.getAllDrivers():
             try:
-                path = self.graph.getPathsFromTo(start, end).next()
+                path = graph.getPathsFromTo(start, end).next()
             except StopIteration:
                 log.error("Imposible to find shortest path from node %s to node %s in graph %s",
                           start, end, graph.name)
@@ -28,9 +27,9 @@ class ShortestPathHeuristic(Problem):
                                 % (start, end, graph.name))
             paths.setdefault(path, {})
             paths[path][t] = nb
-        self.simulator = GPSSimulator(self.graph, paths)
+        self.simulator = GPSSimulator(graph, paths)
 
-    def solve(self):
+    def simulate(self):
         ct = time.time()
 
         # simulate
@@ -39,9 +38,7 @@ class ShortestPathHeuristic(Problem):
                 break
             self.simulator.next()
 
-        self.value = self.simulator.get_value()
-        self.running_time = time.time() - ct
-        self.opt_solution = self.simulator.get_current_solution()
+        self.setOptimalSolution()
 
 
 class AllowedPathsHeuristic(BacktrackingSearch):
