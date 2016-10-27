@@ -96,11 +96,13 @@ class Model(Problem):
         super(Model, self).__init__(timeout=timeout)
         self.model = gb.Model()
         self.graph = graph
+        params['TimeLimit'] = timeout
         self.setParameters(**params)
 
-    def setParameters(self, NumericFocus=0, Presolve=-1):
+    def setParameters(self, NumericFocus=0, Presolve=-1, TimeLimit=sys.maxint):
         self.model.setParam('NumericFocus', NumericFocus)
         self.model.setParam('Presolve', Presolve)
+        self.model.setParam('TimeLimit', TimeLimit)
 
     def buildVariables(self):
         self.model.update()
