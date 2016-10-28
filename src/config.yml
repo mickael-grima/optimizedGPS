@@ -118,16 +118,6 @@ logging:
       format: '%(asctime)s %(filename)-30s %(levelname)-8s: %(message)s'
       datefmt: '%Y-%m-%dT%T%Z'
 graphml:
-  traffic-colors:
-    no-traffic: '#C3FE01'
-    very-light-traffic: '#DCFE01'
-    light-traffic: '#EDFE01'
-    middle-light-traffic: '#F6FE01'
-    middle-dense-traffic: '#FEF601'
-    dense-traffic: '#FEBB01'
-    very-dense-traffic: '#FE8801'
-    traffic-jam: '#FE5E01'
-    apocalyptic-traffic: '#FE0101'
   geometry:
     node-size: 30.0
   attributes:
@@ -178,3 +168,24 @@ graphml:
     d10:
       for: "edge"
       yfiles.type: "edgegraphics"
+properties:
+  traffic-colors:
+    no-traffic: '#C3FE01'
+    very-light-traffic: '#DCFE01'
+    light-traffic: '#EDFE01'
+    middle-light-traffic: '#F6FE01'
+    middle-dense-traffic: '#FEF601'
+    dense-traffic: '#FEBB01'
+    very-dense-traffic: '#FE8801'
+    traffic-jam: '#FE5E01'
+    apocalyptic-traffic: '#FE0101'
+  traffics:
+    0: 'no-traffic'
+    0.1: 'very-light-traffic'
+    0.2: 'light-traffic'
+    0.3: 'middle-light-traffic'
+    0.4: 'middle-dense-traffic'
+    0.5: 'dense-traffic'
+    1: 'very-dense-traffic'
+    5: 'traffic-jam'
+    10: 'apocalyptic-traffic'

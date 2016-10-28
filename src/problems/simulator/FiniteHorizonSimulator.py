@@ -367,6 +367,9 @@ class FiniteHorizonSimulator(Simulator):
             for _ in range(n):
                 yield driver, path
 
+    def get_traffics(self):
+        return self.traffics
+
     def print_state(self):
         """ we print for each driver, path how many drivers we have, and how long they will wait (clocks)
         """

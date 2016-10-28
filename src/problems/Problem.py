@@ -105,7 +105,7 @@ class Model(Problem):
         self.model.setParam('TimeLimit', TimeLimit)
 
     def buildVariables(self):
-        self.model.update()
+        pass
 
     def buildConstraints(self):
         pass
@@ -120,9 +120,12 @@ class Model(Problem):
         self.setObjective()
         log.info("** Model building FINISHED **")
 
+    def optimize(self):
+        self.model.optimize()
+
     def solve(self):
         t = time.time()
-        self.model.optimize()
+        self.optimize()
         self.running_time = time.time() - t
         self.setOptimalSolution()
         self.value = self.getOptimalValue()

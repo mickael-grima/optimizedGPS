@@ -264,14 +264,6 @@ class Graph(object):
 
         return {n: set([path for path in ps if path[-2] == end]) for n, ps in paths.iteritems()}
 
-    def getPathsFromTo(self, start, end, length=0):
-        if not self.hasNode(end):
-            log.error("Node %s not in graph %s", end, self.name)
-            raise KeyError("Node %s not in graph %s" % (end, self.name))
-        paths = self.djikstra(start, end, length=length).get(end) or {}
-        for path in paths:
-            yield path[:-1]
-
     def djikstra_rec(self, start, end, paths={}):
         if start != end:
             for n in self.getSuccessors(start):
@@ -282,10 +274,27 @@ class Graph(object):
                         if path + (n,) not in paths[n]:
                             paths[n].add(path + (n,))
                             rec = True
+                            if n == end:
+                                yield path + (n,)
                 if rec:
-                    self.djikstra_rec(n, end, paths=paths)
+                    for path in self.djikstra_rec(n, end, paths=paths):
+                        yield path
 
     def getAllPathsWithoutCycle(self, start, end):
-        paths = {start: set([(start,)])}
-        self.djikstra_rec(start, end, paths=paths)
-        return paths.get(end, set())
+        for path in self.djikstra_rec(start, end, paths={start: set([(start,)])}):
+            yield path
+
+    def getPathsFromTo(self, start, end, length=0):
+        if not self.hasNode(end):
+            log.error("Node %s not in graph %s", end, self.name)
+            raise KeyError("Node %s not in graph %s" % (end, self.name))
+        paths = self.djikstra(start, end, length=length).get(end) or {}
+        for path in paths:
+            yield path[:-1]
+
+    def getShortestPathFromTo(self, start, end):
+        try:
+            self.getPathsFromTo(start, end).next()
+        except StopIteration:
+            log.warning("No paths from node %s to node %s in graph %s", start, end, self.name)
+            return None

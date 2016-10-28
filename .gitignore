@@ -91,3 +91,6 @@ env/
 
 # Sublime project setting
 .idea
+
+# Simulator's images
+src/static/pictures/*

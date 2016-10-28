@@ -113,13 +113,16 @@ class StructureTest(unittest.TestCase):
         self.assertEqual(graph.getData('n0'), {'x': 457.0, 'y': 296.0})
 
     def testDjikstra(self):
-        graph = generate_graph_from_file('static/djikstra-test.graphml')
-        for source, target in graph.getAllEdges():
-            graph.setEdgeProperty(source, target, 'distance', 1)
+        graph = generate_graph_from_file('static/djikstra-test.graphml', distance_default=1.0)
 
-        self.assertEqual(('n0', 'n6', 'n1'), graph.getPathsFromTo('n0', 'n1').next())
-        self.assertEqual({('n0', 'n6', 'n1'), ('n0', 'n4', 'n5', 'n1')},
-                         set(graph.getPathsFromTo('n0', 'n1', length=1)))
+        self.assertEqual(('1', '6', '7'), graph.getPathsFromTo('1', '7').next())
+        self.assertEqual({('1', '6', '7'), ('1', '4', '5', '7')},
+                         set(graph.getPathsFromTo('1', '7', length=1)))
+        self.assertEqual(set([('1', '6', '7'), ('1', '4', '5', '7'), ('1', '4', '5', '6', '7'),
+                              ('1', '4', '3', '5', '7'), ('1', '4', '3', '5', '6', '7'),
+                              ('1', '2', '3', '5', '7'), ('1', '2', '3', '5', '6', '7'),
+                              ('1', '6', '2', '3', '5', '7')]),
+                         set(graph.getAllPathsWithoutCycle('1', '7')))
 
 
 if __name__ == '__main__':

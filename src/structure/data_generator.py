@@ -53,3 +53,20 @@ def generate_random_drivers(graph, total_drivers=10, av_drivers=3, seed=None):
         graph.addDriver(start, end, nb=nb)
         total -= nb
     return graph
+
+
+def get_test_graph(length=2, width=3):
+    """ Generate a grid graph with the given arguments
+        give always the same drivers from nodes 'n_0_0', 'n_1_0' and 'n_0_1' to final node
+    """
+    graph = generate_grid_data(length=length, width=width, graph_name='graph-%s-%s-test' % (length, width))
+
+    graph.addDriver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
+    graph.addDriver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=1, nb=2)
+    graph.addDriver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
+    graph.addDriver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), starting_time=2)
+    graph.addDriver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
+    graph.addDriver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=1)
+    graph.addDriver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=2)
+
+    return graph

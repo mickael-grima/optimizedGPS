@@ -71,3 +71,14 @@ def splitObjectsInBoxes(nb_boxes, nb):
 
 def get_id(obj):
     return hash(obj)
+
+
+def assert_file_location(fname, typ='picture'):
+    if typ == 'picture':
+        if not fname.startswith('static/pictures/'):
+            log.error("Specified file has to be stored in static/pictures/ ."
+                      " the specified location is %s instead",
+                      fname)
+            raise ValueError("Specified file has to be stored in static/pictures/ ."
+                             " the specified location is %s instead"
+                             % fname)

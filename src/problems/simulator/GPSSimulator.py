@@ -148,3 +148,6 @@ class GPSSimulator(Simulator):
             for i, nb in self.drivers[s, e, t].iteritems():
                 for _ in range(nb):
                     yield (s, e, t), self.paths[i]
+
+    def get_traffics(self):
+        return self.traffics

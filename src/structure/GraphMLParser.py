@@ -14,18 +14,9 @@ log = logging.getLogger(__name__)
 class GraphMLParser(object):
 
     def __init__(self):
-        self._conf = yaml.load(open('config.yml', 'r')).get('graphml', {})
-        self.traffics = {
-            0: 'no-traffic',
-            0.1: 'very-light-traffic',
-            0.2: 'light-traffic',
-            0.3: 'middle-light-traffic',
-            0.4: 'middle-dense-traffic',
-            0.5: 'dense-traffic',
-            1: 'very-dense-traffic',
-            5: 'traffic-jam',
-            10: 'apocalyptic-traffic'
-        }
+        config = yaml.load(open('config.yml', 'r'))
+        self._conf = config.get('graphml', {})
+        self._props = config.get('properties', {})
 
     def set_head(self, head):
         try:
@@ -146,10 +137,10 @@ class GraphMLParser(object):
         """ time_suppl represents the time we need to road on edge minus the time we need to drive without circulation
             red means time_suppl = +infinity, green: time_suppl = 0
         """
-        keys = sorted(self.traffics.iterkeys(), reverse=True)
+        keys = sorted(self._props['traffics'].iterkeys(), reverse=True)
         for key in keys:
             if key <= time_suppl:
-                return self._conf['traffic-colors'][self.traffics[key]]
+                return self._props['traffic-colors'][self._props['traffics'][key]]
 
     def write(self, graph, fname):
         """
