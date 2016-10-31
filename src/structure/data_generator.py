@@ -16,20 +16,20 @@ def generate_grid_data(length=5, width=5, **kwards):
     for i in range(length):
         for j in range(width):
             source = 'n_%s_%s' % (i, j)
-            graph.addNode(source)
+            graph.add_node(source)
             if i < length - 1:
                 target = 'n_%s_%s' % (i + 1, j)
-                graph.addNode(target)
-                graph.addEdge(source, target, distance=1.0)
+                graph.add_node(target)
+                graph.add_edge(source, target, distance=1.0)
                 if j < width - 1:
                     target = 'n_%s_%s' % (i, j + 1)
-                    graph.addNode(target)
-                    graph.addEdge(source, target, distance=1.0)
+                    graph.add_node(target)
+                    graph.add_edge(source, target, distance=1.0)
             else:
                 if j < width - 1:
                     target = 'n_%s_%s' % (i, j + 1)
-                    graph.addNode(target)
-                    graph.addEdge(source, target, distance=1.0)
+                    graph.add_node(target)
+                    graph.add_edge(source, target, distance=1.0)
     return graph
 
 
@@ -45,8 +45,8 @@ def generate_random_drivers(graph, total_drivers=10, av_drivers=3, seed=None):
     total = total_drivers
     while total > 0:
         # Pick a random start node and a random end node different of the start node
-        start = graph.getRandomNode()
-        end = graph.getRandomNode(black_list={start})
+        start = graph.get_random_node()
+        end = graph.get_random_node(black_list={start})
         # add some drivers from start to end
         nb = max(random.gauss(av_drivers, 1.), 0.0)
         nb = int(min(nb, total))

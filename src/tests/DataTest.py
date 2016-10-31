@@ -25,19 +25,19 @@ class DataTest(unittest.TestCase):
 
         # nodes have the right name
         nodes = set(['n_%s_%s' % (i, j) for i in range(length) for j in range(width)])
-        self.assertEqual(nodes, set(graph.getAllNodes()))
+        self.assertEqual(nodes, set(graph.nodes()))
 
         # right edges
         for i in range(length):
             for j in range(width):
                 source = 'n_%s_%s' % (i, j)
-                for target in graph.getSuccessors(source):
+                for target in graph.successors_iter(source):
                     self.assertIn(target, ['n_%s_%s' % (i + 1, j), 'n_%s_%s' % (i, j + 1), 'n_%s_%s' % (i + 1, j + 1)])
 
         # distances
-        for source, target in graph.getAllEdges():
-            self.assertTrue(graph.getEdgeProperty(source, target, 'distance'))
-            self.assertGreater(float(graph.getEdgeProperty(source, target, 'distance')), 0.0)
+        for source, target in graph.edges():
+            self.assertTrue(graph.get_edge_property(source, target, 'distance'))
+            self.assertGreater(float(graph.get_edge_property(source, target, 'distance')), 0.0)
 
     def testRandomDrivers(self):
         length, width = random.randint(1, 10), random.randint(1, 10)

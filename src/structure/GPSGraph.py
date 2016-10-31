@@ -23,13 +23,13 @@ class GPSGraph(Graph):
     # ----------------------------------------------------------------------------------------
 
     def hasDriver(self, start, end):
-        return self.hasNode(start) and self.hasNode(end) and self.__drivers.get(start, {}).get(end) is not None
+        return self.has_node(start) and self.has_node(end) and self.__drivers.get(start, {}).get(end) is not None
 
     def hasStartingTime(self, start, end, starting_time):
         return self.hasDriver(start, end) and self.__drivers[start][end].get(starting_time) is not None
 
     def addDriver(self, start, end, starting_time=0, nb=1):
-        if self.hasNode(start) and self.hasNode(end):
+        if self.has_node(start) and self.has_node(end):
             if isinstance(nb, int) and nb > 0:
                 self.__drivers.setdefault(start, {})
                 self.__drivers[start].setdefault(end, {})
@@ -135,9 +135,9 @@ class GPSGraph(Graph):
     # ----------------------------------------------------------------------------------------
 
     def getCongestionFunction(self, source, target):
-        if self.hasEdge(source, target):
-            return congestion_function(**self.getEdgeProperties(source, target))
+        if self.has_edge(source, target):
+            return congestion_function(**self.get_edge_data(source, target))
 
     def getTimeCongestionFunction(self, source, target):
-        if self.hasEdge(source, target):
-            return time_congestion_function(**self.getEdgeProperties(source, target))
+        if self.has_edge(source, target):
+            return time_congestion_function(**self.get_edge_data(source, target))

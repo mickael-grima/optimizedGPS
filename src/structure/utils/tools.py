@@ -23,7 +23,7 @@ def time_congestion_function(**parameters):
 
 
 def assert_has_graph_GUI_infos(graph):
-    for node in graph.getAllNodes():
-        if 'x' not in graph.getData(node) or 'y' not in graph.getData(node):
+    for node in graph.nodes():
+        if graph.get_position(node) is None:
             log.error("Geometry data missing for node %s in graph %s", node, graph.name)
             raise Exception("Geometry data missing for node %s in graph %s" % (node, graph.name))

@@ -42,11 +42,11 @@ class SimulatorTest(unittest.TestCase):
 
     def testGPSSimulator(self):
         graph = GPSGraph(name='graph-test')
-        graph.addNode(1)
-        graph.addNode(2)
-        graph.addNode(3)
-        graph.addEdge(1, 2)
-        graph.addEdge(2, 3)
+        graph.add_node(1)
+        graph.add_node(2)
+        graph.add_node(3)
+        graph.add_edge(1, 2)
+        graph.add_edge(2, 3)
 
         graph.addDriver(1, 3, starting_time=0)
         graph.addDriver(2, 3, starting_time=1, nb=2)

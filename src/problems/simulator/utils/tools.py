@@ -15,14 +15,14 @@ def assert_paths_in_graph(paths, graph, simulator_type=0):
             i = 0
             while i < len(path) - 1:
                 node, next_node = path[i], path[i + 1]
-                if not graph.hasNode(node):
+                if not graph.has_node(node):
                     log.error("Node %s doesn't exist in graph %s", node, graph.name)
                     raise KeyError("node %s doesn't exist in graph %s" % (node, graph.name))
-                if not graph.hasEdge(node, next_node):
+                if not graph.has_edge(node, next_node):
                     log.error("Edge from %s to %s doesn't exist in graph %s", node, next_node, graph.name)
                     raise KeyError("Edge from %s to %s doesn't exist in graph %s" % (node, next_node, graph.name))
                 i += 1
-            if not graph.hasNode(path[-1]):
+            if not graph.has_node(path[-1]):
                 log.error("Node %s doesn't exist in graph %s", path[-1], graph.name)
                 raise KeyError("node %s doesn't exist in graph %s" % (path[-1], graph.name))
         for (start, end, time), nb in count.iteritems():
@@ -36,7 +36,7 @@ def assert_paths_in_graph(paths, graph, simulator_type=0):
         for path in paths:
             i = 0
             while i < len(path) - 1:
-                if not graph.hasEdge(path[i], path[i + 1]):
+                if not graph.has_edge(path[i], path[i + 1]):
                     log.error("graph %s has not path %s", graph.name, str(path))
                     raise Exception("graph %s has not path %s" % (graph.name, str(path)))
                 i += 1

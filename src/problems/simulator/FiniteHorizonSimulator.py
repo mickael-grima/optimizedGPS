@@ -145,7 +145,7 @@ class FiniteHorizonSimulator(Simulator):
                     log.error("Driver %s on path %s: this path is not allowed", str(driver), str(path))
                     raise KeyError("Driver %s on path %s: this path is not allowed" % (str(driver), str(path)))
             else:
-                for n in self.graph.getSuccessors(path[-1]):
+                for n in self.graph.successors_iter(path[-1]):
                     if n not in path:
                         yield path[-1], n
 
@@ -302,7 +302,7 @@ class FiniteHorizonSimulator(Simulator):
                     nxt_edge, n = self.next_edges[idd].popitem()
 
                     # Check if nxt_edge in graph and if we follow an existing path
-                    self.graph.assertIsAdjacentEdgeTo(edge, nxt_edge)
+                    self.graph.assert_is_adjacent_edge_to(edge, nxt_edge)
 
                     # handle previous idd
                     self.update_next_edges(idd, nxt_edge, n)

@@ -121,10 +121,10 @@ class GraphMLParser(object):
                 - the edge from left to rigth is always under the one from rigth to left
                 - if both edges are vertical, the edge from bottom to top is always to the right
         """
-        if graph.hasEdge(target, source):
+        if graph.has_edge(target, source):
             node_size = self._conf['geometry']['node-size']
-            sx, sy = graph.getData(source).get('x') or 0.0, graph.getData(source).get('y') or 0.0
-            tx, ty = graph.getData(target).get('x') or 0.0, graph.getData(target).get('y') or 0.0
+            sx, sy = graph.get_position(source) or (0.0, 0.0)
+            tx, ty = graph.get_position(target) or (0.0, 0.0)
             dist = math.sqrt(2 * (tx - sx) * (tx - sx) + 2 * (ty - sy) * (ty - sy))
             Rsx = node_size / 2 * (tx + ty - sx - sy) / dist
             Rsy = node_size / 2 * (ty - tx + sx - sy) / dist
@@ -162,23 +162,23 @@ class GraphMLParser(object):
         root.appendChild(graph_node)
 
         # Add nodes
-        for n in graph.getAllNodes():
-            node = self.create_node_element(doc, n, data=graph.getData(n))
+        for n in graph.nodes():
+            node = self.create_node_element(doc, n, data=graph.get_position(n) or {})
             graph_node.appendChild(node)
 
         # Add edge
-        for source, target in graph.getAllEdges():
+        for source, target in graph.edges():
             sx, sy, tx, ty = self.compute_edge_coords(graph, source, target)
-            width = graph.getEdgeProperty(source, target, 'width') or 0.0
+            width = graph.get_edge_property(source, target, 'width') or 0.0
             # compute time_suppl
-            traffic = graph.getEdgeProperty(source, target, 'traffic') or 0.0
+            traffic = graph.get_edge_property(source, target, 'traffic') or 0.0
             cong_func = graph.getCongestionFunction(source, target)
             time_suppl = (cong_func(traffic) - cong_func(0.0)) / cong_func(0.0)
             color = self.compute_edge_color(time_suppl)
             # add edge
             edge = self.create_edge_element(doc, source, target, sx=str(sx), sy=str(sy), tx=str(tx), ty=str(ty),
                                             width=str(width), color=color,
-                                            traffic=graph.getEdgeProperty(source, target, 'traffic'))
+                                            traffic=graph.get_edge_property(source, target, 'traffic'))
             graph_node.appendChild(edge)
 
         f = open(fname, 'w')
@@ -186,8 +186,8 @@ class GraphMLParser(object):
 
     @classmethod
     def compute_edge_distance(cls, graph, source, target):
-        sx, sy = graph.getData(source).get('x') or 0.0, graph.getData(source).get('y') or 0.0
-        tx, ty = graph.getData(target).get('x') or 0.0, graph.getData(target).get('y') or 0.0
+        sx, sy = graph.get_position(source) or (0.0, 0.0)
+        tx, ty = graph.get_position(target) or (0.0, 0.0)
         return math.sqrt((sy - sx) * (sy - sx) + (ty - tx) * (ty - tx))
 
     def parse(self, fname, distance_factor=1.0, distance_default=0.0):
@@ -213,7 +213,8 @@ class GraphMLParser(object):
                         if len(str(n)) == 0:
                             n = node.getAttribute('id')
                         geometry = shapenode.getElementsByTagName("y:Geometry")[0]
-                        g.addNode(n, posx=float(geometry.getAttribute('x')), posy=float(geometry.getAttribute('y')))
+                        g.add_node(n)
+                        g.add_node_position(n, x=float(geometry.getAttribute('x')), y=float(geometry.getAttribute('y')))
                         nodes[node.getAttribute('id')] = n
 
         # Get edges
@@ -224,9 +225,7 @@ class GraphMLParser(object):
                     if gen:
                         source = nodes[edge.getAttribute('source')]
                         target = nodes[edge.getAttribute('target')]
-                        g.addEdge(source, target)
-
                         distance = distance_default or self.__class__.compute_edge_distance(g, source, target)
-                        g.setEdgeProperty(source, target, 'distance', distance / distance_factor)
+                        g.add_edge(source, target, distance=distance / distance_factor)
 
         return g

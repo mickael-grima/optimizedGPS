@@ -19,7 +19,7 @@ class ShortestPathHeuristic(SimulatorProblem):
         paths = {}
         for start, end, t, nb in graph.getAllDrivers():
             try:
-                path = graph.getPathsFromTo(start, end).next()
+                path = graph.get_paths_from_to(start, end).next()
             except StopIteration:
                 log.error("Imposible to find shortest path from node %s to node %s in graph %s",
                           start, end, graph.name)
@@ -45,6 +45,6 @@ class AllowedPathsHeuristic(BacktrackingSearch):
     def __init__(self, graph, initial_value=sys.maxint, diff_length=0, timeout=sys.maxint):
         allowed_paths = []
         for s, t, _, _ in graph.getAllDrivers():
-            allowed_paths.extend(graph.getPathsFromTo(s, t, length=diff_length))
+            allowed_paths.extend(graph.get_paths_from_to(s, t, length=diff_length))
         super(AllowedPathsHeuristic, self).__init__(graph, initial_value=initial_value, allowed_paths=allowed_paths,
                                                     timeout=timeout)

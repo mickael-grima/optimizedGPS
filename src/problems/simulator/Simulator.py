@@ -90,21 +90,20 @@ class Simulator(object):
     def to_image(self, fname=None, **kwards):
         """ Produce an image describing the current step
         """
-        G = nx.DiGraph()
-        G.add_nodes_from(self.graph.getAllNodes())
-
         traffics = self.get_traffics()
-        for edge in self.graph.getAllEdges():
-            G.add_edge(*edge, traffic=traffics.get(edge, 0.0))
+        for edge in self.graph.edges():
+            self.graph.add_edge(*edge, traffic=traffics.get(edge, 0.0))
 
-        colors = map(lambda e: self.get_color_from_traffic(e, traffics.get(e, 0.0)), G.edges())
-        try:
-            positions = {n: (self.graph.getData(n)['x'], self.graph.getData(n)['y'])
-                         for n in self.graph.getAllNodes()}
-        except:
-            positions = None
+        colors = map(lambda e: self.get_color_from_traffic(e, traffics.get(e, 0.0)), self.graph.edges())
+        positions = {}
+        for n in self.graph.nodes():
+            if self.graph.get_position(n) is not None:
+                positions[n] = self.graph.get_position(n)
+            else:
+                positions = {}
+                break
 
-        nx.draw(G, pos=positions, node_color='#000000', edge_color=colors, **kwards)
+        nx.draw(self.graph, pos=positions, node_color='#000000', edge_color=colors, **kwards)
         if fname is not None:
             assert_file_location(fname, typ='picture')
             plt.savefig(fname)

@@ -19,7 +19,7 @@ class ContinuousTimeModel(Model):
         self.buildModel()
 
     def initialize_drivers(self):
-        self.drivers = {driver: set([self.graph.getAllPathsWithoutCycle(driver.start, driver.end)])
+        self.drivers = {driver: set(list(self.graph.get_all_paths_without_cycle(driver.start, driver.end)))
                         for driver in self.graph.getAllUniqueDrivers()}
 
     def buildVariables(self):
@@ -36,7 +36,7 @@ class ContinuousTimeModel(Model):
                 self.z[path, driver] = self.model.addVar(0.0, name='z[%s,%s]' % (str(path), str(driver)),
                                                          vtype=self.vtype)
                 count['z'] += 1
-            for edge in self.graph.getAllEdges():
+            for edge in self.graph.edges():
                 self.x[edge, driver] = self.model.addVar(0.0, name='x[%s,%s' % (str(edge), str(driver)))
                 count['x'] += 1
                 self.S[edge, driver] = self.model.addVar(0.0, name='S[%s,%s]' % (str(edge), str(driver)))
@@ -66,16 +66,16 @@ class ContinuousTimeModel(Model):
             # initial conditions
             self.model.addConstr(
                 quicksum(self.S[(driver.start, t), driver]
-                         for t in self.graph.getSuccessors(driver.start)) == driver.time + 1,
+                         for t in self.graph.successors_iter(driver.start)) == driver.time + 1,
                 "Initial conditions for driver %s" % str(driver)
             )
             count['initial-conditions'] += 1
-            for edge in self.graph.getAllEdges():
+            for edge in self.graph.edges():
                 # edge path constraint
                 self.model.addConstr(
                     self.x[edge, driver] ==
                     quicksum(self.z[path, driver] for path in self.drivers[driver]
-                             if self.graph.isEdgeInPath(edge, path)),
+                             if self.graph.is_edge_in_path(edge, path)),
                     "Relation edge-path for driver %s and edge %s" % (str(driver), str(edge))
                 )
                 count['edge-path-constraint'] += 1
@@ -93,7 +93,7 @@ class ContinuousTimeModel(Model):
                 self.model.addConstr(
                     self.E[edge, driver] + self.horizon() * (1 - self.x[edge, driver]) >=
                     quicksum(self.S[(edge[1], n), driver]
-                             for n in self.graph.getSuccessors(edge[1])),
+                             for n in self.graph.successors_iter(edge[1])),
                     "Ending time equation for driver %s on edge %s" % (str(driver), str(edge))
                 )
                 count['ending-time-constraints'] += 1
@@ -111,7 +111,7 @@ class ContinuousTimeModel(Model):
     def setObjective(self):
         self.model.setObjective(
             quicksum(self.E[(n, driver.end), driver]
-                     for driver in self.drivers for n in self.graph.getPredecessors(driver.end)),
+                     for driver in self.drivers for n in self.graph.predecessors(driver.end)),
             GRB.MINIMIZE
         )
         log.info("Objective SETTED")
@@ -131,16 +131,18 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
         if not binary:
             log.error("Not implemented yet")
             raise NotImplementedError("Not implemented yet")
-        self.paths_iterator = {driver: graph.getAllPathsWithoutCycle(driver.start, driver.end)
-                               for driver in graph.getAllUniqueDrivers()}
         self.values = []
+        self.drivers = {}
+        self.paths_iterator = {}
         super(ColumnGenerationAroundShortestPath, self).__init__(graph, timeout=timeout, horizon=horizon, binary=binary)
 
-    def initailize_drivers(self):
-        self.drivers = {driver: set([self.paths_iterator[driver].next()])
-                        for driver in self.graph.getAllUniqueDrivers()}
+    def initialize_drivers(self):
+        for driver in self.graph.getAllUniqueDrivers():
+            self.drivers[driver] = set()
+            self.paths_iterator[driver] = self.graph.get_all_paths_without_cycle(driver.start, driver.end)
+            self.drivers[driver].add(self.paths_iterator[driver].next())
 
-    def addPath(self, driver, path):
+    def generateNewColumn(self, driver, path):
         try:
             self.drivers[driver].add(path)
             self.addVariable(driver, path)
@@ -158,21 +160,30 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
         log.info("ADDING new Constraints ...")
 
         # remove the constraint
-        self.model.remove(self.model.getConstrByName("One-path constraint for driver %s" % str(driver)))
+        try:
+            self.model.remove(self.model.getConstrByName("One-path constraint for driver %s" % str(driver)))
+        except GurobiError as e:
+            log.error("No one-path constraint for driver %s", str(driver))
+            print e
         # add one path constraint
         self.model.addConstr(
             quicksum(self.z[path, driver] for path in self.drivers[driver]) == 1,
             "One-path constraint for driver %s" % str(driver)
         )
-        for edge in self.graph.getAllEdges():
+        for edge in self.graph.edges():
             # first remove constraint
-            self.model.remove(self.model.getConstrByName("Relation edge-path for driver %s and edge %s"
-                                                         % (str(driver), str(edge))))
+            try:
+                self.model.remove(self.model.getConstrByName("Relation edge-path for driver %s and edge %s"
+                                                             % (str(driver), str(edge))))
+            except GurobiError:
+                log.error("No relation edge-path constraint for driver %s and edge %s", str(driver), str(edge))
+                raise
+
             # edge path constraint
             self.model.addConstr(
                 self.x[edge, driver] ==
                 quicksum(self.z[path, driver] for path in self.drivers[driver]
-                         if self.graph.isEdgeInPath(edge, path)),
+                         if self.graph.is_edge_in_path(edge, path)),
                 "Relation edge-path for driver %s and edge %s" % (str(driver), str(edge))
             )
 
@@ -208,7 +219,7 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
 
     def getWorstTrafficEdge(self):
         value, edge = 0, None
-        for e in self.graph.getAllEdges():
+        for e in self.graph.edges():
             traffic = self.getEdgeWorstTraffic(e)
             if traffic > value:
                 value = traffic
@@ -221,13 +232,13 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
                 yield driver
 
     def getDrivingTime(self, driver):
-        for node in self.graph.getPredecessors(driver.end):
+        for node in self.graph.predecessors(driver.end):
             edge = (node, driver.end)
             if self.E[edge, driver].X > 0:
                 return self.E[edge, driver].X
 
     def getLowerBoundDrivingTime(self, driver):
-        path = self.getDriverOptimalPath()
+        path = self.getDriverOptimalPath(driver)
         return sum(self.graph.getTimeCongestionFunction(path[i], path[i + 1])(0)
                    for i in range(len(path) - 1))
 
@@ -255,5 +266,4 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
     def optimize(self):
         while not self.stopIteration():
             self.optimizeOneStep()
-            driver, path = self.getBestGapConstraint()
-            self.addPath()
+            self.generateNewColumn(*self.getBestGapConstraint())
