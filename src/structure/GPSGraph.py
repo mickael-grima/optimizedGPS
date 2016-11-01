@@ -11,7 +11,10 @@ log = logging.getLogger(__name__)
 
 class GPSGraph(Graph):
     """ This class contains every instances and methods describing a Graph for our problem
-        For using the interface this class must inherits from Simulator
+        It inherits from Graph, and contains the drivers
+
+        drivers are stored as a tuple (starting node, ending node, starting time) to which we associate a number
+        which represents how many drivers for these informations we have
     """
     def __init__(self, name='graph'):
         super(GPSGraph, self).__init__(name=name)
@@ -23,12 +26,18 @@ class GPSGraph(Graph):
     # ----------------------------------------------------------------------------------------
 
     def hasDriver(self, start, end):
+        """ return True if graph contains at least one driver from start to end
+        """
         return self.has_node(start) and self.has_node(end) and self.__drivers.get(start, {}).get(end) is not None
 
     def hasStartingTime(self, start, end, starting_time):
+        """ returns True if there exists at least one driver from start to end with the given starting time
+        """
         return self.hasDriver(start, end) and self.__drivers[start][end].get(starting_time) is not None
 
     def addDriver(self, start, end, starting_time=0, nb=1):
+        """ add nb drivers with the given properties
+        """
         if self.has_node(start) and self.has_node(end):
             if isinstance(nb, int) and nb > 0:
                 self.__drivers.setdefault(start, {})
@@ -44,6 +53,11 @@ class GPSGraph(Graph):
         return False
 
     def setDriversProperty(self, start, end, prop, value, starting_time=None):
+        """ set properties to the given drivers and returns True if driver exists
+            else return False
+
+            if starting_time == None, add a property to every drivers from start to end
+        """
         if self.hasDriver(start, end):
             if starting_time is not None:
                 if self.hasStartingTime(start, end, starting_time):
@@ -58,6 +72,8 @@ class GPSGraph(Graph):
         return False
 
     def getDrivers(self, start, end, starting_time=None):
+        """ return the drivers from start to end, and with the given starting_time if not None
+        """
         if self.hasDriver(start, end):
             if starting_time is not None:
                 if self.hasStartingTime(start, end, starting_time):
