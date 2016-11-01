@@ -2,7 +2,7 @@
 # !/bin/env python
 
 import logging
-log = logging.getLogger('__name__')
+log = logging.getLogger(__name__)
 
 
 def assert_paths_in_graph(paths, graph, simulator_type=0):

@@ -8,8 +8,5 @@ class Driver(object):
         self.end = end
         self.time = time
 
-    def __str__(self):
-        return str(self.to_tuple())
-
     def to_tuple(self):
         return self.start, self.end, self.time

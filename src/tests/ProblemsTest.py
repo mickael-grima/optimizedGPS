@@ -13,7 +13,7 @@ import unittest
 from structure.data_generator import generate_graph_from_file, generate_grid_data, generate_random_drivers
 from problems.SearchProblem import BacktrackingSearch
 from problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic
-from problems.Models import ContinuousTimeModel
+from problems.Models import ContinuousTimeModel, ColumnGenerationAroundShortestPath
 from Comparator import Comparator, MultipleGraphComparator
 
 
@@ -64,6 +64,7 @@ class ProblemsTest(unittest.TestCase):
         comparator.appendAlgorithm(ShortestPathHeuristic, timeout=2)
         comparator.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=2)
         comparator.appendAlgorithm(ContinuousTimeModel, timeout=2)
+        comparator.appendAlgorithm(ColumnGenerationAroundShortestPath)
 
         print comparator.compare()
 

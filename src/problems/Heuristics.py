@@ -35,6 +35,8 @@ class ShortestPathHeuristic(SimulatorProblem):
         # simulate
         while self.simulator.has_next():
             if time.time() - ct >= self.timeout:
+                log.warning("Problem %s timed out", self.__class__.__name__)
+                self.__timed_out = True
                 break
             self.simulator.next()
 

@@ -5,6 +5,7 @@ from Problem import Model
 from gurobipy import GRB, quicksum, GurobiError
 import logging
 import sys
+from utils.tools import isclose
 
 log = logging.getLogger(__name__)
 
@@ -100,7 +101,8 @@ class ContinuousTimeModel(Model):
                 # transfert equation
                 self.model.addConstr(
                     self.E[edge, driver] - self.S[edge, driver] + self.horizon() * (1 - self.x[edge, driver]) >=
-                    quicksum(self.graph.getTimeCongestionFunction(*edge)(self.S[edge, driver] - self.S[edge, d])
+                    quicksum(self.x[edge, driver] *
+                             self.graph.getTimeCongestionFunction(*edge)(self.S[edge, driver] - self.S[edge, d])
                              for d in self.drivers),
                     "Transfert equation for driver %s on edge %s" % (str(driver), str(edge))
                 )
@@ -132,11 +134,11 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
             log.error("Not implemented yet")
             raise NotImplementedError("Not implemented yet")
         self.values = []
-        self.drivers = {}
-        self.paths_iterator = {}
         super(ColumnGenerationAroundShortestPath, self).__init__(graph, timeout=timeout, horizon=horizon, binary=binary)
 
     def initialize_drivers(self):
+        self.drivers = {}
+        self.paths_iterator = {}
         for driver in self.graph.getAllUniqueDrivers():
             self.drivers[driver] = set()
             self.paths_iterator[driver] = self.graph.get_all_paths_without_cycle(driver.start, driver.end)
@@ -145,14 +147,14 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
     def generateNewColumn(self, driver, path):
         try:
             self.drivers[driver].add(path)
-            self.addVariable(driver, path)
-            self.addConstraint(driver, path)
         except KeyError:
             log.error("Driver %s doesn't exist in model %s", str(driver.to_tuple()), self.__class__.__name__)
             raise KeyError("Driver %s doesn't exist in model %s" % (str(driver.to_tuple()), self.__class__.__name__))
+        self.addVariable(driver, path)
+        self.addConstraint(driver, path)
 
     def addVariable(self, driver, path):
-        self.z[driver, path] = self.model.addVar(0.0, name='z[%s,%s]' % (str(path), str(driver)),
+        self.z[path, driver] = self.model.addVar(0.0, name='z[%s,%s]' % (str(path), str(driver)),
                                                  vtype=self.vtype)
         self.model.update()
 
@@ -162,9 +164,9 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
         # remove the constraint
         try:
             self.model.remove(self.model.getConstrByName("One-path constraint for driver %s" % str(driver)))
-        except GurobiError as e:
+        except GurobiError:
             log.error("No one-path constraint for driver %s", str(driver))
-            print e
+            raise
         # add one path constraint
         self.model.addConstr(
             quicksum(self.z[path, driver] for path in self.drivers[driver]) == 1,
@@ -189,81 +191,66 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
 
         log.info("New Constraints ADDED for driver %s and path %s", str(driver.to_tuple()), str(path))
 
+    def isComplete(self):
+        """ True if every path have been added in the problem
+        """
+        return len(self.paths_iterator) == 0
+
     def stopIteration(self):
-        return len(self.values) < 2 or self.values[-1] != self.values[-2]
+        return self.isComplete() and len(self.values) >= 2 and isclose(self.values[-1], self.values[-2])
 
     def getObj(self):
         try:
-            self.model.ObjVal
+            return self.model.ObjVal
         except GurobiError:
             log.warning("problem has not been solved yet")
             return sys.maxint
 
-    def getDriverOptimalPath(self, driver):
-        for path in self.drivers[driver]:
-            if self.z[path, driver].X == 1.0:
-                return path
-
     def driverHasBeenOnEdge(self, driver, edge):
-        return self.x[edge, driver].X == 1.0
+        return isclose(self.x[edge, driver].X, 1.0)
 
-    def getEdgeWorstTraffic(self, edge):
-        worst_traffic = 0
-        for driver in filter(lambda d: self.driverHasBeenOnEdge(d, edge), self.drivers):
-            starting_time, traffic = self.S[edge, driver].X, 1
-            for d in filter(lambda d: self.driverHasBeenOnEdge(d, edge), self.drivers):
-                if self.S[edge, d].X <= starting_time and self.E[edge, d].X >= starting_time:
-                    traffic += 1
-            worst_traffic = max(worst_traffic, traffic)
-        return worst_traffic
-
-    def getWorstTrafficEdge(self):
-        value, edge = 0, None
-        for e in self.graph.edges():
-            traffic = self.getEdgeWorstTraffic(e)
-            if traffic > value:
-                value = traffic
-                edge = e
-        return edge
-
-    def getDriversOnEdge(self, edge):
-        for driver in self.drivers:
-            if self.driverHasBeenOnEdge(driver, edge):
-                yield driver
-
-    def getDrivingTime(self, driver):
-        for node in self.graph.predecessors(driver.end):
-            edge = (node, driver.end)
-            if self.E[edge, driver].X > 0:
-                return self.E[edge, driver].X
-
-    def getLowerBoundDrivingTime(self, driver):
-        path = self.getDriverOptimalPath(driver)
-        return sum(self.graph.getTimeCongestionFunction(path[i], path[i + 1])(0)
-                   for i in range(len(path) - 1))
+    def getEdgeTrafficAt(self, edge, time):
+        traffic = 0
+        for d in filter(lambda d: self.driverHasBeenOnEdge(d, edge), self.drivers):
+            if self.S[edge, d].X <= time and self.E[edge, d].X >= time:
+                traffic += 1
+        return traffic
 
     def getWorstDriver(self):
-        edge = self.getWorstTrafficEdge()
-        wasted_time, driver = 0, None
-        for d in self.getDriversOnEdge(edge):
-            m = self.getLowerBoundDrivingTime(d)
-            wt = (self.getDrivingTime(d) - m) / m
-            if wt > wasted_time:
-                wasted_time = wt
-                driver = d
-        return driver
+        worst_traffic, worst_driver = 0, None
+        for driver in filter(lambda d: d in self.paths_iterator, self.drivers):
+            for edge in self.graph.edges():
+                if self.S[edge, driver].X > 0:
+                    traffic = self.getEdgeTrafficAt(edge, self.S[edge, driver].X)
+                    if traffic > worst_traffic:
+                        worst_traffic = traffic
+                        worst_driver = driver
+        return worst_driver
 
     def getBestGapConstraint(self):
         """ find worst driver on worst path
         """
-        driver = self.getWorstDriver()
-        return driver, self.paths_iterator[driver].next()
+        driver, path = None, None
+        while all([not self.isComplete(), driver is None, path is None]):
+            try:
+                driver = self.getWorstDriver()
+                path = self.paths_iterator[driver].next()
+            except StopIteration:
+                del self.paths_iterator[driver]
+                continue
+        return driver, path
 
     def optimizeOneStep(self):
         super(ColumnGenerationAroundShortestPath, self).optimize()
         self.values.append(self.getObj())
 
     def optimize(self):
+        """ TODO: among drivers who have still one path, choose the drivers which are implicated in
+                  a high traffic edge, and among these drivers choose the worst one
+        """
         while not self.stopIteration():
             self.optimizeOneStep()
-            self.generateNewColumn(*self.getBestGapConstraint())
+            driver, path = self.getBestGapConstraint()
+            if not all([driver, path]):
+                break
+            self.generateNewColumn(driver, path)

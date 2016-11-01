@@ -17,41 +17,32 @@ logging:
     handlers: [logfile]
   loggers:
     # Logging from my application
-    # Problems
-    GPSProblem:
-      level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: problems.GPSProblem
     # Structure
-    structure.CongestionGPSGraph:
-      level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: structure.CongestionGPSGraph
     structure.Graph:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
-      qualname: structure.Graph
+      qualname: problems.structure.Graph
     structure.GPSGraph:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
-      qualname: structure.GPSGraph
-    # Simulator
-    simulator.Simulator:
+      qualname: problems.structure.GPSGraph
+    # Simulators
+    problems.simulator.Simulator:
       level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: simulator.Simulator
-    simulator.FiniteHorizonSimulator:
+      handlers: [simulatorfile]
+      qualname: problems.simulator.Simulator
+    problems.simulator.FiniteHorizonSimulator:
       level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: simulator.FiniteHorizonSimulator
-    simulator.GPSSimulator:
+      handlers: [simulatorfile]
+      qualname: problems.simulator.FiniteHorizonSimulator
+    problems.simulator.GPSSimulator:
       level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: simulator.GPSSimulator
-    simulator.utils.tools:
+      handlers: [simulatorfile]
+      qualname: problems.simulator.GPSSimulator
+    problems.simulator.utils.tools:
       level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: simulator.utils.tools
+      handlers: [simulatorfile]
+      qualname: problems.simulator.utils.tools
     # Tests
     tests.StructureTest:
       level: !!python/name:logging.DEBUG
@@ -65,21 +56,16 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.ProblemsTest
-    # worker
-    worker:
-      level: !!python/name:logging.DEBUG
-      handlers: [logfile]
-      qualname: worker
-    # problem
+    # Problems
     problems.Problem:
       level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: problems.Problem
-    SearchProblem:
+    problems.SearchProblem:
       level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: SearchProblem
-    Heuristics:
+    problems.Heuristics:
       level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: Heuristics
@@ -89,12 +75,12 @@ logging:
       qualname: problems.Models
     gurobipy:
       level: !!python/name:logging.DEBUG
-      handlers: [problemfile]
+      handlers: [gurobipyfile]
       qualname: gurobipy
     #Comparator
     Comparator:
       level: !!python/name:logging.DEBUG
-      handlers: [logfile]
+      handlers: [problemfile]
       qualname: Comparator
   handlers:
     logfile:
@@ -110,6 +96,16 @@ logging:
     problemfile:
       class: logging.FileHandler
       filename: logs/problem.log
+      formatter: simpleFormatter
+      level: !!python/name:logging.NOTSET
+    simulatorfile:
+      class: logging.FileHandler
+      filename: logs/simulator.log
+      formatter: simpleFormatter
+      level: !!python/name:logging.NOTSET
+    gurobipyfile:
+      class: logging.FileHandler
+      filename: logs/gurobi.log
       formatter: simpleFormatter
       level: !!python/name:logging.NOTSET
   formatters:

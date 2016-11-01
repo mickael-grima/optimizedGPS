@@ -35,6 +35,8 @@ class BacktrackingSearch(SimulatorProblem):
             if self.simulator.has_next():
                 for possibility in self.simulator.iter_possibilities():
                     if timeout <= 0:
+                        log.warning("Problem %s timed out", self.__class__.__name__)
+                        self.__timed_out = True
                         break
                     # save state and update next edges
                     self.simulator.save_current_state()

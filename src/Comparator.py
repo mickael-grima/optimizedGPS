@@ -8,12 +8,21 @@ log = logging.getLogger(__name__)
 ALGO = namedtuple('algo', ['algo', 'args', 'kwards'])
 
 
+def around(number):
+    return int(number * 1000) / 1000.
+
+
 class Comparator(object):
+    __SUCCESS = 0
+    __FAILED = 1
+    __TIMEOUT = 2
+
     def __init__(self):
         self.algorithms = []  # algorithm
 
         self.values = {}
         self.running_times = {}
+        self.status = {}
 
     def setGraph(self, graph):
         self.graph = graph
@@ -21,6 +30,7 @@ class Comparator(object):
     def reinitialize(self):
         self.values = {}
         self.running_times = {}
+        self.status = {}
 
     def appendAlgorithm(self, algo, *arguments, **kwards):
         self.algorithms.append(ALGO(algo, arguments, kwards))
@@ -31,9 +41,16 @@ class Comparator(object):
         for algo in self.algorithms:
             log.info("algorithm %s is being solved" % algo.algo.__name__)
             a = algo.algo(self.graph, *algo.args, **algo.kwards)
-            a.solve()
-            self.values.setdefault(algo.algo.__name__, a.value)
-            self.running_times.setdefault(algo.algo.__name__, a.running_time)
+            try:
+                a.solve()
+                if a.isTimedOut():
+                    self.status.setdefault(algo.algo.__name__, self.__TIMEOUT)
+                else:
+                    self.values.setdefault(algo.algo.__name__, a.value)
+                    self.running_times.setdefault(algo.algo.__name__, a.running_time)
+                    self.status.setdefault(algo.algo.__name__, self.__SUCCESS)
+            except:
+                self.status.setdefault(algo.algo.__name__, self.__FAILED)
 
     def compare(self):
         """ Compute some results about the given algorithms
@@ -42,10 +59,16 @@ class Comparator(object):
         self.solve()
         res = {}  # 'optimal' for optimal algo, else index in the list
         for algo in self.algorithms:
-            res.setdefault(
-                algo.algo.__name__,
-                (self.values[algo.algo.__name__], self.running_times[algo.algo.__name__])
-            )
+            if self.status[algo.algo.__name__] == self.__SUCCESS:
+                res.setdefault(
+                    algo.algo.__name__,
+                    (around(self.values[algo.algo.__name__]), around(self.running_times[algo.algo.__name__]))
+                )
+            else:
+                res.setdefault(
+                    algo.algo.__name__,
+                    'FAILED with status %s' % self.status[algo.algo.__name__]
+                )
         return res
 
 

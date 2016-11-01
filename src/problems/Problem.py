@@ -19,6 +19,11 @@ class Problem(object):
         self.opt_solution = {}  # On wich path are each driver
         self.timeout = timeout
 
+        self.__timed_out = False
+
+    def isTimedOut(self):
+        return self.__timed_out
+
     def solve(self):
         log.error("Not implemented yet")
         raise NotImplementedError("Not implemented yet")
