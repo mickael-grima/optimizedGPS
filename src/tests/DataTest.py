@@ -10,7 +10,7 @@ from logger import configure
 configure()
 
 import unittest
-from data_generator import generate_grid_data, generate_random_drivers
+from structure.data_generator import generate_grid_data, generate_random_drivers
 import random
 
 

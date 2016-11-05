@@ -2,6 +2,8 @@
 # !/bin/env python
 
 from simulator.GPSSimulator import GPSSimulator
+from utils.tools import isclose
+from gurobipy import GurobiError
 
 import sys
 import time
@@ -102,12 +104,14 @@ class Model(Problem):
         self.model = gb.Model()
         self.graph = graph
         params['TimeLimit'] = timeout
+        params['LogToConsole'] = 0
         self.setParameters(**params)
 
-    def setParameters(self, NumericFocus=0, Presolve=-1, TimeLimit=sys.maxint):
+    def setParameters(self, NumericFocus=0, Presolve=-1, LogToConsole=0, TimeLimit=sys.maxint):
         self.model.setParam('NumericFocus', NumericFocus)
         self.model.setParam('Presolve', Presolve)
         self.model.setParam('TimeLimit', TimeLimit)
+        self.model.setParam('LogToConsole', LogToConsole)
 
     def buildVariables(self):
         pass
@@ -137,3 +141,58 @@ class Model(Problem):
 
     def getGraph(self):
         return self.graph
+
+    def getObj(self):
+        try:
+            return self.model.ObjVal
+        except GurobiError:
+            log.warning("problem has not been solved yet")
+            return sys.maxint
+
+
+class ColumnGenerationModel(Model):
+    def __init__(self, graph, timeout=sys.maxint, **params):
+        super(ColumnGenerationModel, self).__init__(graph, timeout=timeout, **params)
+        self.values = []
+
+    def addInstance(self, *index):
+        pass
+
+    def addVariable(self, *index):
+        pass
+
+    def addConstraint(self, *index):
+        pass
+
+    def generateNewColumn(self, *index):
+        self.addInstance(*index)
+        self.addVariable(*index)
+        self.addConstraint(*index)
+
+    def getBestGapConstraintIndex(self):
+        """ find worst constraint and return the corresponding index
+        """
+        return (None,)
+
+    def isComplete(self):
+        """ True if no other variables can be added
+        """
+        return True
+
+    def stopIteration(self):
+        return self.isComplete() or (len(self.values) >= 2 and isclose(self.values[-1], self.values[-2]))
+
+    def optimizeOneStep(self):
+        super(ColumnGenerationModel, self).optimize()
+        self.values.append(self.getObj())
+
+    def optimize(self):
+        """ TODO: among drivers who have still one path, choose the drivers which are implicated in
+                  a high traffic edge, and among these drivers choose the worst one
+        """
+        while not self.stopIteration():
+            self.optimizeOneStep()
+            index = self.getBestGapConstraintIndex()
+            if not all(index):
+                break
+            self.generateNewColumn(*index)

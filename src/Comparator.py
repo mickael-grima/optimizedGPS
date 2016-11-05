@@ -17,6 +17,8 @@ class Comparator(object):
     __FAILED = 1
     __TIMEOUT = 2
 
+    __STATUS = {0: 'SUCCESS', 1: 'FAILED', 2: 'TIMEOUT'}
+
     def __init__(self):
         self.algorithms = []  # algorithm
 
@@ -43,13 +45,15 @@ class Comparator(object):
             a = algo.algo(self.graph, *algo.args, **algo.kwards)
             try:
                 a.solve()
+                self.values.setdefault(algo.algo.__name__, a.value)
+                self.running_times.setdefault(algo.algo.__name__, a.running_time)
                 if a.isTimedOut():
                     self.status.setdefault(algo.algo.__name__, self.__TIMEOUT)
                 else:
-                    self.values.setdefault(algo.algo.__name__, a.value)
-                    self.running_times.setdefault(algo.algo.__name__, a.running_time)
                     self.status.setdefault(algo.algo.__name__, self.__SUCCESS)
             except:
+                self.values.setdefault(algo.algo.__name__, None)
+                self.running_times.setdefault(algo.algo.__name__, None)
                 self.status.setdefault(algo.algo.__name__, self.__FAILED)
 
     def compare(self):
@@ -59,16 +63,14 @@ class Comparator(object):
         self.solve()
         res = {}  # 'optimal' for optimal algo, else index in the list
         for algo in self.algorithms:
-            if self.status[algo.algo.__name__] == self.__SUCCESS:
-                res.setdefault(
-                    algo.algo.__name__,
-                    (around(self.values[algo.algo.__name__]), around(self.running_times[algo.algo.__name__]))
+            res.setdefault(
+                algo.algo.__name__,
+                (
+                    around(self.values[algo.algo.__name__]),
+                    around(self.running_times[algo.algo.__name__]),
+                    self.__STATUS[self.status[algo.algo.__name__]]
                 )
-            else:
-                res.setdefault(
-                    algo.algo.__name__,
-                    'FAILED with status %s' % self.status[algo.algo.__name__]
-                )
+            )
         return res
 
 
@@ -83,9 +85,9 @@ class MultipleGraphComparator(Comparator):
             self.graphs.append(graph)
 
     def compare(self):
-        res = []
+        res = {}
         for graph in self.graphs:
             self.setGraph(graph)
-            res.append(super(MultipleGraphComparator, self).compare())
+            res.setdefault(graph.name, super(MultipleGraphComparator, self).compare())
             self.reinitialize()
         return res

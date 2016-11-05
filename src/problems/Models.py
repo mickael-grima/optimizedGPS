@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
-from Problem import Model
+from Problem import Model, ColumnGenerationModel
 from gurobipy import GRB, quicksum, GurobiError
 import logging
 import sys
@@ -122,18 +122,20 @@ class ContinuousTimeModel(Model):
         # TODO: what to do if not binary ?
         if self.vtype == GRB.BINARY:
             for (path, driver), var in self.z.iteritems():
-                if var.X == 1.0:
-                    self.addOptimalPathToDriver(driver.to_tuple(), path)
+                try:
+                    if var.X == 1.0:
+                        self.addOptimalPathToDriver(driver.to_tuple(), path)
+                except:
+                    continue
         else:
             return {}
 
 
-class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
+class ColumnGenerationAroundShortestPath(ContinuousTimeModel, ColumnGenerationModel):
     def __init__(self, graph, timeout=sys.maxint, horizon=1000, binary=True):
         if not binary:
             log.error("Not implemented yet")
             raise NotImplementedError("Not implemented yet")
-        self.values = []
         super(ColumnGenerationAroundShortestPath, self).__init__(graph, timeout=timeout, horizon=horizon, binary=binary)
 
     def initialize_drivers(self):
@@ -152,6 +154,13 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
             raise KeyError("Driver %s doesn't exist in model %s" % (str(driver.to_tuple()), self.__class__.__name__))
         self.addVariable(driver, path)
         self.addConstraint(driver, path)
+
+    def addInstance(self, driver, path):
+        try:
+            self.drivers[driver].add(path)
+        except KeyError:
+            log.error("Driver %s doesn't exist in model %s", str(driver.to_tuple()), self.__class__.__name__)
+            raise KeyError("Driver %s doesn't exist in model %s" % (str(driver.to_tuple()), self.__class__.__name__))
 
     def addVariable(self, driver, path):
         self.z[path, driver] = self.model.addVar(0.0, name='z[%s,%s]' % (str(path), str(driver)),
@@ -196,16 +205,6 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
         """
         return len(self.paths_iterator) == 0
 
-    def stopIteration(self):
-        return self.isComplete() and len(self.values) >= 2 and isclose(self.values[-1], self.values[-2])
-
-    def getObj(self):
-        try:
-            return self.model.ObjVal
-        except GurobiError:
-            log.warning("problem has not been solved yet")
-            return sys.maxint
-
     def driverHasBeenOnEdge(self, driver, edge):
         return isclose(self.x[edge, driver].X, 1.0)
 
@@ -227,7 +226,7 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
                         worst_driver = driver
         return worst_driver
 
-    def getBestGapConstraint(self):
+    def getBestGapConstraintIndex(self):
         """ find worst driver on worst path
         """
         driver, path = None, None
@@ -239,18 +238,3 @@ class ColumnGenerationAroundShortestPath(ContinuousTimeModel):
                 del self.paths_iterator[driver]
                 continue
         return driver, path
-
-    def optimizeOneStep(self):
-        super(ColumnGenerationAroundShortestPath, self).optimize()
-        self.values.append(self.getObj())
-
-    def optimize(self):
-        """ TODO: among drivers who have still one path, choose the drivers which are implicated in
-                  a high traffic edge, and among these drivers choose the worst one
-        """
-        while not self.stopIteration():
-            self.optimizeOneStep()
-            driver, path = self.getBestGapConstraint()
-            if not all([driver, path]):
-                break
-            self.generateNewColumn(driver, path)

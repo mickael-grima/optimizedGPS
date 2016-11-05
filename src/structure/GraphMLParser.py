@@ -196,7 +196,11 @@ class GraphMLParser(object):
         dom = minidom.parse(open(fname, 'r'))
         root = dom.getElementsByTagName("graphml")[0]
         graph = root.getElementsByTagName("graph")[0]
-        name = graph.getAttribute('id')
+
+        name = fname.split('/')[-1]
+        name = name[:-4] if name.endswith('.png') else name
+        name = name[:-5] if name.endswith('.jpeg') else name
+        name = name[:-8] if name.endswith('.graphml') else name
 
         g = GPSGraph(name=name)
 
