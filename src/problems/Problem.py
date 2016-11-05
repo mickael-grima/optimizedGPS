@@ -47,7 +47,7 @@ class Problem(object):
         log.error("Not implemented yet")
         raise NotImplementedError("Not implemented yet")
 
-    def getOptimalValue(self):
+    def getSimulator(self):
         paths = {}
         for driver, path in self.iterOptimalSolution():
             paths.setdefault(path, {})
@@ -57,7 +57,10 @@ class Problem(object):
         if not paths:
             log.warning("Problem has not been solved yet ! Problem=%s" % self.__class__.__name__)
             return 0.0
-        simulator = GPSSimulator(self.getGraph(), paths)
+        return GPSSimulator(self.getGraph(), paths)
+
+    def getOptimalValue(self):
+        simulator = self.getSimulator()
 
         # simulate
         while simulator.has_next():

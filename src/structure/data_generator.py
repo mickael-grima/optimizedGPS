@@ -17,18 +17,22 @@ def generate_grid_data(length=5, width=5, **kwards):
         for j in range(width):
             source = 'n_%s_%s' % (i, j)
             graph.add_node(source)
+            graph.add_node_position(source, x=i * 100, y=j * 100)
             if i < length - 1:
                 target = 'n_%s_%s' % (i + 1, j)
                 graph.add_node(target)
+                graph.add_node_position(target, x=(i + 1) * 100, y=j * 100)
                 graph.add_edge(source, target, distance=1.0)
                 if j < width - 1:
                     target = 'n_%s_%s' % (i, j + 1)
                     graph.add_node(target)
+                    graph.add_node_position(target, x=i * 100, y=(j + 1) * 100)
                     graph.add_edge(source, target, distance=1.0)
             else:
                 if j < width - 1:
                     target = 'n_%s_%s' % (i, j + 1)
                     graph.add_node(target)
+                    graph.add_node_position(target, x=i * 100, y=(j + 1) * 100)
                     graph.add_edge(source, target, distance=1.0)
     return graph
 

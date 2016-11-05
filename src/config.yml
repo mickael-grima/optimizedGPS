@@ -82,6 +82,11 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: Comparator
+    # Interface
+    gui:
+      level: !!python/name:logging.DEBUG
+      handlers: [interfacefile]
+      qualname: gui
   handlers:
     logfile:
       class: logging.FileHandler
@@ -106,6 +111,11 @@ logging:
     gurobipyfile:
       class: logging.FileHandler
       filename: logs/gurobi.log
+      formatter: simpleFormatter
+      level: !!python/name:logging.NOTSET
+    interfacefile:
+      class: logging.FileHandler
+      filename: logs/interface.log
       formatter: simpleFormatter
       level: !!python/name:logging.NOTSET
   formatters:

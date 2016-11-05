@@ -12,20 +12,20 @@ import Constants
 import time
 
 
-class PetrinetInterface(Tkinter.Tk):
+class GPSInterface(Tkinter.Frame):
     """ this class implement the main window of the interface
     """
-    def __init__(self, parent, simulator, **kwards):
+    def __init__(self, parent, simulator, width=0, length=0):
         """ simulator is an object of class Simulator
         """
-        Tkinter.Tk.__init__(self, parent)
+        Tkinter.Frame.__init__(self, master=parent)
         self.parent = parent
         self.simulator = simulator
         self.speed = Constants.SPEED
         self.status = Constants.STOPPED
 
-        self.width = kwards.get('width', Constants.WINDOW['MAIN']['WIDTH'])
-        self.length = kwards.get('length', Constants.WINDOW['MAIN']['LENGTH'])
+        self.width = width or Constants.WINDOW['MAIN']['WIDTH']
+        self.length = length or Constants.WINDOW['MAIN']['LENGTH']
 
         self.onCreate()
 
@@ -45,6 +45,7 @@ class PetrinetInterface(Tkinter.Tk):
         """ reinitialize the simulator
         """
         self.simulator.reinitialize()
+        self.destroy()
 
     def startSimulation(self):
         """ start the simulation

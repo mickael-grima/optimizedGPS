@@ -13,7 +13,7 @@ START_FILE = "/home/mickael/Documents/projects/petrinetX/data/start_image.gif"
 
 # Integers
 BUTTON_PADX = 10
-SPEED = 500
+SPEED = 2000
 WINDOW = {
     'MAIN': {
         'LENGTH': 400,

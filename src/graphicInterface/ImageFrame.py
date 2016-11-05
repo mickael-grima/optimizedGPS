@@ -27,4 +27,7 @@ class ImageFrame(Tkinter.Frame):
         self.imageCanvas.pack()
 
     def load(self, image_loc):
+        print image_loc
         self.image = Tkinter.PhotoImage(file=image_loc)
+        self.imageCanvas.create_image(125, 125, image=self.image)
+        self.imageCanvas.pack()

@@ -7,9 +7,13 @@ Created on Wed Apr 01 21:38:37 2015
 import matplotlib.pyplot as plt
 import networkx as nx
 
+from datetime import datetime
+import os
 import logging
 import yaml
+
 from utils.tools import assert_file_location
+
 log = logging.getLogger(__name__)
 
 
@@ -108,3 +112,11 @@ class Simulator(object):
             assert_file_location(fname, typ='picture')
             plt.savefig(fname)
             plt.clf()
+        else:
+            now = datetime.now()
+            directory = '/tmp/GPSpictures/'
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            f = '/tmp/GPSpictures/fig-%s.png' % now.strftime('%Y%m%d-%HH%Mmin%Ss')
+            plt.savefig(f)
+            return f
