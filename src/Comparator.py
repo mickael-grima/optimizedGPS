@@ -9,7 +9,10 @@ ALGO = namedtuple('algo', ['algo', 'args', 'kwards'])
 
 
 def around(number):
-    return int(number * 1000) / 1000.
+    if number is not None:
+        return int(number * 1000) / 1000.
+    else:
+        return None
 
 
 class Comparator(object):

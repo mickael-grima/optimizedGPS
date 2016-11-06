@@ -107,11 +107,9 @@ class Model(Problem):
         params['LogToConsole'] = 0
         self.setParameters(**params)
 
-    def setParameters(self, NumericFocus=0, Presolve=-1, LogToConsole=0, TimeLimit=sys.maxint):
-        self.model.setParam('NumericFocus', NumericFocus)
-        self.model.setParam('Presolve', Presolve)
-        self.model.setParam('TimeLimit', TimeLimit)
-        self.model.setParam('LogToConsole', LogToConsole)
+    def setParameters(self, **kwards):
+        for key, value in kwards.iteritems():
+            self.model.setParam(key, value)
 
     def buildVariables(self):
         pass
