@@ -48,8 +48,8 @@ class Comparator(object):
             a = algo.algo(self.graph, *algo.args, **algo.kwards)
             try:
                 a.solve()
-                self.values.setdefault(algo.algo.__name__, a.value)
-                self.running_times.setdefault(algo.algo.__name__, a.running_time)
+                self.values.setdefault(algo.algo.__name__, a.getOptimalValue())
+                self.running_times.setdefault(algo.algo.__name__, a.getRunningTime())
                 if a.isTimedOut():
                     self.status.setdefault(algo.algo.__name__, self.__TIMEOUT)
                 else:

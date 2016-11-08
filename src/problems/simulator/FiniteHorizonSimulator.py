@@ -70,23 +70,6 @@ class FiniteHorizonSimulator(Simulator):
         # for each driver we store the next_edges
         self.next_edges = {}
 
-    def reinitialize(self, state={}):
-        """ if state is not empty, it describes a previous step of the simulator.
-            We restore the current state to this previous one
-        """
-        if not super(FiniteHorizonSimulator, self).reinitialize(state=state):
-            self.drivers = state.get('drivers', self.drivers)
-            self.moved = state.get('moved', self.moved)
-            self.arrived = state.get('arrived', self.arrived)
-            self.clocks = state.get('clocks', self.clocks)
-            self.time = state.get('time', self.time)
-            self.next_edges = state.get('next_edges', self.next_edges)
-            self.traffics = state.get('traffics', self.traffics)
-            self.next_moves = state.get('next_moves', self.next_moves)
-            self.ids = state.get('ids', self.ids)
-            return True
-        return False
-
     def get_current_state(self):
         state = super(FiniteHorizonSimulator, self).get_current_state()
 
@@ -342,6 +325,8 @@ class FiniteHorizonSimulator(Simulator):
                 clocks[ind] = (clocks[ind][0], clocks[ind][1] - min_clock)
             if clocks[0][1] == 0:
                 self.next_moves.add(edge)
+
+        self.current_clock += min_clock
 
     def has_next(self):
         """ Check if there is a next step

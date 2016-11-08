@@ -10,10 +10,16 @@ from logger import configure
 configure()
 
 import unittest
-from structure.data_generator import generate_graph_from_file, generate_grid_data, generate_random_drivers
+from structure.data_generator import (
+    generate_graph_from_file,
+    generate_grid_data, generate_random_drivers,
+    get_test_graph
+)
 from problems.SearchProblem import BacktrackingSearch
-from problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic
+from problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic, ShortestPathTrafficFree
 from problems.Models import ContinuousTimeModel, ColumnGenerationAroundShortestPath, ContinuousTimeModelWithoutPath
+
+from problems.BoundsHandler import BoundsHandler
 from Comparator import Comparator, MultipleGraphComparator
 
 
@@ -66,13 +72,32 @@ class ProblemsTest(unittest.TestCase):
         comparator.appendAlgorithm(ShortestPathHeuristic, timeout=2)
         comparator.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=2)
         comparator.appendAlgorithm(ContinuousTimeModel, timeout=2)
-        comparator.appendAlgorithm(ColumnGenerationAroundShortestPath)
-        comparator.appendAlgorithm(ContinuousTimeModelWithoutPath)
+        comparator.appendAlgorithm(ColumnGenerationAroundShortestPath, timeout=2)
+        comparator.appendAlgorithm(ContinuousTimeModelWithoutPath, timeout=2)
+        comparator.appendAlgorithm(ShortestPathTrafficFree, timeout=2)
 
         results = comparator.compare()
+        self.assertEqual(
+            set(results.iterkeys()),
+            set(['grid-graph-2-3-test', 'grid-graph-%s-%s-test' % (length, width)])
+        )
         for graph, res in results.iteritems():
             for algo, rs in res.iteritems():
                 self.assertIn(rs[2], ['SUCCESS', 'TIMEOUT'], 'FAILED for algo %s on graph %s' % (algo, graph))
+
+    def testBoundHandler(self):
+        graph = get_test_graph()
+        handler = BoundsHandler(graph)
+
+        # add bounds
+        handler.appendLowerBound(ShortestPathTrafficFree)
+        handler.appendUpperBound(ShortestPathHeuristic)
+
+        # bompute bounds
+        handler.computeLowerBound()
+        handler.computeUpperBound()
+
+        self.assertGreaterEqual(handler.getUpperBound(), handler.getLowerBound())
 
 
 if __name__ == '__main__':

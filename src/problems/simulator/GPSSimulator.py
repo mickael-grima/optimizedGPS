@@ -48,9 +48,6 @@ class GPSSimulator(Simulator):
                     self.clocks[i][-1].insert(j, t)
                 self.nb_driver += n
 
-    def reinitialize(self, state=None):
-        super(GPSSimulator, self).reinitialize(state=state)
-
     def get_current_state(self):
         state = super(GPSSimulator, self).get_current_state()
 
@@ -127,6 +124,7 @@ class GPSSimulator(Simulator):
             for clocks in path.itervalues():
                 for ind in range(len(clocks)):
                     clocks[ind] -= min_clock
+        self.current_clock += min_clock
 
     def has_next(self):
         """ Check if there is a next step

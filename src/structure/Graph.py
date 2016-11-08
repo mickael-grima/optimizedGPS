@@ -85,6 +85,10 @@ class Graph(DiGraph):
                     return True
         return False
 
+    def iter_edges_in_path(self, path):
+        for i in range(len(path) - 1):
+            yield path[i], path[i + 1]
+
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ DATA ----------------------------------------------
     # ----------------------------------------------------------------------------------------
@@ -211,3 +215,6 @@ class Graph(DiGraph):
         paths = self.djikstra(start, end, length=length).get(end) or {}
         for path in paths:
             yield path[:-1]
+
+    def get_shortest_path(self, start, end):
+        return self.get_paths_from_to(start, end).next()

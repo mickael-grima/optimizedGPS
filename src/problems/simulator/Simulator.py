@@ -23,14 +23,16 @@ class Simulator(object):
         """
         self.previous_states = []
         self.time = 0
+        self.current_clock = 0
 
     def reinitialize(self, state={}):
         """ return to the first step
         """
-        if state is None:
+        if state:
+            for attr, value in state.iteritems():
+                setattr(self, attr, value)
+        else:
             self.initialize()
-            return True
-        return False
 
     def get_current_state(self):
         """ save the dynamic classe's instances

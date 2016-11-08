@@ -34,10 +34,6 @@ class Problem(object):
         self.opt_solution.setdefault(driver, [])
         self.opt_solution[driver].append(path)
 
-    def setOptimalSolution(self, solution):
-        log.error("Not implemented yet")
-        raise NotImplementedError("Not implemented yet")
-
     def iterOptimalSolution(self):
         """ yield for each driver the path he had
         """
@@ -66,6 +62,12 @@ class Problem(object):
             simulator.next()
 
         return simulator.get_value()
+
+    def getValue(self):
+        return self.value
+
+    def getRunningTime(self):
+        return self.running_time
 
 
 class SimulatorProblem(Problem):
