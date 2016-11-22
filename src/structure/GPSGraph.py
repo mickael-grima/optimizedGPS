@@ -157,3 +157,11 @@ class GPSGraph(Graph):
     def getTimeCongestionFunction(self, source, target):
         if self.has_edge(source, target):
             return time_congestion_function(**self.get_edge_data(source, target))
+
+    def getMinimumWaitingTime(self, source, target):
+        if self.has_edge(source, target):
+            return congestion_function(**self.get_edge_data(source, target))(0)
+
+    def getTrafficLimit(self, source, target):
+        # TODO
+        return 1

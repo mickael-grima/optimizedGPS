@@ -94,3 +94,6 @@ env/
 
 # Simulator's images
 src/static/pictures/*
+
+# output
+output/

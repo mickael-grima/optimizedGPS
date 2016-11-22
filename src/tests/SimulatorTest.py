@@ -12,6 +12,7 @@ configure()
 import unittest
 from problems.simulator.GPSSimulator import GPSSimulator
 from problems.simulator.FiniteHorizonSimulator import FiniteHorizonSimulator
+from problems.simulator.ModelTransformationSimulator import ModelTransformationSimulator
 from problems.simulator.utils.tools import get_id
 from structure.data_generator import generate_graph_from_file
 from structure.GPSGraph import GPSGraph
@@ -100,6 +101,59 @@ class SimulatorTest(unittest.TestCase):
 
         # end
         self.assertFalse(simulator.has_next())
+
+    def testModelTransformationSimulator(self):
+        graph = GPSGraph(name='graph-test')
+        graph.add_node(1)
+        graph.add_node(2)
+        graph.add_node(3)
+        graph.add_edge(1, 2)
+        graph.add_edge(2, 3)
+
+        graph.addDriver(1, 3, starting_time=0)
+        graph.addDriver(2, 3, starting_time=1, nb=2)
+        graph.addDriver(1, 3, starting_time=1)
+
+        paths = {
+            (1, 2, 3): {
+                0: 1,
+                1: 1
+            },
+            (2, 3): {
+                1: 2
+            }
+        }
+
+        simulator = ModelTransformationSimulator(graph, paths)
+
+        # initialization
+        self.assertEqual([{-1: [1, 1], 0: []}, {-1: [0, 1], 0: [], 1: []}], simulator.clocks)
+        self.assertEqual(0, simulator.time)
+
+        simulator.next()
+        # 1st step
+        self.assertEqual([{-1: [1, 1], 0: []}, {-1: [1], 0: [1], 1: []}], simulator.clocks)
+        self.assertEqual(1, simulator.time)
+
+        simulator.next()
+        # 2nd step
+        self.assertEqual([{-1: [], 0: [1, 1]}, {-1: [], 0: [2], 1: [1]}], simulator.clocks)
+        self.assertEqual(6, simulator.time)
+
+        simulator.next()
+        # 3rd step
+        self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [1], 1: []}], simulator.clocks)
+        self.assertEqual(6, simulator.time)
+
+        simulator.next()
+        # 4th step
+        self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: [1]}], simulator.clocks)
+        self.assertEqual(7, simulator.time)
+
+        simulator.next()
+        # 5th step
+        self.assertEqual([{-1: [], 0: []}, {-1: [], 0: [], 1: []}], simulator.clocks)
+        self.assertEqual(7, simulator.time)
 
     def testFiniteHorizonSimulator(self):
         graph = generate_graph_from_file('static/graph-test-1.graphml')

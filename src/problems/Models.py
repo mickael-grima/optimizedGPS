@@ -24,6 +24,19 @@ class BestPathTrafficModel(Model):
     def initialize_drivers(self):
         self.drivers = set(self.graph.getAllUniqueDrivers())
 
+    def buildConstants(self):
+        """ For each driver we find the edges belonging to his shortest path
+        """
+        self.X = {}
+        for driver in self.drivers:
+            if (driver.start, driver.end) not in self.X:
+                self.X[driver.start, driver.end] = {}
+                path = self.graph.get_shortest_path(driver.start, driver.end)
+                i = 0
+                while i < len(path) - 1:
+                    self.X[driver.start, driver.end][path[i], path[i + 1]] = 1
+                    i += 1
+
     def buildVariables(self):
         # add here variables
         log.info("ADDING variables ...")
@@ -33,12 +46,10 @@ class BestPathTrafficModel(Model):
         self.y = {}
         self.z = None
 
-        count = {'x': 0, 'S': 0, 'E': 0, 'y': 0, 'z': 0}
+        count = {'x': 0, 'S': 0, 'E': 0, 'z': 0}
         self.z = self.model.addVar(name='z')
         count['z'] += 1
         for edge in self.graph.edges():
-            self.y[edge] = self.model.addVar(name='y[%s]' % str(edge))
-            count['y'] += 1
             for driver in self.drivers:
                 self.x[edge, driver] = self.model.addVar(0.0, name='x[%s,%s]' % (str(edge), str(driver)),
                                                          vtype=self.vtype)
@@ -60,27 +71,23 @@ class BestPathTrafficModel(Model):
         count = {'starting-edges': 0, 'ending-edges': 0, 'initial-conditions': 0, 'non-visited-edges-constraints': 0,
                  'visited-edges-constraints': 0, 'starting-ending-constraints': 0, 'transfert-constraints': 0,
                  'ending-time-constraints': 0, 'no-cycle-constraints': 0, 'difference-to-shortest-path': 0,
-                 'difference-to-best-traffic': 0, 'difference-to-best-traffic-by-edges': 0}
+                 'difference-to-best-traffic': 0}
 
-        self.model.addConstr(
-            quicksum(self.graph.MINIMUM_WAITING_TIME[edge] * (self.x[edge, driver] - self.graph.TRAFFIC_LIMIT[edge])
-                     for edge in self.graph.edges() for driver in self.drivers) <= self.z,
-            "difference to shortest path"
-        )
-        count['difference-to-shortest-path'] += 1
-        self.model.addConstr(
-            quicksum(self.y[edge] for edge in self.graph.edges()) <= self.z,
-            'difference to best traffic'
-        )
-        count['difference-to-best-traffic'] += 1
         for edge in self.graph.edges():
             self.model.addConstr(
-                quicksum(self.x[edge, driver] - self.graph.TRAFFIC_LIMIT[edge] for driver in self.drivers) <=
-                self.y[edge],
-                "difference to best traffic on edge " % str(edge)
+                quicksum(self.x[edge, driver] - self.graph.getTrafficLimit(*edge) for driver in self.drivers) <=
+                self.z,
+                "difference to best traffic on edge %s" % str(edge)
             )
-            count['difference-to-best-traffic-by-edges'] += 1
+            count['difference-to-best-traffic'] += 1
         for driver in self.drivers:
+            self.model.addConstr(
+                quicksum(self.graph.getMinimumWaitingTime(*edge) *
+                         (self.x[edge, driver] - self.X[driver.start, driver.end].get(edge, 0))
+                         for edge in self.graph.edges()) <= self.z,
+                "difference to shortest path"
+            )
+            count['difference-to-shortest-path'] += 1
             # starting edges constraints
             self.model.addConstr(
                 quicksum(self.x[(n, driver.end), driver] for n in self.graph.predecessors_iter(driver.end)) == 1,
