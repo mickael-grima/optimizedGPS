@@ -190,7 +190,7 @@ class GraphMLParser(object):
         tx, ty = graph.get_position(target) or (0.0, 0.0)
         return math.sqrt((sy - sx) * (sy - sx) + (ty - tx) * (ty - tx))
 
-    def parse(self, fname, distance_factor=1.0, distance_default=0.0):
+    def parse(self, fname, distance_factor=1.0, distance_default=0.0, traffic_limit=1):
         """
         """
         dom = minidom.parse(open(fname, 'r'))
@@ -230,6 +230,6 @@ class GraphMLParser(object):
                         source = nodes[edge.getAttribute('source')]
                         target = nodes[edge.getAttribute('target')]
                         distance = distance_default or self.__class__.compute_edge_distance(g, source, target)
-                        g.add_edge(source, target, distance=distance / distance_factor)
+                        g.add_edge(source, target, distance=distance / distance_factor, traffic_limit=traffic_limit)
 
         return g

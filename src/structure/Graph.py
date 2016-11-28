@@ -26,15 +26,85 @@ class Graph(DiGraph):
     # ------------------------------------- NODES --------------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def get_random_node(self, black_list=set()):
+    def get_random_node(self, black_list=set(), random_walk_start=None, seed=None,
+                        starting_node=False, ending_node=False):
         """ Pick uniformly at random among the graph's nodes (except among black_list nodes)
+            If `random_walk_start` is a node in graph we generate a random number between 1 and len(nodes): n.
+            We do a uniform random walk from the given node, and after n steps we return the current node
+
+            if starting_node is True, we want a node which has successors
+            if ending_node is True, we want a node which has predecessors
         """
-        r, i, node = random.randint(0, self.number_of_nodes() - len(black_list) - 1), 0, None
+        random.seed(seed)
+
+        # If a starting random_walk node has been given
+        if self.has_node(random_walk_start):
+            n = random.randint(1, self.number_of_nodes())
+            current_node = random_walk_start
+            # We procceed the random walk
+            while n > 0:
+                succ = self.successors(current_node)
+                if len(succ) == 0:
+                    return current_node
+                r, i, nb = random.randint(0, len(succ) - 1), 0, len(succ) - 1
+                for node in succ:
+                    # If the node is in black list we don't pick it
+                    if node in black_list:
+                        nb -= 1
+                        r = min(r, nb)
+                        continue
+                    # if the node is a not a starting node we don't pick it
+                    if starting_node:
+                        try:
+                            self.successors_iter(node).next()
+                        except StopIteration:
+                            nb -= 1
+                            r = min(r, nb)
+                            continue
+                    # if the node is a not a starting node we don't pick it
+                    if ending_node:
+                        try:
+                            self.predecessors_iter(node).next()
+                        except StopIteration:
+                            nb -= 1
+                            r = min(r, nb)
+                            continue
+                    if i <= r:
+                        current_node = node
+                    i += 1
+                n -= 1
+            return current_node
+
+        # Else we choose an other node uniformly at random
+        nb = self.number_of_nodes() - 1
+        if nb == 1:
+            return self.nodes()[0]
+        r, i, nod = random.randint(0, self.number_of_nodes() - 1), 0, None
         for node in self.nodes():
-            if node not in black_list:
-                if r == i:
-                    return node
-                i += 1
+            if starting_node:
+                try:
+                    self.successors_iter(node).next()
+                except StopIteration:
+                    nb -= 1
+                    r = min(r, nb)
+                    continue
+            # if the node is a not a starting node we don't pick it
+            if ending_node:
+                try:
+                    self.predecessors_iter(node).next()
+                except StopIteration:
+                    nb -= 1
+                    r = min(r, nb)
+                    continue
+            # If node is forbidden we don't pick it
+            if node in black_list:
+                nb -= 1
+                r = min(r, nb)
+                continue
+            if i <= r:
+                nod = node
+            i += 1
+        return nod
 
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ EDGES ---------------------------------------------

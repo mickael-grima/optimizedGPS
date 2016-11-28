@@ -73,15 +73,14 @@ logging:
       level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: problems.Models
+    problems.Comparator:
+      level: !!python/name:logging.DEBUG
+      handlers: [problemfile]
+      qualname: Comparator
     gurobipy:
       level: !!python/name:logging.DEBUG
       handlers: [gurobipyfile]
       qualname: gurobipy
-    #Comparator
-    Comparator:
-      level: !!python/name:logging.DEBUG
-      handlers: [problemfile]
-      qualname: Comparator
   handlers:
     logfile:
       class: logging.FileHandler

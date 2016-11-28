@@ -11,9 +11,9 @@ def congestion_function(traffic_limit=1, **parameters):
         if x < 0:
             log.error("Traffic negative")
             raise ValueError("Traffic negative")
-        if x <= traffic_limit:
-            return x
-        return x
+        if x < traffic_limit:
+            return traffic_limit
+        return x ** 4 + 1
     return func
 
 

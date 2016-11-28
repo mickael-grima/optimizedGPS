@@ -44,10 +44,10 @@ class DataTest(unittest.TestCase):
         graph = generate_grid_data(length=length, width=width, graph_name='test-graph')
 
         nb_drivers, av_drivers = random.randint(5, 20), random.randint(1, 5)
-        graph = generate_random_drivers(graph, total_drivers=nb_drivers, av_drivers=av_drivers)
+        generate_random_drivers(graph, total_drivers=nb_drivers, av_drivers=av_drivers)
 
         # exactly nb_drivers drivers in graph
-        self.assertEqual(nb_drivers, graph.countDrivers())
+        self.assertEqual(nb_drivers, graph.number_of_drivers())
 
 
 if __name__ == '__main__':

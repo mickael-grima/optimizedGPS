@@ -21,7 +21,8 @@ from structure.GPSGraph import GPSGraph
 class SimulatorTest(unittest.TestCase):
 
     def testStructure(self):
-        graph = generate_graph_from_file('static/grid-graph-2-3-test.graphml')
+        graph = generate_graph_from_file('static/grid-graph-2-3-test.graphml',
+                                         traffic_limit=0)
         # add drivers
         graph.addDriver('1', '6', 0, nb=2)
         graph.addDriver('3', '6', 1, nb=3)
@@ -46,8 +47,8 @@ class SimulatorTest(unittest.TestCase):
         graph.add_node(1)
         graph.add_node(2)
         graph.add_node(3)
-        graph.add_edge(1, 2)
-        graph.add_edge(2, 3)
+        graph.add_edge(1, 2, traffic_limit=0)
+        graph.add_edge(2, 3, traffic_limit=0)
 
         graph.addDriver(1, 3, starting_time=0)
         graph.addDriver(2, 3, starting_time=1, nb=2)
@@ -107,8 +108,8 @@ class SimulatorTest(unittest.TestCase):
         graph.add_node(1)
         graph.add_node(2)
         graph.add_node(3)
-        graph.add_edge(1, 2)
-        graph.add_edge(2, 3)
+        graph.add_edge(1, 2, traffic_limit=0)
+        graph.add_edge(2, 3, traffic_limit=0)
 
         graph.addDriver(1, 3, starting_time=0)
         graph.addDriver(2, 3, starting_time=1, nb=2)

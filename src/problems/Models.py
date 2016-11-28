@@ -166,3 +166,33 @@ class BestPathTrafficModel(Model):
             for edge in map(lambda (e, v): e, sorted(lst, key=lambda (e, v): v)):
                 path = edge if path is None else path + (edge[1],)
             self.addOptimalPathToDriver(driver.to_tuple(), tuple(path))
+
+    def assert_objective_is_valid(self):
+        """ the objective value of this problem is bounded
+        """
+        M = max(self.graph.getCongestionFunction(*edge)(0) for edge in self.graph.edges())
+        E, D = self.graph.number_of_edges(), self.graph.number_of_drivers()
+        if self.getObj() > max(E * M, D):
+            log.error("Solving problem %s has failes", self.__class__.__name__)
+            raise Exception("Solving problem %s has failes" % self.__class__.__name__)
+
+    def getUpperBoundToOptimal(self):
+        """ If the problem has been solved, compute the bound using the formula in report 3
+        """
+        self.assert_objective_is_valid()
+        alpha = self.getObj()
+
+        # Compute first the shortest path withour traffic lower bound
+        lower = 0
+        for driver in self.drivers:
+            path = self.get_shortest_path(driver.start, driver.end)
+            for edge in self.graph.iter_edges_in_path(path):
+                lower += self.graph.getCongestionFunction(driver.start, driver.end)(0)
+
+        # compute the maximum waiting time
+        M = max(self.graph.getCongestionFunction(*edge)(alpha) for edge in self.graph.edges())
+
+        # compute the minimum waiting time
+        m = min(self.graph.getCongestionFunction(*edge)(0) for edge in self.graph.edges())
+
+        return (1 + len(self.drivers()) * alpha / lower) * M / m
