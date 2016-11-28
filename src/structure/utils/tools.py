@@ -6,20 +6,15 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def congestion_function(**parameters):
-    if 'a' in parameters:
-        if 'b' in parameters:
-            return lambda x: parameters['a'] * x * x * x * x + parameters['b']
-        else:
-            return lambda x: parameters[0] * x * x * x * x + 1
-    else:
-        return lambda x: x * x * x * x + 1
-
-
-def time_congestion_function(**parameters):
-    """ TODO: find a convex pair function
-    """
-    return lambda x: 1
+def congestion_function(traffic_limit=1, **parameters):
+    def func(x):
+        if x < 0:
+            log.error("Traffic negative")
+            raise ValueError("Traffic negative")
+        if x <= traffic_limit:
+            return x
+        return x
+    return func
 
 
 def assert_has_graph_GUI_infos(graph):

@@ -81,6 +81,6 @@ class ShortestPathTrafficFree(Problem):
         for driver in self.graph.getAllUniqueDrivers():
             path = self.graph.get_shortest_path(driver.start, driver.end)
             for edge in self.graph.iter_edges_in_path(path):
-                self.value += self.graph.getCongestionFunction(*edge)(0)
+                self.value += self.graph.getMinimumWaitingTime(*edge)
 
         self.running_time = time.time() - ct

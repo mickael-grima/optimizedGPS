@@ -4,7 +4,7 @@
 import logging
 from Graph import Graph
 from Driver import Driver
-from utils.tools import congestion_function, time_congestion_function
+from utils.tools import congestion_function
 
 log = logging.getLogger(__name__)
 
@@ -16,10 +16,35 @@ class GPSGraph(Graph):
         drivers are stored as a tuple (starting node, ending node, starting time) to which we associate a number
         which represents how many drivers for these informations we have
     """
+    TRAFFIC_LIMIT = 'traffic_limit'
+
     def __init__(self, name='graph'):
         super(GPSGraph, self).__init__(name=name)
         # drivers
         self.__drivers = {}
+
+    # ----------------------------------------------------------------------------------------
+    # ---------------------------------- EDGES -----------------------------------------------
+    # ----------------------------------------------------------------------------------------
+
+    def add_edge(self, source, target, attr_dict=None, **attr):
+        attr.setdefault(self.TRAFFIC_LIMIT, self.compute_traffic_limit(source, target))
+        super(GPSGraph, self).add_edge(source, target, attr_dict, **attr)
+
+    def compute_traffic_limit(self, source, target, **data):
+        # TODO
+        return 1
+
+    def getCongestionFunction(self, source, target):
+        if self.has_edge(source, target):
+            return congestion_function(**self.get_edge_data(source, target))
+
+    def getMinimumWaitingTime(self, source, target):
+        if self.has_edge(source, target):
+            return congestion_function(**self.get_edge_data(source, target))(0)
+
+    def getTrafficLimit(self, source, target):
+        return self.get_edge_property(source, target, self.TRAFFIC_LIMIT)
 
     # ----------------------------------------------------------------------------------------
     # ---------------------------------- DRIVERS ---------------------------------------------
@@ -149,19 +174,3 @@ class GPSGraph(Graph):
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------
     # ----------------------------------------------------------------------------------------
-
-    def getCongestionFunction(self, source, target):
-        if self.has_edge(source, target):
-            return congestion_function(**self.get_edge_data(source, target))
-
-    def getTimeCongestionFunction(self, source, target):
-        if self.has_edge(source, target):
-            return time_congestion_function(**self.get_edge_data(source, target))
-
-    def getMinimumWaitingTime(self, source, target):
-        if self.has_edge(source, target):
-            return congestion_function(**self.get_edge_data(source, target))(0)
-
-    def getTrafficLimit(self, source, target):
-        # TODO
-        return 1

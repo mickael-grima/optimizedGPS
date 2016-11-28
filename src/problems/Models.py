@@ -32,10 +32,8 @@ class BestPathTrafficModel(Model):
             if (driver.start, driver.end) not in self.X:
                 self.X[driver.start, driver.end] = {}
                 path = self.graph.get_shortest_path(driver.start, driver.end)
-                i = 0
-                while i < len(path) - 1:
-                    self.X[driver.start, driver.end][path[i], path[i + 1]] = 1
-                    i += 1
+                for edge in self.graph.iter_edges_in_path(path):
+                    self.X[driver.start, driver.end][edge] = 1
 
     def buildVariables(self):
         # add here variables
