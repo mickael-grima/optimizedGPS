@@ -108,6 +108,14 @@ class Model(Problem):
         params['LogToConsole'] = 0
         self.setParameters(**params)
 
+        self.count = {}
+
+        self.initialize(**params)
+        self.buildModel()
+
+    def initialize(self, *args, **kwards):
+        pass
+
     def setParameters(self, **kwards):
         for key, value in kwards.iteritems():
             self.model.setParam(key, value)
@@ -117,6 +125,21 @@ class Model(Problem):
 
     def buildVariables(self):
         pass
+
+    def addConstraint(self, constr, name=None):
+        """ constr: constraint to add
+            name: name of the constraint. For counting we split this name wrt ":".
+            after ":" the words are here only to make the constraint unique inside Gurobipy
+        """
+        if name is None:
+            name = 0
+            while str(name) in self.count:
+                name += 1
+
+        name = str(name)
+        self.count.setdefault(name.split(':')[0], 0)
+        self.model.addConstr(constr, name)
+        self.count[name.split(':')[0]] += 1
 
     def buildConstraints(self):
         pass
@@ -128,6 +151,7 @@ class Model(Problem):
         log.info("** Model building STARTED **")
         self.buildConstants()
         self.buildVariables()
+        self.model.update()
         self.buildConstraints()
         self.setObjective()
         log.info("** Model building FINISHED **")
