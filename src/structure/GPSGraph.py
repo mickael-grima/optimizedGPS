@@ -6,6 +6,8 @@ from Graph import Graph
 from Driver import Driver
 from utils.tools import congestion_function
 
+import options
+
 log = logging.getLogger(__name__)
 
 
@@ -16,8 +18,6 @@ class GPSGraph(Graph):
         drivers are stored as a tuple (starting node, ending node, starting time) to which we associate a number
         which represents how many drivers for these informations we have
     """
-    TRAFFIC_LIMIT = 'traffic_limit'
-
     def __init__(self, name='graph'):
         super(GPSGraph, self).__init__(name=name)
         # drivers
@@ -28,7 +28,7 @@ class GPSGraph(Graph):
     # ----------------------------------------------------------------------------------------
 
     def add_edge(self, source, target, attr_dict=None, **attr):
-        attr.setdefault(self.TRAFFIC_LIMIT, self.compute_traffic_limit(source, target))
+        attr.setdefault(options.TRAFFIC_LIMIT, self.compute_traffic_limit(source, target))
         super(GPSGraph, self).add_edge(source, target, attr_dict, **attr)
 
     def compute_traffic_limit(self, source, target, **data):
@@ -44,7 +44,7 @@ class GPSGraph(Graph):
             return congestion_function(**self.get_edge_data(source, target))(0)
 
     def getTrafficLimit(self, source, target):
-        return self.get_edge_property(source, target, self.TRAFFIC_LIMIT)
+        return self.get_edge_property(source, target, options.TRAFFIC_LIMIT)
 
     # ----------------------------------------------------------------------------------------
     # ---------------------------------- DRIVERS ---------------------------------------------

@@ -3,13 +3,11 @@
 
 from Heuristics import ShortestPathTrafficFree, ShortestPathHeuristic
 
-from collections import namedtuple
 from datetime import datetime
 import logging
+import options
 
 log = logging.getLogger(__name__)
-
-ALGO = namedtuple('algo', ['algo', 'args', 'kwards'])
 
 
 def around(number):
@@ -20,13 +18,6 @@ def around(number):
 
 
 class Comparator(object):
-    SUCCESS = 0
-    FAILED = 1
-    TIMEOUT = 2
-    NOT_RUN = -1
-
-    STATUS = {SUCCESS: 'SUCCESS', FAILED: 'FAILED', TIMEOUT: 'TIMEOUT', NOT_RUN: 'NOT RUN'}
-
     def __init__(self):
         self.algorithms = []  # algorithm
 
@@ -43,7 +34,7 @@ class Comparator(object):
         self.status = {}
 
     def appendAlgorithm(self, algo, *arguments, **kwards):
-        self.algorithms.append(ALGO(algo, arguments, kwards))
+        self.algorithms.append(options.ALGO(algo, arguments, kwards))
 
     def solve(self):
         """ solve algo stored
@@ -56,13 +47,13 @@ class Comparator(object):
                 self.values.setdefault(algo.algo.__name__, a.getOptimalValue())
                 self.running_times.setdefault(algo.algo.__name__, a.getRunningTime())
                 if a.isTimedOut():
-                    self.status.setdefault(algo.algo.__name__, self.TIMEOUT)
+                    self.status.setdefault(algo.algo.__name__, options.TIMEOUT)
                 else:
-                    self.status.setdefault(algo.algo.__name__, self.SUCCESS)
+                    self.status.setdefault(algo.algo.__name__, options.SUCCESS)
             except:
                 self.values.setdefault(algo.algo.__name__, None)
                 self.running_times.setdefault(algo.algo.__name__, None)
-                self.status.setdefault(algo.algo.__name__, self.FAILED)
+                self.status.setdefault(algo.algo.__name__, options.FAILED)
 
     def compare(self):
         """ Compute some results about the given algorithms
@@ -76,7 +67,7 @@ class Comparator(object):
                 (
                     around(self.values[algo.algo.__name__]),
                     around(self.running_times[algo.algo.__name__]),
-                    self.STATUS[self.status[algo.algo.__name__]]
+                    options.STATUS[self.status[algo.algo.__name__]]
                 )
             )
         return res
@@ -133,7 +124,7 @@ class Bound(Comparator):
         pass
 
     def appendBound(self, algorithm, *args, **kwards):
-        self.algorithms.append(ALGO(algorithm, args, kwards))
+        self.algorithms.append(options.ALGO(algorithm, args, kwards))
 
     def appendDefaultBound(self):
         if self.DEFAULT_BOUND is None:
@@ -151,7 +142,7 @@ class Bound(Comparator):
 
     # bounds status
     def getBoundStatus(self):
-        return self.STATUS[self.status.get(self.best_algo)]
+        return options.STATUS[self.status.get(self.best_algo)]
 
     def getBestAlgo(self):
         return self.best_algo
@@ -163,7 +154,7 @@ class LowerBound(Bound):
     def setBestBound(self):
         try:
             self.best_algo = min(
-                filter(lambda a: self.status[a] in [self.TIMEOUT, self.SUCCESS], self.values.iterkeys()),
+                filter(lambda a: self.status[a] in [options.TIMEOUT, options.SUCCESS], self.values.iterkeys()),
                 key=lambda a: self.values[a]
             )
         except ValueError:
@@ -176,7 +167,7 @@ class UpperBound(Bound):
     def setBestBound(self):
         try:
             self.best_algo = max(
-                filter(lambda a: self.status[a] in [self.TIMEOUT, self.SUCCESS], self.values.iterkeys()),
+                filter(lambda a: self.status[a] in [options.TIMEOUT, options.SUCCESS], self.values.iterkeys()),
                 key=lambda a: self.values[a]
             )
         except ValueError:
@@ -229,9 +220,6 @@ class BoundsHandler(object):
 
 
 class ResultsHandler(MultipleGraphComparator, BoundsHandler):
-    LOWER_BOUND_LABEL = 'lower_bound'
-    UPPER_BOUND_LABEL = 'upper_bound'
-
     def __init__(self, default=True):
         MultipleGraphComparator.__init__(self)
         BoundsHandler.__init__(self, default=default)
@@ -251,11 +239,11 @@ class ResultsHandler(MultipleGraphComparator, BoundsHandler):
             r = super(MultipleGraphComparator, self).compare()
             self.computeBounds()
             r.setdefault(
-                self.LOWER_BOUND_LABEL,
+                options.LOWER_BOUND_LABEL,
                 (around(self.getLowerBound()), around(self.getLowerBoundRunningTime()), self.getLowerBoundStatus())
             )
             r.setdefault(
-                self.UPPER_BOUND_LABEL,
+                options.UPPER_BOUND_LABEL,
                 (around(self.getUpperBound()), around(self.getUpperBoundRunningTime()), self.getUpperBoundStatus())
             )
             res.append(r)

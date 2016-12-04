@@ -5,6 +5,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.realpath(__file__))[:-5])
 
+import options
 from logger import configure
 
 configure()
@@ -113,10 +114,10 @@ class ProblemsTest(unittest.TestCase):
 
         for i in range(len(results)):
             graph, res = handler.graphs[i], results[i]
-            self.assertGreater(res[handler.LOWER_BOUND_LABEL], 0)
-            self.assertGreater(res[handler.UPPER_BOUND_LABEL], res[handler.LOWER_BOUND_LABEL])
+            self.assertGreater(res[options.LOWER_BOUND_LABEL], 0)
+            self.assertGreater(res[options.UPPER_BOUND_LABEL], res[options.LOWER_BOUND_LABEL])
             for algo, rs in res.iteritems():
-                if algo not in [handler.LOWER_BOUND_LABEL, handler.UPPER_BOUND_LABEL]:
+                if algo not in [options.LOWER_BOUND_LABEL, options.UPPER_BOUND_LABEL]:
                     self.assertIn(rs[2], ['SUCCESS', 'TIMEOUT'], 'FAILED for algo %s on graph %s' % (algo, graph))
 
 
