@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
-from structure.data_generator import generate_grid_graph_random_driver
+from logger import configure
 from problems.Comparator import ResultsHandler
 from problems.Models import BestPathTrafficModel
+from structure.data_generator import generate_grid_graph_random_driver
 
-from logger import configure
 configure()
 
 
