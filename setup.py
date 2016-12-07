@@ -14,7 +14,7 @@ setup(
     license='TUM',
     packages=['optimizedGPS'],
     install_requires=[
-        'yaml',
+        'pyyaml',
     ],
     zip_safe=False
 )
