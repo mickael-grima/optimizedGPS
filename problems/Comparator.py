@@ -252,4 +252,4 @@ class ResultsHandler(MultipleGraphComparator, BoundsHandler):
         return res
 
     def getAlgorithms(self):
-        return [self.LOWER_BOUND_LABEL] + super(ResultsHandler, self).getAlgorithms() + [self.UPPER_BOUND_LABEL]
+        return [options.LOWER_BOUND_LABEL] + super(ResultsHandler, self).getAlgorithms() + [options.UPPER_BOUND_LABEL]

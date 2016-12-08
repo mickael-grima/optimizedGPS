@@ -14,7 +14,7 @@ from structure.data_generator import (
 )
 from problems.SearchProblem import BacktrackingSearch
 from problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic, ShortestPathTrafficFree
-from problems.Models import BestPathTrafficModel
+from problems.Models import BestPathTrafficModel, FixedWaitingTimeModel
 
 from problems.Comparator import BoundsHandler, Comparator, MultipleGraphComparator, ResultsHandler
 
@@ -105,6 +105,7 @@ class ProblemsTest(unittest.TestCase):
         handler.appendAlgorithm(BacktrackingSearch, timeout=2)
         handler.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=2)
         handler.appendAlgorithm(BestPathTrafficModel, timeout=2)
+        handler.appendAlgorithm(FixedWaitingTimeModel, timeout=2)
 
         results = handler.compare()
 

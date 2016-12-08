@@ -131,7 +131,7 @@ class MainContinuousTimeModel(EdgeCharacterizationModel):
 
     def setObjective(self):
         self.model.setObjective(
-            quicksum(self.E[edge, driver] for edge in self.graph.edges() for driver in self.drivers()
+            quicksum(self.E[edge, driver] for edge in self.graph.edges() for driver in self.drivers
                      if edge[1] == driver.end),
             GRB.MINIMIZE
         )
