@@ -10,7 +10,7 @@ from problems.simulator.GPSSimulator import GPSSimulator
 from problems.simulator.FiniteHorizonSimulator import FiniteHorizonSimulator
 from problems.simulator.ModelTransformationSimulator import ModelTransformationSimulator
 from problems.simulator.utils.tools import get_id
-from structure.data_generator import generate_graph_from_file
+from data.data_generator import generate_graph_from_file
 from structure.GPSGraph import GPSGraph
 
 

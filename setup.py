@@ -19,7 +19,9 @@ setup(
     install_requires=[
         'pyyaml',
         'networkx',
-        'matplotlib'
+        'matplotlib',
+        'requests',
+        'osmapi'
     ],
     zip_safe=False
 )

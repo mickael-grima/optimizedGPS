@@ -6,7 +6,8 @@ from logger import configure
 configure()
 
 import unittest
-from structure.data_generator import generate_grid_data, generate_random_drivers
+from data.data_generator import generate_grid_data, generate_random_drivers
+from data.api import RoadMapper
 import random
 
 
@@ -44,6 +45,13 @@ class DataTest(unittest.TestCase):
 
         # exactly nb_drivers drivers in graph
         self.assertEqual(nb_drivers, graph.number_of_drivers())
+
+    # def testOSMAPI(self):
+    #     min_lon, min_lat, max_lon, max_lat = -1.55, 47.21, -1.54, 47.22
+    #     rmapper = RoadMapper()
+    #
+    #     road_map = rmapper.get_road_map(min_lon, min_lat, max_lon, max_lat)
+    #     graph = rmapper.convert_into_graph(road_map)
 
 
 if __name__ == '__main__':

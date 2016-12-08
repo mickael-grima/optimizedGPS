@@ -2,6 +2,7 @@
 # !/bin/env python
 
 import logging
+
 from logger import configure
 
 configure()
@@ -11,7 +12,7 @@ import unittest
 from networkx import NetworkXError
 from structure.Graph import Graph
 from structure.GPSGraph import GPSGraph
-from structure.data_generator import generate_graph_from_file
+from data.data_generator import generate_graph_from_file
 
 
 class StructureTest(unittest.TestCase):

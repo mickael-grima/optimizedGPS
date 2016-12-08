@@ -7,7 +7,7 @@ from logger import configure
 configure()
 
 import unittest
-from structure.data_generator import (
+from data.data_generator import (
     generate_graph_from_file,
     generate_grid_data,
     generate_test_graph
