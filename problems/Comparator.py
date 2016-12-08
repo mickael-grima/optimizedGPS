@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
-from Heuristics import ShortestPathTrafficFree, ShortestPathHeuristic
-
-from datetime import datetime
 import logging
+from datetime import datetime
+
 import options
+from Heuristics import ShortestPathTrafficFree, ShortestPathHeuristic
+from utils.utils import SafeOpen
 
 log = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ class MultipleGraphComparator(Comparator):
         return map(lambda el: el.algo.__name__, self.algorithms)
 
     def writeIntoFile(self, results):
-        with open(self.__file, 'w') as f:
+        with SafeOpen(self.__file, 'w') as f:
             algos = self.getAlgorithms()
             f.write('%s\n' % '\t\t'.join(['\t'.join([''] + algos) for _ in range(3)]))
             for i in range(len(results)):

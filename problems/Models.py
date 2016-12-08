@@ -200,11 +200,10 @@ class BestPathTrafficModel(EdgeCharacterizationModel):
 class FixedWaitingTimeModel(MainContinuousTimeModel):
     def initialize(self, **kwards):
         super(FixedWaitingTimeModel, self).initialize()
-        self.C = kwards.get('waiting_times', {})
+        C, self.C = kwards.get('waiting_times', {}), {}
         for driver in self.drivers:
             for edge in self.graph.edges():
-                if (edge, driver) not in self.C:
-                    self.setWaitingTime(driver, edge)
+                self.setWaitingTime(driver, edge, value=C.get((driver, edge)))
 
     def setWaitingTime(self, driver, edge, value=None):
         if value is None:
