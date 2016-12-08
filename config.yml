@@ -13,72 +13,72 @@ logging:
   disable_existing_loggers: true
   # Configuring the default (root) logger is highly recommended
   root:
-    level: !python/name:logging.ERROR
+    level: !!python/name:logging.ERROR
     handlers: [logfile]
   loggers:
     # Logging from my application
     # Structure
     structure.Graph:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: problems.structure.Graph
     structure.GPSGraph:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: problems.structure.GPSGraph
     # Simulators
     problems.simulator.Simulator:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [simulatorfile]
       qualname: problems.simulator.Simulator
     problems.simulator.FiniteHorizonSimulator:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [simulatorfile]
       qualname: problems.simulator.FiniteHorizonSimulator
     problems.simulator.GPSSimulator:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [simulatorfile]
       qualname: problems.simulator.GPSSimulator
     problems.simulator.utils.tools:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [simulatorfile]
       qualname: problems.simulator.utils.tools
     # Tests
     tests.StructureTest:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.StructureTest
     tests.SimulatorTest:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.SimulatorTest
     tests.ProblemsTest:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [logfile]
       qualname: tests.ProblemsTest
     # Problems
     problems.Problem:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: problems.Problem
     problems.SearchProblem:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: SearchProblem
     problems.Heuristics:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: Heuristics
     problems.Models:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: problems.Models
     problems.Comparator:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [problemfile]
       qualname: Comparator
     gurobipy:
-      level: !python/name:logging.DEBUG
+      level: !!python/name:logging.DEBUG
       handlers: [gurobipyfile]
       qualname: gurobipy
   handlers:
@@ -86,32 +86,32 @@ logging:
       class: logging.FileHandler
       filename: logs/logs.log
       formatter: simpleFormatter
-      level: !python/name:logging.NOTSET
+      level: !!python/name:logging.NOTSET
     console:
       class: logging.StreamHandler
       stream: ext://sys.stdout
       formatter: simpleFormatter
-      level: !python/name:logging.NOTSET
+      level: !!python/name:logging.NOTSET
     problemfile:
       class: logging.FileHandler
       filename: logs/problem.log
       formatter: simpleFormatter
-      level: !python/name:logging.NOTSET
+      level: !!python/name:logging.NOTSET
     simulatorfile:
       class: logging.FileHandler
       filename: logs/simulator.log
       formatter: simpleFormatter
-      level: !python/name:logging.NOTSET
+      level: !!python/name:logging.NOTSET
     gurobipyfile:
       class: logging.FileHandler
       filename: logs/gurobi.log
       formatter: simpleFormatter
-      level: !python/name:logging.NOTSET
+      level: !!python/name:logging.NOTSET
   formatters:
     simpleFormatter:
-      class: !python/name:logging.Formatter
+      class: !!python/name:logging.Formatter
       format: '%(asctime)s %(filename)-30s %(levelname)-8s: %(message)s'
-      datefmt: '%Y-%m-%dT%T%Z'
+      datefmt: '%Y-%m-%dT%H%Z'
 graphml:
   geometry:
     node-size: 30.0

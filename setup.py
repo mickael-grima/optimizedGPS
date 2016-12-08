@@ -2,7 +2,9 @@
 # !/bin/env python
 
 from setuptools import setup
+import os
 
+dependency_links = [os.environ['GUROBI_HOME']] if 'GUROBI_HOME' in os.environ else []
 
 setup(
     name='optimizedGPS',
@@ -13,8 +15,11 @@ setup(
     author_email='mickael.grima@tum.de',
     license='TUM',
     packages=['optimizedGPS'],
+    dependency_links=dependency_links,
     install_requires=[
-        'yaml',
+        'pyyaml',
+        'networkx',
+        'matplotlib'
     ],
     zip_safe=False
 )

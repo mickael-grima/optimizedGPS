@@ -288,3 +288,22 @@ class Graph(DiGraph):
 
     def get_shortest_path(self, start, end):
         return self.get_paths_from_to(start, end).next()
+
+    def generate_path_from_edges(self, start, end, edges):
+        path = (start,)
+        visited, count = set(), 0
+        while path[-1] != end:
+            found = False
+            for edge in filter(lambda e: e not in visited, edges):
+                if edge[0] == path[-1]:
+                    path = path + (edge[1],)
+                    visited.add(edge)
+                    count += 1
+                    found = True
+                    break
+            if found is False:
+                log.error("the given list of edges doesn't define a path")
+                raise Exception("the given list of edges doesn't define a path")
+        if count != len(edges):
+            log.warning("not every edges have been used for creating the returning path")
+        return path
