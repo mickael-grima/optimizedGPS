@@ -111,7 +111,7 @@ logging:
     simpleFormatter:
       class: !!python/name:logging.Formatter
       format: '%(asctime)s %(filename)-30s %(levelname)-8s: %(message)s'
-      datefmt: '%Y-%m-%dT%T%Z'
+      datefmt: '%Y-%m-%dT%H%Z'
 graphml:
   geometry:
     node-size: 30.0
