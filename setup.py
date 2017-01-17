@@ -14,12 +14,14 @@ setup(
     author='Mickael Grima',
     author_email='mickael.grima@tum.de',
     license='TUM',
-    packages=['optimizedGPS'],
+    packages=[],
     dependency_links=dependency_links,
     install_requires=[
         'pyyaml',
         'networkx',
-        'matplotlib'
+        'matplotlib',
+        'requests',
+        'osmapi'
     ],
     zip_safe=False
 )
