@@ -24,13 +24,13 @@ class ProblemsTest(unittest.TestCase):
     def testSearchProblem(self):
         graph = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)
 
-        graph.addDriver('1', '6', starting_time=0)
-        graph.addDriver('1', '6', starting_time=1, nb=2)
-        graph.addDriver('2', '6', starting_time=0)
-        graph.addDriver('2', '6', starting_time=2)
-        graph.addDriver('3', '6', starting_time=0)
-        graph.addDriver('3', '6', starting_time=1)
-        graph.addDriver('3', '6', starting_time=2)
+        graph.add_driver('1', '6', starting_time=0)
+        graph.add_driver('1', '6', starting_time=1, nb=2)
+        graph.add_driver('2', '6', starting_time=0)
+        graph.add_driver('2', '6', starting_time=2)
+        graph.add_driver('3', '6', starting_time=0)
+        graph.add_driver('3', '6', starting_time=1)
+        graph.add_driver('3', '6', starting_time=2)
 
         comparator = Comparator()
         comparator.setGraph(graph)
@@ -42,18 +42,18 @@ class ProblemsTest(unittest.TestCase):
 
     def testMultipleGraphComparator(self):
         graph0 = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)
-        graph0.addDriver('1', '6', starting_time=0)
-        graph0.addDriver('1', '6', starting_time=1, nb=2)
-        graph0.addDriver('2', '6', starting_time=0)
-        graph0.addDriver('2', '6', starting_time=2)
-        graph0.addDriver('3', '6', starting_time=0)
-        graph0.addDriver('3', '6', starting_time=1)
-        graph0.addDriver('3', '6', starting_time=2)
+        graph0.add_driver('1', '6', starting_time=0)
+        graph0.add_driver('1', '6', starting_time=1, nb=2)
+        graph0.add_driver('2', '6', starting_time=0)
+        graph0.add_driver('2', '6', starting_time=2)
+        graph0.add_driver('3', '6', starting_time=0)
+        graph0.add_driver('3', '6', starting_time=1)
+        graph0.add_driver('3', '6', starting_time=2)
 
         length, width = 3, 5
         graph1 = generate_grid_data(length=length, width=width, graph_name='grid-graph-%s-%s-test' % (length, width))
-        graph1.addDriver('n_0_0', 'n_2_4', starting_time=0)
-        graph1.addDriver('n_0_0', 'n_2_4', starting_time=1, nb=2)
+        graph1.add_driver('n_0_0', 'n_2_4', starting_time=0)
+        graph1.add_driver('n_0_0', 'n_2_4', starting_time=1, nb=2)
         # graph1.addDriver('n_0_1', 'n_2_4', starting_time=0)
         # graph1.addDriver('n_0_1', 'n_2_4', starting_time=2)
         # graph1.addDriver('n_1_0', 'n_2_4', starting_time=0)
@@ -111,8 +111,8 @@ class ProblemsTest(unittest.TestCase):
 
         for i in range(len(results)):
             graph, res = handler.graphs[i], results[i]
-            self.assertGreater(res[options.LOWER_BOUND_LABEL], 0)
-            self.assertGreater(res[options.UPPER_BOUND_LABEL], res[options.LOWER_BOUND_LABEL])
+            self.assertGreaterEqual(res[options.LOWER_BOUND_LABEL], 0)
+            self.assertGreaterEqual(res[options.UPPER_BOUND_LABEL], res[options.LOWER_BOUND_LABEL])
             for algo, rs in res.iteritems():
                 if algo not in [options.LOWER_BOUND_LABEL, options.UPPER_BOUND_LABEL]:
                     self.assertIn(rs[2], ['SUCCESS', 'TIMEOUT'], 'FAILED for algo %s on graph %s' % (algo, graph))

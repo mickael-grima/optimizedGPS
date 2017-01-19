@@ -7,7 +7,7 @@ configure()
 
 import unittest
 from data.data_generator import generate_grid_data, generate_random_drivers
-from data.api import RoadMapper
+from data.osm_api import RoadMapper
 import random
 
 

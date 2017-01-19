@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
+"""
+    Here we find everything related to the osm api
+"""
+
 from osmapi import OsmApi, ApiError
 import options
 from structure.GPSGraph import GPSGraph

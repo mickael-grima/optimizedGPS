@@ -3,7 +3,9 @@
 
 import logging
 import random
+import math
 from networkx import DiGraph, number_connected_components
+import options
 
 log = logging.getLogger(__name__)
 
@@ -118,6 +120,21 @@ class Graph(DiGraph):
             return self.adj[source][target].get(prop)
         log.warning("No edge between nodes %s and %s in graph %s", source, target, self.name)
         return None
+
+    def get_edge_length(self, source, target):
+        """
+        Compute the edge's length considering the longitude and latitude of source and target
+        If one of these data doesn't exist we return a DEFAULT_DISTANCE (see options.py)
+
+        :param source: node source
+        :param target: node target
+        :return: a float representing the edge's length
+        """
+        sx, sy = self.get_position(source) or (None, None)
+        tx, ty = self.get_position(target) or (None, None)
+        if any(map(lambda x: x is None, [sx, sy, tx, ty])):
+            return options.DEFAULT_DISTANCE
+        return math.sqrt((sy - sx) * (sy - sx) + (ty - tx) * (ty - tx))
 
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------

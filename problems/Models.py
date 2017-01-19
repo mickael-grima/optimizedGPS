@@ -26,7 +26,7 @@ class EdgeCharacterizationModel(Model):
     def initialize_drivers(self):
         """ Make drivers unique entities
         """
-        self.drivers = set(self.graph.getAllUniqueDrivers())
+        self.drivers = set(self.graph.get_all_unique_drivers())
 
     def setOptimalSolution(self):
         paths = {}
@@ -159,13 +159,13 @@ class BestPathTrafficModel(EdgeCharacterizationModel):
 
         for edge in self.graph.edges():
             self.addConstraint(
-                quicksum(self.x[edge, driver] - self.graph.getTrafficLimit(*edge) for driver in self.drivers) <=
+                quicksum(self.x[edge, driver] - self.graph.get_traffic_limit(*edge) for driver in self.drivers) <=
                 self.z,
                 name="%s:%s" % (labels.DIFFERENCE_TO_BEST_TRAFFIC, str(edge))
             )
         for driver in self.drivers:
             self.model.addConstr(
-                quicksum(self.graph.getMinimumWaitingTime(*edge) *
+                quicksum(self.graph.get_minimum_waiting_time(*edge) *
                          (self.x[edge, driver] - self.X[driver.start, driver.end].get(edge, 0))
                          for edge in self.graph.edges()) <= self.z,
                 name="%s:%s" % (labels.DIFFERENCE_TO_SHORTEST_PATH, str(driver))
@@ -207,7 +207,7 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
 
     def setWaitingTime(self, driver, edge, value=None):
         if value is None:
-            value = self.graph.getMinimumWaitingTime(*edge)
+            value = self.graph.get_minimum_waiting_time(*edge)
         self.C[edge, driver] = value
 
     def getTraffic(self, edge, driver):

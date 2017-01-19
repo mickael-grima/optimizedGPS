@@ -82,7 +82,7 @@ class Simulator(object):
         raise NotImplementedError()
 
     def get_color_from_traffic(self, edge, traffic):
-        cong_func = self.graph.getCongestionFunction(*edge)
+        cong_func = self.graph.get_congestion_function(*edge)
         time_suppl = (cong_func(traffic) - cong_func(0.0)) / cong_func(0.0)
         keys = sorted(self._props['traffics'].iterkeys(), reverse=True)
         for key in keys:

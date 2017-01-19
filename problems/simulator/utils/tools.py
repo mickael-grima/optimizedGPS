@@ -26,12 +26,12 @@ def assert_paths_in_graph(paths, graph, simulator_type=0):
                 log.error("Node %s doesn't exist in graph %s", path[-1], graph.name)
                 raise KeyError("node %s doesn't exist in graph %s" % (path[-1], graph.name))
         for (start, end, time), nb in count.iteritems():
-            if nb != graph.getDrivers(start, end, starting_time=time):
+            if nb != graph.get_drivers(start, end, starting_time=time):
                 log.error("Drivers %s and path's flow don't match in graph %s. %s drivers, %s have a path",
-                          str((start, end, time)), graph.name, graph.getDrivers(start, end, starting_time=time), nb)
+                          str((start, end, time)), graph.name, graph.get_drivers(start, end, starting_time=time), nb)
                 raise Exception("Drivers %s and path's flow don't match in graph %s. %s drivers, %s have a path"
                                 % (str((start, end, time)), graph.name,
-                                   graph.getDrivers(start, end, starting_time=time), nb))
+                                   graph.get_drivers(start, end, starting_time=time), nb))
     elif simulator_type == 1:
         for path in paths:
             i = 0

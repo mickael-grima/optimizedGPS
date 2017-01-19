@@ -17,7 +17,7 @@ class ShortestPathHeuristic(SimulatorProblem):
     def __init__(self, graph, timeout=sys.maxint):
         super(ShortestPathHeuristic, self).__init__(timeout=timeout)
         paths = {}
-        for start, end, t, nb in graph.getAllDrivers():
+        for start, end, t, nb in graph.get_all_drivers():
             try:
                 path = graph.get_paths_from_to(start, end).next()
             except StopIteration:
@@ -46,7 +46,7 @@ class ShortestPathHeuristic(SimulatorProblem):
 class AllowedPathsHeuristic(BacktrackingSearch):
     def __init__(self, graph, initial_value=sys.maxint, diff_length=0, timeout=sys.maxint):
         allowed_paths = []
-        for s, t, _, _ in graph.getAllDrivers():
+        for s, t, _, _ in graph.get_all_drivers():
             allowed_paths.extend(graph.get_paths_from_to(s, t, length=diff_length))
         super(AllowedPathsHeuristic, self).__init__(graph, initial_value=initial_value, allowed_paths=allowed_paths,
                                                     timeout=timeout)
@@ -59,7 +59,7 @@ class UpdatedBySortingShortestPath(Problem):
         self.traffics = {}
 
     def solve(self):
-        drivers = sorted(self.graph.getAllUniqueDrivers(), key=lambda d: d.time)
+        drivers = sorted(self.graph.get_all_unique_drivers(), key=lambda d: d.time)
         for driver in drivers:
             self.addOptimalPathToDriver(driver.to_tuple(), ())
 
@@ -78,9 +78,9 @@ class ShortestPathTrafficFree(Problem):
     def solve(self):
         ct = time.time()
 
-        for driver in self.graph.getAllUniqueDrivers():
+        for driver in self.graph.get_all_unique_drivers():
             path = self.graph.get_shortest_path(driver.start, driver.end)
             for edge in self.graph.iter_edges_in_path(path):
-                self.value += self.graph.getMinimumWaitingTime(*edge)
+                self.value += self.graph.get_minimum_waiting_time(*edge)
 
         self.running_time = time.time() - ct

@@ -20,10 +20,10 @@ class SimulatorTest(unittest.TestCase):
         graph = generate_graph_from_file('static/grid-graph-2-3-test.graphml',
                                          traffic_limit=0)
         # add drivers
-        graph.addDriver('1', '6', 0, nb=2)
-        graph.addDriver('3', '6', 1, nb=3)
-        graph.addDriver('3', '4', 1, nb=1)
-        graph.addDriver('5', '6', 2, nb=2)
+        graph.add_driver('1', '6', 0, nb=2)
+        graph.add_driver('3', '6', 1, nb=3)
+        graph.add_driver('3', '4', 1, nb=1)
+        graph.add_driver('5', '6', 2, nb=2)
         # get path for drivers
         paths = {
             ('1', '3', '4', '6'): {0: 2},
@@ -46,9 +46,9 @@ class SimulatorTest(unittest.TestCase):
         graph.add_edge(1, 2, traffic_limit=0)
         graph.add_edge(2, 3, traffic_limit=0)
 
-        graph.addDriver(1, 3, starting_time=0)
-        graph.addDriver(2, 3, starting_time=1, nb=2)
-        graph.addDriver(1, 3, starting_time=1)
+        graph.add_driver(1, 3, starting_time=0)
+        graph.add_driver(2, 3, starting_time=1, nb=2)
+        graph.add_driver(1, 3, starting_time=1)
 
         paths = {
             (1, 2, 3): {
@@ -107,9 +107,9 @@ class SimulatorTest(unittest.TestCase):
         graph.add_edge(1, 2, traffic_limit=0)
         graph.add_edge(2, 3, traffic_limit=0)
 
-        graph.addDriver(1, 3, starting_time=0)
-        graph.addDriver(2, 3, starting_time=1, nb=2)
-        graph.addDriver(1, 3, starting_time=1)
+        graph.add_driver(1, 3, starting_time=0)
+        graph.add_driver(2, 3, starting_time=1, nb=2)
+        graph.add_driver(1, 3, starting_time=1)
 
         paths = {
             (1, 2, 3): {
@@ -155,9 +155,9 @@ class SimulatorTest(unittest.TestCase):
     def testFiniteHorizonSimulator(self):
         graph = generate_graph_from_file('static/graph-test-1.graphml')
 
-        graph.addDriver('1', '4', starting_time=0)
-        graph.addDriver('1', '4', starting_time=1, nb=2)
-        graph.addDriver('2', '4', starting_time=1)
+        graph.add_driver('1', '4', starting_time=0)
+        graph.add_driver('1', '4', starting_time=1, nb=2)
+        graph.add_driver('2', '4', starting_time=1)
 
         simulator = FiniteHorizonSimulator(graph)
 
