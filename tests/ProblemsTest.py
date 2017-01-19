@@ -38,7 +38,7 @@ class ProblemsTest(unittest.TestCase):
         comparator.appendAlgorithm(ShortestPathHeuristic)
 
         results = comparator.compare()
-        self.assertTrue(set(map(lambda el: el[2], results.itervalues())).issubset(set(['SUCCESS'])))
+        self.assertTrue(set(map(lambda el: el[2], results.itervalues())).issubset({'SUCCESS'}))
 
     def testMultipleGraphComparator(self):
         graph0 = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)

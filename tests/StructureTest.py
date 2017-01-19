@@ -36,7 +36,7 @@ class StructureTest(unittest.TestCase):
         self.assertTrue(graph.has_edge('node0', 'node1'''))
         self.assertFalse(graph.has_edge('node1', 'node2'))
         self.assertFalse(graph.has_edge('node1', 'node0'))  # is directed graph
-        self.assertEqual({'size': 3}, graph.get_edge_data('node0', 'node1'))
+        self.assertEqual({'distance': 100, 'lanes': 1, 'size': 3}, graph.get_edge_data('node0', 'node1'))
         self.assertIsNone(graph.get_edge_data('node1', 'node0'))
         self.assertEqual({'node0 --> node1'}, set(map(lambda el: '%s --> %s' % (el[0], el[1]), graph.edges())))
         self.assertEqual('node1', graph.successors_iter('node0').next())
@@ -113,14 +113,14 @@ class StructureTest(unittest.TestCase):
             self.assertTrue(graph.get_edge_property(source, target, "distance"))
             self.assertGreater(float(graph.get_edge_property(source, target, "distance")), 0.0)
 
+        # data
+        self.assertEqual(graph.get_position('n0'), (457.0, 296.0))
+
         # remove
         self.assertRaises(NetworkXError, graph.remove_node, 'n2')
         graph.remove_node('n0')
         self.assertFalse(graph.has_node('n0'))
         self.assertFalse(graph.has_edge('n0', 'n1'))
-
-        # data
-        self.assertEqual(graph.get_position('n0'), (457.0, 296.0))
 
     def testDjikstra(self):
         graph = generate_graph_from_file('static/djikstra-test.graphml', distance_default=1.0)

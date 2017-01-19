@@ -7,6 +7,7 @@
 
 from osmapi import OsmApi, ApiError
 import options
+import labels
 from structure.GPSGraph import GPSGraph
 
 
@@ -19,7 +20,7 @@ def get_tag(el):
 
 
 def get_node_location(node):
-    return node.get('data', {}).get(options.LATITUDE), node.get('data', {}).get(options.LONGITUDE)
+    return node.get('data', {}).get(labels.LATITUDE), node.get('data', {}).get(labels.LONGITUDE)
 
 
 def get_node_id(node):
@@ -41,64 +42,64 @@ class RoadMapper(object):
     ATTRIBUTES = {
         'highway': {
             'motorway': {
-                options.LANES: 2,
-                options.MAX_SPEED: 130
+                labels.LANES: 2,
+                labels.MAX_SPEED: 130
             },
             'trunk': {
-                options.LANES: 2,
-                options.MAX_SPEED: 110
+                labels.LANES: 2,
+                labels.MAX_SPEED: 110
             },
             'primary': {
-                options.LANES: 2,
-                options.MAX_SPEED: '50|90'
+                labels.LANES: 2,
+                labels.MAX_SPEED: '50|90'
             },
             'secondary': {
-                options.LANES: 2,
-                options.MAX_SPEED: '50|90'
+                labels.LANES: 2,
+                labels.MAX_SPEED: '50|90'
             },
             'tertiary': {
-                options.LANES: 2,
-                options.MAX_SPEED: '50|90'
+                labels.LANES: 2,
+                labels.MAX_SPEED: '50|90'
             },
             'unclassified': {
-                options.LANES: 1,
-                options.MAX_SPEED: 50
+                labels.LANES: 1,
+                labels.MAX_SPEED: 50
             },
             'residential': {
-                options.LANES: 1,
-                options.MAX_SPEED: 50
+                labels.LANES: 1,
+                labels.MAX_SPEED: 50
             },
             'motorway_link': {
-                options.LANES: 1,
-                options.MAX_SPEED: 130
+                labels.LANES: 1,
+                labels.MAX_SPEED: 130
             },
             'motorway_junction': {
-                options.LANES: 1,
-                options.MAX_SPEED: 130
+                labels.LANES: 1,
+                labels.MAX_SPEED: 130
             },
             'trunk_link': {
-                options.LANES: 1,
-                options.MAX_SPEED: 110
+                labels.LANES: 1,
+                labels.MAX_SPEED: 110
             },
             'primary_link': {
-                options.LANES: 1,
-                options.MAX_SPEED: '50|90'
+                labels.LANES: 1,
+                labels.MAX_SPEED: '50|90'
             },
             'secondary_link': {
-                options.LANES: 1,
-                options.MAX_SPEED: '50|90'
+                labels.LANES: 1,
+                labels.MAX_SPEED: '50|90'
             },
             'tertiary_link': {
-                options.LANES: 1,
-                options.MAX_SPEED: '50|90'
+                labels.LANES: 1,
+                labels.MAX_SPEED: '50|90'
             },
             'living_street': {
-                options.LANES: 1,
-                options.MAX_SPEED: 20
+                labels.LANES: 1,
+                labels.MAX_SPEED: 20
             },
             'road': {
-                options.LANES: 1,
-                options.MAX_SPEED: '50|90'
+                labels.LANES: 1,
+                labels.MAX_SPEED: '50|90'
             }
         }
     }
@@ -138,7 +139,7 @@ class RoadMapper(object):
         :return: an integer
         """
         typ = get_tag(road)['highway']
-        max_speed = get_tag(road).get(options.MAX_SPEED) or self.ATTRIBUTES['highway'][typ][options.MAX_SPEED]
+        max_speed = get_tag(road).get(labels.MAX_SPEED) or self.ATTRIBUTES['highway'][typ][labels.MAX_SPEED]
         if isinstance(max_speed, str):
             if '|' in max_speed:
                 if self.is_in_agglomeration(road):
@@ -191,14 +192,13 @@ class RoadMapper(object):
         # First add the nodes
         for node in filter(lambda n: n is not None, road_map['nodes'].itervalues()):
             lat, lon = get_node_location(node)
-            graph.add_node(get_node_id(node))
-            graph.add_node_position(get_node_id(node), **dict(x=lon, y=lat))
+            graph.add_node(get_node_id(node), lat, lon)
         # Then add the edges between nodes
         for road in road_map['roads']:
             typ = get_tag(road)['highway']
             props = {
-                options.LANES: get_tag(road).get(options.LANES) or self.ATTRIBUTES['highway'][typ][options.LANES],
-                options.MAX_SPEED: self.get_road_max_speed(road)
+                labels.LANES: get_tag(road).get(labels.LANES) or self.ATTRIBUTES['highway'][typ][labels.LANES],
+                labels.MAX_SPEED: self.get_road_max_speed(road)
             }
             nodes = iter_road_nodes(road)
             current_node = None

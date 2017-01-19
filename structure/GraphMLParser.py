@@ -211,8 +211,7 @@ class GraphMLParser(object):
                         if len(str(n)) == 0:
                             n = node.getAttribute('id')
                         geometry = shapenode.getElementsByTagName("y:Geometry")[0]
-                        g.add_node(n)
-                        g.add_node_position(n, x=float(geometry.getAttribute('x')), y=float(geometry.getAttribute('y')))
+                        g.add_node(n, float(geometry.getAttribute('x')), float(geometry.getAttribute('y')))
                         nodes[node.getAttribute('id')] = n
 
         # Get edges

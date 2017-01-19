@@ -6,7 +6,8 @@ from Graph import Graph
 from Driver import Driver
 from utils.tools import congestion_function
 
-import options
+import labels
+from constants import constants
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +19,12 @@ class GPSGraph(Graph):
         drivers are stored as a tuple (starting node, ending node, starting time) to which we associate a number
         which represents how many drivers for these informations we have
     """
+    PROPERTIES = Graph.PROPERTIES
+    PROPERTIES['edges'].update({
+        labels.TRAFFIC_LIMIT: constants[labels.TRAFFIC_LIMIT],
+        labels.MAX_SPEED: constants[labels.MAX_SPEED]
+    })
+
     def __init__(self, name='graph'):
         super(GPSGraph, self).__init__(name=name)
         # drivers
@@ -27,9 +34,17 @@ class GPSGraph(Graph):
     # ---------------------------------- EDGES -----------------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def add_edge(self, source, target, attr_dict=None, **attr):
-        attr.setdefault(options.TRAFFIC_LIMIT, self.compute_traffic_limit(source, target))
-        super(GPSGraph, self).add_edge(source, target, attr_dict, **attr)
+    def add_edge(self, u, v, distance=None, lanes=None, traffic_limit=None, max_speed=None, attr_dict=None,
+                 **attr):
+        props = {
+            labels.TRAFFIC_LIMIT: self.compute_traffic_limit(u, v),
+            labels.MAX_SPEED: self.PROPERTIES['edges'][labels.MAX_SPEED]
+        }
+        if attr_dict is not None:
+            props.update(attr_dict)
+        props[labels.TRAFFIC_LIMIT] = traffic_limit if traffic_limit is not None else props[labels.TRAFFIC_LIMIT]
+        props[labels.MAX_SPEED] = max_speed if max_speed is not None else props[labels.MAX_SPEED]
+        super(Graph, self).add_edge(u, v, distance=distance, lanes=lanes, attr_dict=props, **attr)
 
     def compute_traffic_limit(self, source, target, **data):
         """
@@ -42,7 +57,7 @@ class GPSGraph(Graph):
         :return: an integer representing the limit traffic on the given edge
         """
         length = self.get_edge_length(source, target)
-        return float(length) / options.DEFAULT_CAR_LENGTH * data.get(options.LANES, 1)
+        return float(length) / constants[labels.CAR_LENGTH] * data.get(constants[labels.LANES], 1)
 
     def get_congestion_function(self, source, target):
         if self.has_edge(source, target):
@@ -53,7 +68,7 @@ class GPSGraph(Graph):
             return congestion_function(**self.get_edge_data(source, target))(0)
 
     def get_traffic_limit(self, source, target):
-        return self.get_edge_property(source, target, options.TRAFFIC_LIMIT)
+        return self.get_edge_property(source, target, labels.TRAFFIC_LIMIT)
 
     # ----------------------------------------------------------------------------------------
     # ---------------------------------- DRIVERS ---------------------------------------------

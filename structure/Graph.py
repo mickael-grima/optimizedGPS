@@ -5,7 +5,8 @@ import logging
 import random
 import math
 from networkx import DiGraph, number_connected_components
-import options
+from constants import constants
+import labels
 
 log = logging.getLogger(__name__)
 
@@ -14,10 +15,19 @@ class Graph(DiGraph):
     """ This class contains every instances and methods describing a Graph for our problem
         It inherits from networkx.DiGraph
     """
+    PROPERTIES = {
+        'edges': {
+            labels.DISTANCE: constants[labels.DISTANCE],
+            labels.LANES: constants[labels.LANES]
+        },
+        'nodes': {
+            labels.LATITUDE: constants[labels.LATITUDE],
+            labels.LONGITUDE: constants[labels.LONGITUDE]
+        }
+    }
+
     def __init__(self, name='graph'):
         self.__name = name
-        # structure
-        self.__data = {}
         super(Graph, self).__init__()
 
     @property
@@ -27,6 +37,31 @@ class Graph(DiGraph):
     # ----------------------------------------------------------------------------------------
     # ------------------------------------- NODES --------------------------------------------
     # ----------------------------------------------------------------------------------------
+
+    def add_node(self, n, lat=None, lon=None, attr_dict=None, **attr):
+        """
+
+        :param n: node to add
+        :param lat: latitude
+        :param lon: longitude
+        :param attr_dict: dictionary form of attributes
+        :param attr: dictionary
+        :return: None
+        """
+        props = {k: v for k, v in self.PROPERTIES['nodes'].iteritems()}
+        if attr_dict is not None:
+            props.update(attr_dict)
+        props[labels.LATITUDE] = lat if lat is not None else props[labels.LATITUDE]
+        props[labels.LONGITUDE] = lon if lon is not None else props[labels.LONGITUDE]
+        super(Graph, self).add_node(n, attr_dict=props, **attr)
+
+    def get_position(self, node):
+        """ returns the node's position if it exists, otherwise returns None
+        """
+        try:
+            return self.node[node][labels.LATITUDE], self.node[node][labels.LONGITUDE]
+        except KeyError:
+            return None
 
     def get_random_node(self, black_list=set(), random_walk_start=None, seed=None,
                         starting_node=False, ending_node=False):
@@ -112,6 +147,14 @@ class Graph(DiGraph):
     # ------------------------------------ EDGES ---------------------------------------------
     # ----------------------------------------------------------------------------------------
 
+    def add_edge(self, u, v, distance=None, lanes=None, attr_dict=None, **attr):
+        props = {labels.DISTANCE: self.get_edge_length(u, v), labels.LANES: self.PROPERTIES['edges'][labels.LANES]}
+        if attr_dict is not None:
+            props.update(attr_dict)
+        props[labels.DISTANCE] = distance if distance is not None else props[labels.DISTANCE]
+        props[labels.LANES] = lanes if lanes is not None else props[labels.LANES]
+        super(Graph, self).add_edge(u, v, attr_dict=props, **attr)
+
     def get_edge_property(self, source, target, prop):
         """ return the wanted property for the given edge
             return None if the edge doesn't exist
@@ -133,7 +176,7 @@ class Graph(DiGraph):
         sx, sy = self.get_position(source) or (None, None)
         tx, ty = self.get_position(target) or (None, None)
         if any(map(lambda x: x is None, [sx, sy, tx, ty])):
-            return options.DEFAULT_DISTANCE
+            return self.PROPERTIES['edges'][labels.DISTANCE]
         return math.sqrt((sy - sx) * (sy - sx) + (ty - tx) * (ty - tx))
 
     # ----------------------------------------------------------------------------------------
@@ -175,24 +218,6 @@ class Graph(DiGraph):
     def iter_edges_in_path(self, path):
         for i in range(len(path) - 1):
             yield path[i], path[i + 1]
-
-    # ----------------------------------------------------------------------------------------
-    # ------------------------------------ DATA ----------------------------------------------
-    # ----------------------------------------------------------------------------------------
-
-    def add_node_position(self, node, x, y):
-        """ Add position to node
-        """
-        self.__data.setdefault(node, {})
-        self.__data[node].update({'x': x, 'y': y})
-
-    def get_position(self, node):
-        """ returns the node's position if it exists, otherwise returns None
-        """
-        try:
-            return self.__data[node]['x'], self.__data[node]['y']
-        except KeyError:
-            return None
 
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ ALGORITHMS ----------------------------------------
