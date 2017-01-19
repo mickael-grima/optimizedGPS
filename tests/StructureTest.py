@@ -47,6 +47,18 @@ class StructureTest(unittest.TestCase):
         self.assertFalse(graph.has_node('node0'))
         self.assertFalse(graph.has_edge('node0', 'node1'))
 
+    def testStats(self):
+        graph = Graph(name='graph')
+
+        graph.add_node('node0')
+        graph.add_node('node1')
+        graph.add_edge('node0', 'node1', size=3)
+
+        stats = graph.get_stats()
+        st = {'nodes': 2, 'edges': 1, 'av_degree': 1.0, 'connected_components': 1, 'unique_sens': 1, 'double_sens': 0}
+
+        self.assertEqual(stats, st)
+
     def testDrivers(self):
         graph = GPSGraph(name='graph')
 
@@ -116,10 +128,10 @@ class StructureTest(unittest.TestCase):
         self.assertEqual(('1', '6', '7'), graph.get_paths_from_to('1', '7').next())
         self.assertEqual({('1', '6', '7'), ('1', '4', '5', '7')},
                          set(graph.get_paths_from_to('1', '7', length=1)))
-        self.assertEqual(set([('1', '6', '7'), ('1', '4', '5', '7'), ('1', '4', '5', '6', '7'),
+        self.assertEqual({('1', '6', '7'), ('1', '4', '5', '7'), ('1', '4', '5', '6', '7'),
                               ('1', '4', '3', '5', '7'), ('1', '4', '3', '5', '6', '7'),
                               ('1', '2', '3', '5', '7'), ('1', '2', '3', '5', '6', '7'),
-                              ('1', '6', '2', '3', '5', '7')]),
+                              ('1', '6', '2', '3', '5', '7')},
                          set(graph.get_all_paths_without_cycle('1', '7')))
 
     def testGeneratePathFromEdges(self):

@@ -3,7 +3,7 @@
 
 import logging
 import random
-from networkx import DiGraph
+from networkx import DiGraph, number_connected_components
 
 log = logging.getLogger(__name__)
 
@@ -193,15 +193,15 @@ class Graph(DiGraph):
             log.error("Node %s not in graph %s", start, self.name)
             raise KeyError("Node %s not in graph %s" % (start, self.name))
         # paths: each element is a tuple of nodes, the last one is the length of the path
-        paths = {start: set([(start, 0,)])}
+        paths = {start: {(start, 0,)}}
 
         # Set the distance for the start node to zero
-        nexts = {0: set([start])}
+        nexts = {0: {start}}
         distances = [0]
         min_length = None
 
         # Unvisited nodes
-        visited = set([start]) if length > 0 else set()
+        visited = {start} if length > 0 else set()
 
         while min_length is None or (len(distances) > 0 and distances[0] <= min_length + length):
             # Pops a vertex with the smallest distance
@@ -272,7 +272,7 @@ class Graph(DiGraph):
     def get_all_paths_without_cycle(self, start, end):
         """ yield every path from start to end wthout cycle
         """
-        for path in self.djikstra_rec(start, end, paths={start: set([(start,)])}):
+        for path in self.djikstra_rec(start, end, paths={start: {(start,)}}):
             yield path
 
     def get_paths_from_to(self, start, end, length=0):
@@ -296,7 +296,7 @@ class Graph(DiGraph):
             found = False
             for edge in filter(lambda e: e not in visited, edges):
                 if edge[0] == path[-1]:
-                    path = path + (edge[1],)
+                    path += (edge[1],)
                     visited.add(edge)
                     count += 1
                     found = True
@@ -307,3 +307,25 @@ class Graph(DiGraph):
         if count != len(edges):
             log.warning("not every edges have been used for creating the returning path")
         return path
+
+    def get_stats(self):
+        """
+        Return some stats about the graph:
+           - how many nodes
+           - how many edges
+           - how many connected components
+           - average degree
+           - how many unique sens
+           - how many double sens
+
+        :return: a dictionary
+        """
+        return {
+            'nodes': self.number_of_nodes(),
+            'edges': self.number_of_edges(),
+            'connected_components': number_connected_components(self.to_undirected()),
+            'av_degree': sum(self.degree().itervalues()) / float(self.number_of_nodes()),
+            'unique_sens': len(filter(lambda e: not self.has_edge(e[1], e[0]), self.edges())),
+            'double_sens': len(filter(lambda e: self.has_edge(e[1], e[0]), self.edges()))
+        }
+

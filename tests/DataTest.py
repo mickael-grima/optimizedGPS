@@ -46,12 +46,14 @@ class DataTest(unittest.TestCase):
         # exactly nb_drivers drivers in graph
         self.assertEqual(nb_drivers, graph.number_of_drivers())
 
-    # def testOSMAPI(self):
-    #     min_lon, min_lat, max_lon, max_lat = -1.55, 47.21, -1.54, 47.22
-    #     rmapper = RoadMapper()
-    #
-    #     road_map = rmapper.get_road_map(min_lon, min_lat, max_lon, max_lat)
-    #     graph = rmapper.convert_into_graph(road_map)
+    def testOSMAPI(self):
+        min_lon, min_lat, max_lon, max_lat = -1.55, 47.21, -1.549, 47.211
+        rmapper = RoadMapper()
+        graph = rmapper.get_graph(min_lon, min_lat, max_lon, max_lat)
+        stats = graph.get_stats()
+
+        self.assertGreater(stats['nodes'], 0)
+        self.assertGreater(stats['edges'], 0)
 
 
 if __name__ == '__main__':

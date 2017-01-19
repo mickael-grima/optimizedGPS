@@ -115,10 +115,24 @@ class RoadMapper(object):
     def is_oneway_road(self, el):
         return self.is_road(el) and get_tag(el).get('oneway', 'no') == 'yes'
 
+    # TODO
     def is_in_agglomeration(self, road):
+        """
+        Return whether the road is in agglomeration
+
+        :param road: dictionary representing a road
+        :return: A boolean
+        """
         return False
 
     def get_road_max_speed(self, road):
+        """
+        Read in the parameters or take the default value
+        Return the max speed considering whether the road is in agglomeration
+
+        :param road: dictionary representing a road
+        :return: an integer
+        """
         typ = get_tag(road)['highway']
         max_speed = get_tag(road).get(options.MAX_SPEED) or self.ATTRIBUTES['highway'][typ][options.MAX_SPEED]
         if isinstance(max_speed, str):
@@ -140,7 +154,7 @@ class RoadMapper(object):
         :param min_lat: see OsmApi.Map
         :param max_lon: see OsmApi.Map
         :param max_lat: see OsmApi.Map
-        :return: A dictionnary containing the ways and concerning node of the map
+        :return: A dictionary containing the ways and concerning node of the map
         """
         try:
             mapp = self._api.Map(min_lon, min_lat, max_lon, max_lat)
