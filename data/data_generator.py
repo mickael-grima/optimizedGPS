@@ -3,8 +3,8 @@
 
 # In this file we generate all kind of data: real one, random one, ...
 
-from GPSGraph import GPSGraph
-from GraphMLParser import GraphMLParser
+from structure.GPSGraph import GPSGraph
+from structure.GraphMLParser import GraphMLParser
 import random
 
 
@@ -50,7 +50,7 @@ def generate_random_drivers(graph, total_drivers=10, av_drivers=3, seed=None):
         # add some drivers from start to end
         nb = max(random.gauss(av_drivers, 1.), 0.0)
         nb = int(min(nb, total))
-        graph.addDriver(start, end, nb=nb)
+        graph.add_driver(start, end, nb=nb)
         total -= nb
 
 
@@ -60,13 +60,13 @@ def generate_test_graph(length=2, width=3):
     """
     graph = generate_grid_data(length=length, width=width, graph_name='graph-%s-%s-test' % (length, width))
 
-    graph.addDriver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
-    graph.addDriver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=1, nb=2)
-    graph.addDriver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
-    graph.addDriver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), starting_time=2)
-    graph.addDriver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
-    graph.addDriver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=1)
-    graph.addDriver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=2)
+    graph.add_driver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
+    graph.add_driver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=1, nb=2)
+    graph.add_driver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
+    graph.add_driver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), starting_time=2)
+    graph.add_driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
+    graph.add_driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=1)
+    graph.add_driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=2)
 
     return graph
 

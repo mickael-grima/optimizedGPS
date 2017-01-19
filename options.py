@@ -5,8 +5,16 @@ from collections import namedtuple
 
 
 # Graph labels
-DEFAULT_DISTANCE = 1.0
+DEFAULT_DISTANCE = 100.0
+DEFAULT_CAR_LENGTH = 2 # given in meter
+
 TRAFFIC_LIMIT = 'traffic_limit'
+LANES = 'lanes'
+MAX_SPEED = 'max_speed'
+ONEWAY = 'oneway'
+
+LATITUDE = 'lat'
+LONGITUDE = 'lon'
 
 # Status
 SUCCESS = 0

@@ -40,7 +40,7 @@ class ModelTransformationSimulator(Simulator):
         # for each path's index and for each edge in the path, we store a list of clocks
         self.clocks = [{i: [] for i in range(len(path) - 1)} for path in self.paths]
         self.traffics = {}
-        for s, e, t, _ in self.graph.getAllDrivers():
+        for s, e, t, _ in self.graph.get_all_drivers():
             for i, n in self.drivers[s, e, t].iteritems():
                 self.clocks[i].setdefault(-1, [])
                 j = 0
@@ -74,7 +74,7 @@ class ModelTransformationSimulator(Simulator):
     # --------------------------------------------------------------------------------------------------------------
 
     def computeClock(self, edge):
-        return self.graph.getCongestionFunction(*edge)(self.traffics.get(edge, 0.0))
+        return self.graph.get_congestion_function(*edge)(self.traffics.get(edge, 0.0))
 
     def update_traffic(self, moved_drivers):
         for edge, traffic in moved_drivers.iteritems():
@@ -151,7 +151,7 @@ class ModelTransformationSimulator(Simulator):
             raise StopIteration("No drivers on graph")
 
     def get_current_solution(self):
-        for s, e, t, n in self.graph.getAllDrivers():
+        for s, e, t, n in self.graph.get_all_drivers():
             for i, nb in self.drivers[s, e, t].iteritems():
                 for _ in range(nb):
                     yield (s, e, t), self.paths[i]

@@ -60,7 +60,7 @@ class FiniteHorizonSimulator(Simulator):
         # traffic
         self.traffics = {}
         # for the key out, we store the list of driver's clocks who didn't start yet (sorted)
-        for s, e, t, n in self.graph.getAllDrivers():
+        for s, e, t, n in self.graph.get_all_drivers():
             idd, ind = get_id(((s, e, t), (s,))), None
             self.ids[idd] = ((s, e, t), (s,))
             for _ in range(n):
@@ -215,7 +215,7 @@ class FiniteHorizonSimulator(Simulator):
         return k
 
     def compute_clock(self, edge):
-        return self.graph.getCongestionFunction(*edge)(self.traffics.get(edge) or 0.0)
+        return self.graph.get_congestion_function(*edge)(self.traffics.get(edge) or 0.0)
 
     def update_traffics(self, edge, nb=1):
         if nb > 0:

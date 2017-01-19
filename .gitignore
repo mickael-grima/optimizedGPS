@@ -97,3 +97,4 @@ src/static/pictures/*
 
 # output
 output/
+data/api_options.py
