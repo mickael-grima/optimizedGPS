@@ -6,6 +6,9 @@
 """
 
 from osmapi import OsmApi, ApiError
+from api import API
+from utils.format_manager import __check_call_api_format__
+from utils.files_manager import __get_data_from_file__, __write_data_to_file__
 
 from optimizedGPS import labels
 from optimizedGPS import options
@@ -41,7 +44,7 @@ def iter_road_nodes(road):
         yield idd
 
 
-class RoadMapper(object):
+class RoadMapper(API):
     ATTRIBUTES = {
         'highway': {
             'motorway': {
@@ -154,7 +157,10 @@ class RoadMapper(object):
         else:
             return max_speed
 
-    def get_road_map(self, min_lon, min_lat, max_lon, max_lat):
+    @__check_call_api_format__
+    @__get_data_from_file__
+    @__write_data_to_file__
+    def call_api(self, min_lon, min_lat, max_lon, max_lat):
         """
         We call the api to get the wanted data, and filter it to just keep roads and concerning nodes
 
@@ -174,12 +180,14 @@ class RoadMapper(object):
         # Find the roads first and save nodes' ids
         for el in mapp:
             if self.is_road(el):
+                del el["data"]["timestamp"]
                 road_map['roads'].append(el)
                 for node in iter_road_nodes(el):
                     road_map['nodes'].setdefault(node, None)
         # Find the previous saved nodes' location
         for el in mapp:
             if is_node(el) and get_node_id(el) in road_map['nodes']:
+                del el["data"]["timestamp"]
                 road_map['nodes'][get_node_id(el)] = el
 
         return road_map
@@ -214,6 +222,6 @@ class RoadMapper(object):
         return graph
 
     def get_graph(self, min_lon, min_lat, max_lon, max_lat):
-        road_map = self.get_road_map(min_lon, min_lat, max_lon, max_lat)
+        road_map = self.call_api(min_lon, min_lat, max_lon, max_lat)
         graph = self.convert_into_graph(road_map)
         return graph

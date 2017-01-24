@@ -11,3 +11,10 @@ A documentation of the requests' responses here: https://wiki.openstreetmap.org/
 
 
 #Car-To-Go API
+
+
+#other
+
+http://www.trafficengland.com/  
+https://data.gov.uk/  
+http://opentraffic.io/  

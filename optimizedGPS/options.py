@@ -2,6 +2,7 @@
 # !/bin/env python
 
 from collections import namedtuple
+import os
 
 
 # Status
@@ -20,3 +21,4 @@ LOWER_BOUND_LABEL = 'lower_bound'
 UPPER_BOUND_LABEL = 'upper_bound'
 
 ALGO = namedtuple('algo', ['algo', 'args', 'kwards'])
+PROJECT_PATH = os.path.dirname(os.path.realpath(__file__))
