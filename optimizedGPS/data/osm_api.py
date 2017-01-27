@@ -111,6 +111,7 @@ class RoadMapper(API):
     }
 
     def __init__(self):
+        super(RoadMapper, self).__init__()
         self._api = OsmApi()
 
     def is_road(self, el):
@@ -189,7 +190,6 @@ class RoadMapper(API):
             if is_node(el) and get_node_id(el) in road_map['nodes']:
                 del el["data"]["timestamp"]
                 road_map['nodes'][get_node_id(el)] = el
-
         return road_map
 
     def convert_into_graph(self, road_map):
