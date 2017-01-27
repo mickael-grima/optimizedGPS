@@ -209,7 +209,8 @@ class RoadMapper(API):
             typ = get_tag(road)['highway']
             props = {
                 labels.LANES: get_tag(road).get(labels.LANES) or self.ATTRIBUTES['highway'][typ][labels.LANES],
-                labels.MAX_SPEED: self.get_road_max_speed(road)
+                labels.MAX_SPEED: self.get_road_max_speed(road),
+                "name": get_tag(road).get("name", "")
             }
             nodes = iter_road_nodes(road)
             current_node = None

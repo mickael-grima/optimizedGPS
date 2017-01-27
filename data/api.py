@@ -3,16 +3,20 @@
 
 import json
 import options
+import utils.geo_manager as geo
 
 
 class API(object):
     FILES_FORMAT = "%s/data/files/{directory}/{name}.{output_format}" % options.PROJECT_PATH
+    CONFIG_FILE = "%s/data/api_config.json" % options.PROJECT_PATH
 
-    def __init__(self, url):
-        with open("%s/data/api_keys.json" % options.PROJECT_PATH, 'r') as f:
-            keys = json.load(f)
-        self.key = keys.get(self.__class__.__name__)
-        self.url = url
+    GEO = geo
+
+    def __init__(self):
+        with open(self.CONFIG_FILE, 'r') as f:
+            config = json.load(f)
+        self.key = config['key'].get(self.__class__.__name__)
+        self.url = config['url'].get(self.__class__.__name__)
 
     def call_api(self, *args, **kwargs):
         raise NotImplementedError("Not implemented yet")
