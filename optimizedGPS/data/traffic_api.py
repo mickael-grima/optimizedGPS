@@ -2,12 +2,14 @@
 # !/bin/env python
 
 import requests
+
 from api import API
+from optimizedGPS import options
 from utils.files_manager import __get_data_from_file__, __write_data_to_file__
 from utils.format_manager import __check_call_api_format__
 from utils.geo_manager import generate_tile_column_row
-import options
-import math
+
+__all__ = ["MapQuestTrafficAPI", "HereTrafficAPI", "TomtomTrafficAPI"]
 
 
 class MapQuestTrafficAPI(API):
