@@ -2,7 +2,7 @@
 # !/bin/env python
 
 import json
-import options
+from optimizedGPS import options
 import utils.geo_manager as geo
 
 

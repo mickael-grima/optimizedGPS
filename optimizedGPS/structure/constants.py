@@ -3,6 +3,10 @@
 
 from optimizedGPS import labels
 
+"""
+Default values for :class:``Graph <Graph.Graph>`` and :class:``GPSGraph <GPSGraph.GPSGraph>``
+"""
+
 constants = {
     labels.DISTANCE: 100.0,
     labels.LANES: 1,
