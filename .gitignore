@@ -81,7 +81,6 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
-env/
 
 # Spyder project settings
 .spyderproject
@@ -96,5 +95,6 @@ env/
 src/static/pictures/*
 
 # output
-output/
-data/api_options.py
+optimizedGPS/output/
+optimizedGPS/data/api_options.py
+optimizedGPS/logs/
