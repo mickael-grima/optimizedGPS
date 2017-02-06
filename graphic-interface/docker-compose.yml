@@ -1,0 +1,12 @@
+server:
+    build: server
+    env_file:
+     - variables.env
+    environment:
+     - "APP_NAME=server"
+    ports:
+     - "80:80"
+    volumes:
+     - "${OPTIMIZEDGPS_PATH}/graphic-interface/server/static:/workspace/static"
+     - "${OPTIMIZEDGPS_PATH}/graphic-interface/server/templates:/workspace/templates"
+     - "${OPTIMIZEDGPS_PATH}/data:/workspace/static/data"
