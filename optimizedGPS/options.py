@@ -20,3 +20,7 @@ LOWER_BOUND_LABEL = 'lower_bound'
 UPPER_BOUND_LABEL = 'upper_bound'
 
 ALGO = namedtuple('algo', ['algo', 'args', 'kwards'])
+
+KNOWN_PROBLEMS = ["BacktrackingSearch", "BestPathTrafficModel", "FixedWaitingTimeModel"]
+KNOWN_HEURISTICS = ["ShortestPathHeuristic", "AllowedPathsHeuristic", "UpdatedBySortingShortestPath",
+                    "ShortestPathTrafficFree"]
