@@ -1,3 +1,23 @@
+file_manager:
+    build: fileManager
+    env_file:
+     - variables.env
+    environment:
+     - "APP_NAME=file_manager"
+    ports:
+     - "8082:8082"
+    volumes:
+     - "${OPTIMIZEDGPS_PATH}/data:/workspace/static/data"
+solver:
+    build: solver
+    env_file:
+     - variables.env
+    environment:
+     - "APP_NAME=solver"
+    ports:
+     - "8081:8081"
+    links:
+     - "file_manager"
 server:
     build: server
     env_file:
@@ -6,7 +26,9 @@ server:
      - "APP_NAME=server"
     ports:
      - "80:80"
+    links:
+     - "solver"
+     - "file_manager"
     volumes:
      - "${OPTIMIZEDGPS_PATH}/graphic-interface/server/static:/workspace/static"
      - "${OPTIMIZEDGPS_PATH}/graphic-interface/server/templates:/workspace/templates"
-     - "${OPTIMIZEDGPS_PATH}/data:/workspace/static/data"
