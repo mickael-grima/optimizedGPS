@@ -97,4 +97,4 @@ src/static/pictures/*
 # output
 optimizedGPS/output/
 optimizedGPS/data/api_options.py
-optimizedGPS/logs/
+*.log
