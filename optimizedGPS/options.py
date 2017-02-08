@@ -22,3 +22,7 @@ UPPER_BOUND_LABEL = 'upper_bound'
 
 ALGO = namedtuple('algo', ['algo', 'args', 'kwards'])
 PROJECT_PATH = os.path.dirname(os.path.realpath(__file__))
+
+KNOWN_PROBLEMS = ["BacktrackingSearch", "BestPathTrafficModel", "FixedWaitingTimeModel"]
+KNOWN_HEURISTICS = ["ShortestPathHeuristic", "AllowedPathsHeuristic", "UpdatedBySortingShortestPath",
+                    "ShortestPathTrafficFree"]

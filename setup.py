@@ -3,16 +3,12 @@
 
 from setuptools import setup, find_packages
 import os
-import optimizedGPS
-
-print "!!!!!!!!!!!!!"
-print find_packages()
 
 dependency_links = [os.environ['GUROBI_HOME']] if 'GUROBI_HOME' in os.environ else []
 
 setup(
     name='optimizedGPS',
-    version=optimizedGPS.__version__,
+    version='1.0.0',
     description='An optimized GPS using the Operation Research theory for optimizing the path of several drivers.'
                 'It includes a package for extracting data (see optimizedGPS/data), a structure folder for building'
                 'graphs and including drivers, and a folder problems for optimization',
