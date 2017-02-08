@@ -3,7 +3,10 @@
 
 import logging
 
-from gurobipy import GRB, quicksum
+try:
+    from gurobipy import GRB, quicksum
+except:
+    pass
 
 import labels
 from Problem import Model

@@ -5,8 +5,11 @@ import logging
 import sys
 import time
 
-import gurobipy as gb
-from gurobipy import GurobiError
+try:
+    import gurobipy as gb
+    from gurobipy import GurobiError
+except ImportError:
+    gb, GurobiError = None, None
 
 from simulator.ModelTransformationSimulator import ModelTransformationSimulator
 

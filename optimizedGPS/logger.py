@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
-import os
 import logging
 import logging.config
+
 import yaml
+
 import options
 
 

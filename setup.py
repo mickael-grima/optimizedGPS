@@ -2,9 +2,6 @@
 # !/bin/env python
 
 from setuptools import setup, find_packages
-import os
-
-dependency_links = [os.environ['GUROBI_HOME']] if 'GUROBI_HOME' in os.environ else []
 
 setup(
     name='optimizedGPS',
@@ -19,7 +16,6 @@ setup(
     license='TUM',
     packages=find_packages(),
     include_package_data=True,
-    dependency_links=dependency_links,
     install_requires=[
         'pyyaml',
         'networkx',

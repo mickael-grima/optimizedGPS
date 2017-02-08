@@ -8,6 +8,7 @@ testmodules = [
     'DataTest',
     'StructureTest',
     'SimulatorTest',
+    'GurobiTest',
     'ProblemsTest'
 ]
 

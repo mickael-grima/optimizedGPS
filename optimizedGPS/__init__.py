@@ -1,5 +1,5 @@
-__version__ = "0.0.1"
-
-from structure import Graph, GPSGraph, GraphMLParser, Driver
+import labels
+import options
 from problems import Problem, Comparator, Heuristics, simulator, SearchProblem
-import labels, options
+from structure import Graph, GPSGraph, GraphMLParser, Driver
+
