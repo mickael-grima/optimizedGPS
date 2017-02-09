@@ -8,6 +8,7 @@ from optimizedGPS.logger import configure
 configure()
 
 import unittest
+
 from optimizedGPS.data.data_generator import (
     generate_graph_from_file,
     generate_grid_data,
@@ -16,7 +17,6 @@ from optimizedGPS.data.data_generator import (
 from optimizedGPS.problems.SearchProblem import BacktrackingSearch
 from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic, ShortestPathTrafficFree
 from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel
-
 from optimizedGPS.problems.Comparator import BoundsHandler, Comparator, MultipleGraphComparator, ResultsHandler
 
 

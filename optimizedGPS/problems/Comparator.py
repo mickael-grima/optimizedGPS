@@ -37,7 +37,10 @@ class Comparator(object):
         self.status = {}
 
     def appendAlgorithm(self, algo, *arguments, **kwards):
-        self.algorithms.append(options.ALGO(algo, arguments, kwards))
+        if algo.__class__.__name__ in options.KNOWN_PROBLEMS + options.KNOWN_HEURISTICS:
+            self.algorithms.append(options.ALGO(algo, arguments, kwards))
+        else:
+            log.warning("Algorithm %s not known. To allow it, modifu your options.py file", algo.__class__.__name__)
 
     def solve(self):
         """ solve algo stored

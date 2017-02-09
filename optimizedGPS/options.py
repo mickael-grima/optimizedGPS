@@ -4,6 +4,13 @@
 from collections import namedtuple
 import os
 
+def _import():
+    try:
+        import gurobipy
+        return True
+    except ImportError:
+        return False
+
 
 # Status
 SUCCESS = 0
@@ -21,12 +28,13 @@ LOWER_BOUND_LABEL = 'lower_bound'
 UPPER_BOUND_LABEL = 'upper_bound'
 
 ALGO = namedtuple('algo', ['algo', 'args', 'kwards'])
-PROJECT_PATH = os.path.dirname(os.path.realpath(__file__))
+PACKAGE_PATH = os.path.dirname(os.path.realpath(__file__))
 
-if os.getenv("GUROBI_HOME", None) is not None:
+if _import() is True:
     KNOWN_PROBLEMS = ["BacktrackingSearch", "BestPathTrafficModel", "FixedWaitingTimeModel"]
     KNOWN_HEURISTICS = ["ShortestPathHeuristic", "AllowedPathsHeuristic", "UpdatedBySortingShortestPath",
                         "ShortestPathTrafficFree"]
 else:
-    KNOWN_PROBLEMS = []
-    KNOWN_HEURISTICS = []
+    KNOWN_PROBLEMS = ["BacktrackingSearch"]
+    KNOWN_HEURISTICS = ["ShortestPathHeuristic", "AllowedPathsHeuristic", "UpdatedBySortingShortestPath",
+                        "ShortestPathTrafficFree"]

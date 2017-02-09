@@ -2,13 +2,12 @@
 # !/bin/env python
 
 import json
-import options
 import utils.geo_manager as geo
 
 
 class API(object):
-    FILES_FORMAT = "%s/data/files/{directory}/{name}.{output_format}" % options.PROJECT_PATH
-    CONFIG_FILE = "%s/data/api_config.json" % options.PROJECT_PATH
+    FILES_FORMAT = "data/files/{directory}/{name}.{output_format}"
+    CONFIG_FILE = "data/api_config.json"
 
     GEO = geo
 

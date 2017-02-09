@@ -1,2 +1,3 @@
 recursive-include . *.md
 recursive-include optimizedGPS *.yml
+include optimizedGPS/data/api_config.json
