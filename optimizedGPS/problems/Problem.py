@@ -40,6 +40,10 @@ class Problem(object):
         self.opt_solution.setdefault(driver, [])
         self.opt_solution[driver].append(path)
 
+    def setOptimalSolution(self):
+        log.error("Not implemented yet")
+        raise NotImplementedError("Not implemented yet")
+
     def iterOptimalSolution(self):
         """ yield for each driver the path he had
         """
@@ -68,6 +72,22 @@ class Problem(object):
             simulator.next()
 
         return simulator.get_value()
+
+    # TODO
+    def getAverageDrivingTimeGap(self):
+        return 0
+
+    # TODO
+    def getVarianceDrivingTimeGap(self):
+        return 0
+
+    # TODO
+    def getBestDrivingTimeGap(self):
+        return 0
+
+    # TODO
+    def getWorstDrivingTimeGap(self):
+        return 0
 
     def getValue(self):
         return self.value

@@ -19,3 +19,14 @@ DIFFERENCE_TO_BEST_TRAFFIC = 'difference-to-best-traffic'
 
 CONSTRAINTS = [STARTING_EDGES, ENDING_EDGES, INITIAL_CONDITIONS, NON_VISITED_EDGES, VISITED_EDGES, STARTING_ENDING,
                TRANSFERT, ENDING_TIME, NO_CYCLE, DIFFERENCE_TO_SHORTEST_PATH, DIFFERENCE_TO_BEST_TRAFFIC]
+
+STATS = {
+    'running_time': None,
+    'value': None,
+    'gap_opt_value': None,
+    'av_gap_per_driver': None,
+    'var_gap_per_driver': None,
+    'best_gap_per_driver': None,
+    'worst_gap_per_driver': None,
+    'status': None
+}

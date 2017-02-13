@@ -1,9 +1,7 @@
-<form class="form-horizontal" action="/solve" method="POST" >
-    {% for problem in problems %}
-        <div class="form-group">
-            <label class="col-sm-2 control-label">{{problem}}
-                <input type="checkbox" id="inlineCheckbox1" value="problem1">
-            </label>
-        </div>
-    {% end %}
-</form>
+{% for problem in problems %}
+    <div class="inline-from form-group isolate">
+        <label class="control-label">{{problem}}
+            <input type="checkbox" id="inlineCheckbox1" value={{ problem }} name="problems">
+        </label>
+    </div>
+{% end %}

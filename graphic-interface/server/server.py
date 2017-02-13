@@ -1,6 +1,7 @@
-import sys
 import os
+import sys
 import tornado.web
+
 import requests
 
 APP_NAME = os.getenv("APP_NAME")
@@ -10,15 +11,29 @@ SOLVER = ("solver", os.getenv("solver_port"))
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        error, info, warning = "", "", ""
         problems = requests.post(
             "http://%s:%s/get_all_problems" % SOLVER
         ).json()
         heuristics = requests.post(
             "http://%s:%s/get_all_heuristics" % SOLVER
         ).json()
-        self.render("start.html", problems=problems['data'], heuristics=heuristics['data'],
-                    error=error, warning=warning, info=info)
+        self.render("start.html", problems=problems['data'], heuristics=heuristics['data'], data={})
+
+
+class StatsHandler(tornado.web.RequestHandler):
+    def get(self):
+        data = requests.post(
+            "http://%s:%s/get_stats" % SOLVER,
+            data=dict(
+                data=self.request.arguments.get("data"),
+                parameters=self.request.arguments.get("parameters", []),
+                problems=self.request.arguments.get("problems", []),
+                heuristics=self.request.arguments.get("heuristics", [])
+            )
+        ).json()
+        import json
+        self.write(json.dumps(data))
+        # self.render("stats.html", data=data)
 
 
 if __name__ == "__main__":
@@ -29,6 +44,7 @@ if __name__ == "__main__":
     app = tornado.web.Application(
         [
             (r"/", MainHandler),
+            (r"/stats", StatsHandler)
         ],
         template_path="/workspace/templates",
         static_path="/workspace/static",

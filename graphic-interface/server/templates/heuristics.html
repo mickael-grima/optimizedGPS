@@ -1,9 +1,7 @@
-<form class="form-horizontal" action="/solve" method="POST" >
-    {% for heuristic in heuristics %}
-        <div class="form-group">
-            <label class="col-sm-2 control-label">{{heuristic}}
-                <input type="checkbox" id="inlineCheckbox1" value="heuristic1">
-            </label>
-        </div>
-    {% end %}
-</form>
+{% for heuristic in heuristics %}
+    <div class="inline-form form-group isolate">
+        <label class="control-label">{{heuristic}}
+            <input type="checkbox" id="inlineCheckbox1" value={{ heuristic }} name="heuristics">
+        </label>
+    </div>
+{% end %}

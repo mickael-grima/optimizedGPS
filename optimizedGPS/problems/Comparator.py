@@ -46,6 +46,10 @@ class Comparator(object):
         """ solve algo stored
         """
         for algo in self.algorithms:
+            if self.status.get(algo.algo.__name__) == options.SUCCESS:
+                log.info("algorithm %s has already been succesfully solved" % algo.algo.__name__)
+                continue
+
             log.info("algorithm %s is being solved" % algo.algo.__name__)
             a = algo.algo(self.graph, *algo.args, **algo.kwards)
             try:
@@ -78,6 +82,16 @@ class Comparator(object):
             )
         return res
 
+    def getAlgorithmNames(self):
+        return map(lambda el: el.algo.__name__, self.algorithms)
+
+    def iterAlgorithms(self):
+        for algo in self.algorithms:
+            yield algo.algo
+
+    def getStatus(self, algo_name):
+        return self.status[algo_name]
+
 
 class MultipleGraphComparator(Comparator):
     def __init__(self):
@@ -100,12 +114,9 @@ class MultipleGraphComparator(Comparator):
             self.reinitialize()
         return res
 
-    def getAlgorithms(self):
-        return map(lambda el: el.algo.__name__, self.algorithms)
-
     def writeIntoFile(self, results):
         with SafeOpen(self.__file, 'w') as f:
-            algos = self.getAlgorithms()
+            algos = self.getAlgorithmNames()
             f.write('%s\n' % '\t\t'.join(['\t'.join([''] + algos) for _ in range(3)]))
             for i in range(len(results)):
                 g, res = self.graphs[i].name, results[i]
@@ -150,8 +161,13 @@ class Bound(Comparator):
     def getBoundStatus(self):
         return options.STATUS[self.status.get(self.best_algo)]
 
-    def getBestAlgo(self):
+    def getBestAlgoName(self):
         return self.best_algo
+
+    def getBestAlgo(self):
+        for algo in self.iterAlgorithms():
+            if algo.__name__ == self.best_algo:
+                return algo
 
 
 class LowerBound(Bound):
@@ -256,5 +272,11 @@ class ResultsHandler(MultipleGraphComparator, BoundsHandler):
             self.reinitialize()
         return res
 
-    def getAlgorithms(self):
-        return [options.LOWER_BOUND_LABEL] + super(ResultsHandler, self).getAlgorithms() + [options.UPPER_BOUND_LABEL]
+    def getAlgorithmNames(self):
+        return [options.LOWER_BOUND_LABEL] + super(ResultsHandler, self).getAlgorithmNames() + [options.UPPER_BOUND_LABEL]
+
+    def iterAlgorithms(self):
+        yield self.lower.getBestAlgo()
+        for algo in super(ResultsHandler, self).iterAlgorithms():
+            yield algo
+        yield self.upper.getBestAlgo()

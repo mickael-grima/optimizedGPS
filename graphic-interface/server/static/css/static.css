@@ -1,0 +1,14 @@
+.boxed {
+    background-color: azure;
+    padding: 25px;
+    border: 1px solid;
+    margin: 25px;
+}
+
+.isolate {
+    padding: 10px;
+}
+
+.inline {
+    display: inline;
+}

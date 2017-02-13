@@ -1,0 +1,58 @@
+{% extends base.html %}
+
+{% block content %}
+    <div class="clearfix">
+        <div class="pull-left">
+            <h1>Computed!</h1>
+        </div>
+    </div>
+    {% each problem in data['problems'] %}
+        <div>
+            <div>
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active">
+                        <span class="badge">{{ problem }}</span>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <table class="table table-hover table-striped">
+                    <tbody>
+                        <tr>
+                            <td>Status</td>
+                            <td>data['stats'][problem]['status']</td>
+                        </tr>
+                        <tr>
+                            <td>Running Time</td>
+                            <td>{{ data['stats'][problem]['running_time'] }}</td>
+                        </tr>
+                        <tr>
+                            <td>Value</td>
+                            <td>{{ data['stats'][problem]['value'] }}</td>
+                        </tr>
+                        <tr>
+                            <td>Gap to optimal value</td>
+                            <td>{{ data['stats'][problem]['gap_opt_value'] }}</td>
+                        </tr>
+                        <tr>
+                            <td>Average gap to shortest path</td>
+                            <td>{{ data['stats'][problem]['av_gap_per_driver'] }}</td>
+                        </tr>
+                        <tr>
+                            <td>Variance gap to shortest path</td>
+                            <td>{{ data['stats'][problem]['var_gap_per_driver'] }}</td>
+                        </tr>
+                        <tr>
+                            <td>Best gap to shortest path</td>
+                            <td>{{ data['stats'][problem]['best_gap_per_driver'] }}</td>
+                        </tr>
+                        <tr>
+                            <td>Worst gap to shortest path</td>
+                            <td>{{ data['stats'][problem]['worst_gap_per_driver'] }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% end %}
+{% end %}

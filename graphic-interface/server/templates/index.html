@@ -1,28 +1,39 @@
-<div>
-    <h3><small>Data</small></h3>
-    <div class="box-shadow">
-        {% block data %}
-        {% end %}
+<div class="clearfix">
+    <div class="pull-left">
+        <h1>Welcome</h1>
+        <h2 class="lead">Here you can optimized the traffic anywhere you want !!!</h2>
     </div>
 </div>
-<div>
-    <h3><small>Parameters</small></h3>
-    <div class="box-shadow">
-        {% block parameters %}
-        {% end %}
+<form action="/stats" method="GET">
+    <div>
+        <h3><small>Data</small></h3>
+        <div class="boxed">
+            {% block data %}
+            {% end %}
+        </div>
     </div>
-</div>
-<div>
-    <h3><small>Problems</small></h3>
-    <div class="box-shadow">
-        {% block problems %}
-        {% end %}
+    <div>
+        <h3><small>Parameters</small></h3>
+        <div class="boxed">
+            {% block parameters %}
+            {% end %}
+        </div>
     </div>
-</div>
-<div>
-    <h3><small>Heuristics</small></h3>
-    <div class="box-shadow">
-        {% block heuristics %}
-        {% end %}
+    <div>
+        <h3><small>Problems</small></h3>
+        <div class="boxed">
+            {% block problems %}
+            {% end %}
+        </div>
     </div>
-</div>
+    <div>
+        <h3><small>Heuristics</small></h3>
+        <div class="boxed">
+            {% block heuristics %}
+            {% end %}
+        </div>
+    </div>
+    <div class="button">
+        <button type="submit" class="btn btn-success">Launch</button>
+    </div>
+</form>

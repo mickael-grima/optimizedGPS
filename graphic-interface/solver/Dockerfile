@@ -9,7 +9,7 @@ RUN apt-get install -y librsvg2-2
 
 WORKDIR /workspace
 
-RUN git clone https://github.com/mickael-grima/optimizedGPS.git
+RUN git clone https://github.com/mickael-grima/optimizedGPS.git -b graphicInterface
 RUN cd optimizedGPS/ && python setup.py install
 
 COPY . .
