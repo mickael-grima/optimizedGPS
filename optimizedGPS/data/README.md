@@ -8,7 +8,8 @@ The osmapi python package documentation can be found here: http://osmapi.metaodi
 The api website here: https://www.openstreetmap.org  
 A documentation of the requests' responses here: https://wiki.openstreetmap.org/wiki/Main_Page
 
-
+For larger data, we need to use the XAPI. As no python package exists for extracting data from this api,
+we need to download the content using `urllib2`
 
 #Car-To-Go API
 
