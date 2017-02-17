@@ -1,0 +1,3 @@
+
+class NonExistingData(Exception):
+    pass

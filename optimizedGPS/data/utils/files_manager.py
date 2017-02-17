@@ -3,6 +3,13 @@
 
 import json
 import os
+import gzip
+
+from exceptions import NonExistingData
+
+
+DATA_PATH = os.path.dirname(os.path.realpath(__file__))
+FILES_PATH = os.path.abspath(os.path.join(DATA_PATH, "..", "files"))
 
 
 def exists_data(file_name):
@@ -47,3 +54,44 @@ def __write_data_to_file__(func):
         write_to_file(file_name, json.dumps(data))
         return data
     return write_data
+
+
+def iterate_supported_countries():
+    path = os.path.join(FILES_PATH, "cities")
+    for country in os.listdir(path):
+        if os.path.isdir(os.path.join(path, country)):
+            yield country
+
+
+def iterate_main_cities(country):
+    path = os.path.join(FILES_PATH, "cities", country, "main_cities.json.gz")
+    if not os.path.exists(path):
+        raise NonExistingData("Main cities not found for country=%s" % country)
+    with gzip.open(path, "r") as f:
+        for city in json.load(f):
+            yield city
+
+
+def iterate_main_cities_name(country):
+    for city in iterate_main_cities(country):
+        yield city["city"]
+
+
+def iterate_cities(country):
+    path = os.path.join(FILES_PATH, "cities", country, "cities.json.gz")
+    if not os.path.exists(path):
+        raise NonExistingData("Cities not found for country=%s" % country)
+    with gzip.open(path, "r") as f:
+        for city in json.load(f):
+            yield city
+
+
+def iterate_cities_name(country):
+    for city in iterate_cities(country):
+        yield city["city"]
+
+
+def iterate_city_by_name(country, *city_names):
+    for city in iterate_cities(country):
+        if city["city"] in city_names:
+            yield city

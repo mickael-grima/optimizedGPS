@@ -11,6 +11,7 @@
     "MapQuestTrafficAPI": "https://www.mapquestapi.com/traffic/v2/incidents",
     "HereTrafficAPI": "https://traffic.cit.api.here.com/traffic/6.1/incidents.json",
     "TomtomTrafficAPI": "https://api.tomtom.com/traffic/services/4/incidentDetails/s3/{box}/{zoom}/-1/json",
-    "OSMXAPI": "http://overpass.osm.rambler.ru/cgi/xapi_meta"
+    "OSMXAPI": "http://overpass.osm.rambler.ru/cgi/xapi_meta",
+    "RoadMapper": "http://overpass.osm.rambler.ru/cgi/xapi_meta"
   }
 }
