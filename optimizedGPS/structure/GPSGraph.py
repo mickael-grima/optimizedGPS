@@ -200,3 +200,18 @@ class GPSGraph(Graph):
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------
     # ----------------------------------------------------------------------------------------
+
+    def belong_to_same_road(self, u0, v0, u1, v1):
+        """
+        We check the number of lanes, the name, the max_speed and the traffic limit of both edges.
+        If It is the same, we return True
+
+        :return: boolean
+        """
+        params0 = self.get_edge_data(u0, v0)
+        params1 = self.get_edge_data(u1, v1)
+        if super(GPSGraph, self).belong_to_same_road(u0, v0, u1, v1) \
+                and params0[labels.MAX_SPEED] == params1[labels.MAX_SPEED] \
+                and params0[labels.TRAFFIC_LIMIT] == params1[labels.MAX_SPEED]:
+            return True
+        return False
