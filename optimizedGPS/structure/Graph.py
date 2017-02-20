@@ -405,10 +405,10 @@ class Graph(DiGraph):
                 for p in pred:
                     for s in succ:
                         if s != p and self.belong_to_same_road(p, node, node, s):
-                            params = self.get_edge_data(pred[0], node)
-                            params[labels.DISTANCE] += self.get_edge_property(node, succ[0], labels.DISTANCE)
-                            self.remove_edge(pred[0], node)
-                            self.remove_edge(node, succ[0])
-                            self.add_edge(pred[0], succ[0], **params)
+                            params = self.get_edge_data(p, node)
+                            params[labels.DISTANCE] += self.get_edge_property(node, s, labels.DISTANCE)
+                            self.remove_edge(p, node)
+                            self.remove_edge(node, s)
+                            self.add_edge(p, s, **params)
             if self.degree(node) == 0:
                 self.remove_node(node)

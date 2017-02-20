@@ -167,13 +167,4 @@ class RoadMapper(OSMXAPI):
         return graph
 
     def get_city_graph(self, city_name, country_code, area_size):
-        countries = list(iterate_supported_countries())
-        if not country_code in countries:
-            raise NonExistingData("No data for country_code=%s" % str(country_code))
-        try:
-            city = iterate_city_by_name(country_code, city_name).next()
-            lon, lat = float(city['lon']), float(city['lat'])
-        except StopIteration:
-            raise NonExistingData("City %s not supported for country=%s" % (city_name, country_code))
-
-        return self.get_graph(*boundingBox(lat, lon, area_size / 2.))
+        return self.get_graph(*self.get_box(city_name, country_code, area_size))
