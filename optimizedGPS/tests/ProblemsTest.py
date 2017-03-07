@@ -10,7 +10,7 @@ from optimizedGPS.data.data_generator import (
 )
 from optimizedGPS.problems.Comparator import BoundsHandler, MultipleGraphComparator, ResultsHandler
 from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, ShortestPathTrafficFree, RealGPS
-from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel
+from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel, TEGLinearCongestionModel
 from optimizedGPS.structure import Driver
 
 
@@ -74,6 +74,7 @@ class ProblemsTest(unittest.TestCase):
         handler.append_algorithm(BestPathTrafficModel, timeout=2)
         handler.append_algorithm(FixedWaitingTimeModel, timeout=2)
         handler.append_algorithm(RealGPS, timeout=2)
+        handler.append_algorithm(TEGLinearCongestionModel, timeout=2)
 
         results = handler.compare()
 
