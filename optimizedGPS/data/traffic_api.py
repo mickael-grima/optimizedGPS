@@ -44,21 +44,20 @@ class HereTrafficAPI(API):
 
 
 class TomtomTrafficAPI(API):
+    PROJECTION = "EPSG4326"
+
     @__check_call_api_format__
     @__get_data_from_file__
     @__write_data_to_file__
-    def call_api(self, min_lon, min_lat, max_lon, max_lat, zoom="11", projection="EPSG4326"):
-        x_min, y_min = self.GEO.mercator_projection(min_lon, min_lat)
-        x_max, y_max = self.GEO.mercator_projection(max_lon, max_lat)
-        box = "%s,%s,%s,%s" % (y_min, x_min, y_max, y_min)
+    def call_api(self, min_lon, min_lat, max_lon, max_lat, zoom="18"):
+        box = "%s,%s,%s,%s" % (min_lon, min_lat, max_lon, max_lat)
         url = self.url.format(box=box, zoom=zoom)
         params = dict(
             key=self.key,
-            projection=projection
+            projection=self.PROJECTION
         )
 
         resp = requests.get(url, params=params)
-        print resp.url
         resp = resp.json()
         resp["status"] = options.SUCCESS
 

@@ -2,6 +2,7 @@
 # !/bin/env python
 
 import logging
+import sys
 
 try:
     from gurobipy import GRB, quicksum
@@ -10,10 +11,14 @@ except:
 
 import labels
 from Problem import Model
+from optimizedGPS.structure.TimeExpandedGraph import TimeExpandedGraph as TEG
 
 __all__ = ["MainContinuousTimeModel", "BestPathTrafficModel", "FixedWaitingTimeModel"]
 
 log = logging.getLogger(__name__)
+
+
+HORIZON = 1000
 
 
 class EdgeCharacterizationModel(Model):

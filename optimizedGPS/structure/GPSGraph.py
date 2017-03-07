@@ -27,8 +27,8 @@ class GPSGraph(Graph):
         labels.MAX_SPEED: constants[labels.MAX_SPEED]
     })
 
-    def __init__(self, name='graph'):
-        super(GPSGraph, self).__init__(name=name)
+    def __init__(self, name='graph', data=None, **attr):
+        super(GPSGraph, self).__init__(name=name, data=None, **attr)
         # drivers
         self.__drivers = {}
 
@@ -86,10 +86,10 @@ class GPSGraph(Graph):
         """
         return self.has_driver(start, end) and self.__drivers[start][end].get(starting_time) is not None
 
-    def add_driver(self, start, end, starting_time=0, nb=1):
+    def add_driver(self, start, end, starting_time=0, nb=1, force=False):
         """ add nb drivers with the given properties
         """
-        if self.has_node(start) and self.has_node(end):
+        if force or self.has_node(start) and self.has_node(end):
             if isinstance(nb, int) and nb > 0:
                 self.__drivers.setdefault(start, {})
                 self.__drivers[start].setdefault(end, {})
