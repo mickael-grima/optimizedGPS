@@ -12,6 +12,7 @@ import unittest
 from networkx import NetworkXError
 from optimizedGPS.structure import Graph
 from optimizedGPS.structure import GPSGraph
+from optimizedGPS.structure import TimeExpandedGraph
 from optimizedGPS.data.data_generator import generate_graph_from_file
 
 
@@ -148,6 +149,13 @@ class StructureTest(unittest.TestCase):
 
         edges = [('2', '3'), ('1', '6'), ('5', '7'), ('3', '5')]
         self.assertRaises(Exception, graph.generate_path_from_edges, '1', '7', edges)
+
+    def testTimeExpandedGraphLinearCase(self):
+        graph = Graph()
+        graph.add_edge(1, 2)
+        TEG = TimeExpandedGraph.create_time_expanded_graph_from_linear_congestion(graph, 3)
+        self.assertEqual(TEG.nodes(), ['1:0', '1:1', '1:2', '2:2', '2:1', '2:0'])
+        self.assertEqual(TEG.edges(), [('1:0', '2:2'), ('1:0', '2:1'), ('1:1', '2:2')])
 
 
 if __name__ == '__main__':
