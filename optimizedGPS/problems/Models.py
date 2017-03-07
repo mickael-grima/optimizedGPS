@@ -2,6 +2,7 @@
 # !/bin/env python
 
 import logging
+import sys
 
 try:
     from gurobipy import GRB, quicksum
@@ -10,10 +11,14 @@ except:
 
 import labels
 from Problem import Model
+from optimizedGPS.structure import TimeExpandedGraph as TEG
 
 __all__ = ["MainContinuousTimeModel", "BestPathTrafficModel", "FixedWaitingTimeModel"]
 
 log = logging.getLogger(__name__)
+
+
+HORIZON = 1000
 
 
 class EdgeCharacterizationModel(Model):
@@ -218,3 +223,73 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
 
     def getTraffic(self, edge, driver):
         return self.C[edge, driver]
+
+
+class TEGLinearCongestionModel(EdgeCharacterizationModel):
+    def __init__(self, graph, timeout=sys.maxint, horizon=1000):
+        super(TEGLinearCongestionModel, self).__init__(graph, timeout=timeout, horizon=horizon)
+
+    def initialize(self, horizon=HORIZON, **kwargs):
+        self.TEG_graph = TEG.create_time_expanded_graph_from_linear_congestion(self.graph, horizon)
+        self.hor = horizon
+        super(TEGLinearCongestionModel, self).initialize(**kwargs)
+
+    def horizon(self):
+        return self.hor
+
+    def buildConstraints(self, notify=True):
+        if notify:
+            log.info("ADDING Constraints ...")
+
+        for edge in self.TEG_graph.edges():
+            self.addConstraint(
+                quicksum(self.x[edge, driver] for driver in self.drivers) <= 1,
+                name="%s:%s" % (labels.ONE_DRIVER_PER_EDGE, str(edge))
+            )
+        for driver in self.drivers:
+            self.addConstraint(
+                quicksum(
+                    self.x[(s, TEG.get_time_node_name(driver.end, time)), driver]
+                    for time in range(self.horizon())
+                    for s in self.TEG_graph.predecessors_iter(TEG.get_time_node_name(driver.end, time))
+                ) == 1,
+                name="%s:%s" % (labels.ENDING_TIME, str(driver))
+            )
+            for node in self.TEG_graph.nodes():
+                if node not in map(lambda t: TEG.get_time_node_name(driver.end, t), range(self.horizon())):
+                    self.addConstraint(
+                        quicksum(self.x[(node, succ), driver] for succ in self.TEG_graph.successors_iter(node)) -
+                        quicksum(self.x[(pred, node), driver] for pred in self.TEG_graph.predecessors_iter(node)) ==
+                        sum(
+                            1 for time in range(self.horizon())
+                            if TEG.get_time_node_name(driver.start, time) == node
+                        ),
+                        name="%s:%s:%s" % (labels.TRANSFERT, str(driver), str(node))
+                    )
+        for edge in self.graph.edges():
+            for i in range(self.horizon()):
+                for j in range(i + 1, self.horizon()):
+                    self.addConstraint(
+                        quicksum(
+                            self.x[TEG.get_edge(edge, i, j), driver] -
+                            quicksum(
+                                self.x[TEG.get_edge(edge, ii, j)]
+                                for ii in range(i)
+                            )
+                            for driver in self.drivers
+                        ) <= 0,
+                        name="%s:%s:%s:%s" % (labels.TIME_TRANSFERT, str(edge), i, j)
+                    )
+
+        if notify:
+            log.info("Constraints ADDED: %s" % ",".join("%s: %s added" % (n, c) for n, c in self.count.iteritems()
+                                                        if n in labels.CONSTRAINTS))
+
+    def setObjective(self):
+        self.model.setObjective(
+            quicksum(
+                self.x[(s, TEG.get_time_node_name(driver.end, time)), driver] for driver in self.drivers
+                for time in range(self.horizon())
+                for s in self.TEG_graph.predecessors_iter(TEG.get_time_node_name(driver.end, time))
+            )
+        )

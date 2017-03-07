@@ -30,9 +30,9 @@ class Graph(DiGraph):
         }
     }
 
-    def __init__(self, name='graph'):
+    def __init__(self, name='graph', data=None, **attr):
         self.__name = name
-        super(Graph, self).__init__()
+        super(Graph, self).__init__(data=data, **attr)
 
     @property
     def name(self):
@@ -412,3 +412,6 @@ class Graph(DiGraph):
                             self.add_edge(p, s, **params)
             if self.degree(node) == 0:
                 self.remove_node(node)
+
+    def get_attribute(self, attr):
+        return self.graph.get(attr)

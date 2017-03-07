@@ -7,6 +7,15 @@ from GPSGraph import GPSGraph
 
 class TimeExpandedGraph(object):
     @classmethod
+    def get_node_level(cls, node):
+        """
+        Extract the node's level (see get_time_node_name)
+
+        :return: integer
+        """
+        return int(node.split(':')[-1])
+
+    @classmethod
     def get_time_node_name(cls, node, time):
         """
         New timenode's name
@@ -16,6 +25,18 @@ class TimeExpandedGraph(object):
         :return: String
         """
         return "%s:%s" % (str(node), time)
+
+    @classmethod
+    def get_edge(cls, edge, i ,j):
+        """
+        Return the corresponding edge in TEG
+
+        :param edge: edge in original graph
+        :param i: timeslot for source node
+        :param j: timeslot for target node
+        :return:
+        """
+        return cls.get_time_node_name(edge[0], i), cls.get_time_node_name(edge[1], j)
 
     @classmethod
     def create_time_expanded_graph_from_linear_congestion(cls, graph, horizon):
@@ -29,7 +50,7 @@ class TimeExpandedGraph(object):
         :param horizon: Number of level (time slots) in the new created TEG
         :return: A GPSGraph object
         """
-        TEG = GPSGraph(name="TEG-%s" % graph.name)
+        TEG = GPSGraph(name="TEG-%s" % graph.name, horizon=horizon)
         # We add the nodes
         for node in graph.nodes():
             for time in range(horizon):

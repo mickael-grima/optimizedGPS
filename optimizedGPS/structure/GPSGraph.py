@@ -27,8 +27,8 @@ class GPSGraph(Graph):
         labels.MAX_SPEED: constants[labels.MAX_SPEED]
     })
 
-    def __init__(self, name='graph'):
-        super(GPSGraph, self).__init__(name=name)
+    def __init__(self, name='graph', data=None, **attr):
+        super(GPSGraph, self).__init__(name=name, data=None, **attr)
         # drivers
         self.__drivers = {}
 
