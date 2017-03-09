@@ -548,4 +548,10 @@ class Graph(DiGraph):
                 self.remove_node(node)
 
     def get_attribute(self, attr):
+        """
+        If Graph object has `attr` as attribute, we return the associated value, else None
+
+        :param attr: object
+        :return: object
+        """
         return self.graph.get(attr)
