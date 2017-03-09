@@ -46,7 +46,7 @@ class TimeExpandedGraph(object):
           - For each edge in graph, we build a new edge in the TEG from the starting node at every ending node to a
             greater level (i -> j where j > i)
 
-        :param graph: Graph object from which we want to create a TEG
+        :param graph: GPSGraph object from which we want to create a TEG
         :param horizon: Number of level (time slots) in the new created TEG
         :return: A GPSGraph object
         """
@@ -65,5 +65,10 @@ class TimeExpandedGraph(object):
                         cls.get_time_node_name(target, t),
                         graph.get_edge_data(source, target)
                     )
+
+        # add drivers
+        if isinstance(graph, GPSGraph):
+            for start, end, time, nb in graph.get_all_drivers():
+                TEG.add_driver(start, end, time, nb=nb, force=True)
 
         return TEG
