@@ -52,12 +52,12 @@ class Graph(DiGraph):
         }
     }
 
-    def __init__(self, name='graph'):
+    def __init__(self, name='graph', data=None, **attr):
         """
         Name of the graph
         """
         self.__name = name
-        super(Graph, self).__init__()
+        super(Graph, self).__init__(data=data, **attr)
 
     @property
     def name(self):
@@ -509,3 +509,43 @@ class Graph(DiGraph):
             'double_sens': len(filter(lambda e: self.has_edge(e[1], e[0]), self.edges()))
         }
 
+    def belong_to_same_road(self, u0, v0, u1, v1):
+        """
+        We check the number of lanes and the name of both edges.
+        If It is the same, we return True
+
+        :return: boolean
+        """
+        params0 = self.get_edge_data(u0, v0)
+        params1 = self.get_edge_data(u1, v1)
+        if params0[labels.LANES] == params1[labels.LANES] and params0.get("name") == params1.get("name"):
+            return True
+        return False
+
+    def simplify_graph(self):
+        """
+        This function delete every node with degree in = 1 and degree out = 1.
+        Actually, it just keeps nodes which represents either a start or end point of the graph (degree 1)
+        or a intersection between several roads (degree >= 3).
+        """
+        visited = set(self.nodes())
+        while len(visited) > 0:
+            node = visited.pop()
+            # First remove edges with same start and same target
+            if self.has_edge(node, node):
+                self.remove_edge(node, node)
+            succ, pred = self.successors(node), self.predecessors_iter(node)
+            if len(set(succ).union(pred)) == 2:
+                for p in pred:
+                    for s in succ:
+                        if s != p and self.belong_to_same_road(p, node, node, s):
+                            params = self.get_edge_data(p, node)
+                            params[labels.DISTANCE] += self.get_edge_property(node, s, labels.DISTANCE)
+                            self.remove_edge(p, node)
+                            self.remove_edge(node, s)
+                            self.add_edge(p, s, **params)
+            if self.degree(node) == 0:
+                self.remove_node(node)
+
+    def get_attribute(self, attr):
+        return self.graph.get(attr)

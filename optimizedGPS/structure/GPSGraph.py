@@ -46,8 +46,8 @@ class GPSGraph(Graph):
         labels.MAX_SPEED: constants[labels.MAX_SPEED]
     })
 
-    def __init__(self, name='graph'):
-        super(GPSGraph, self).__init__(name=name)
+    def __init__(self, name='graph', data=None, **attr):
+        super(GPSGraph, self).__init__(name=name, data=None, **attr)
         # drivers
         """
         set of drivers
@@ -86,7 +86,7 @@ class GPSGraph(Graph):
         props[labels.MAX_SPEED] = max_speed if max_speed is not None else props[labels.MAX_SPEED]
         super(Graph, self).add_edge(u, v, distance=distance, lanes=lanes, attr_dict=props, **attr)
 
-    def compute_traffic_limit(self, source, target):
+    def compute_traffic_limit(self, source, target, **data):
         """
         Considering the length of the edge (see :func:``get_edge_length <Graph.get_edge_length>``) and
         the number of lanes we return the limit traffic which represents a limit before a congestion traffic
@@ -94,12 +94,11 @@ class GPSGraph(Graph):
 
         :param source: node source
         :param target: node target
-
+        :param data: some data about the edges. As a dictionary
         :return: an integer representing the limit traffic on the given edge
         """
         length = self.get_edge_length(source, target)
-        lanes = self.get_edge_property(source, target, labels.LANES) or constants[labels.LANES]
-        return float(length) / constants[labels.CAR_LENGTH] * lanes
+        return float(length) / constants[labels.CAR_LENGTH] * data.get(constants[labels.LANES], 1)
 
     def get_congestion_function(self, source, target):
         """
@@ -165,7 +164,7 @@ class GPSGraph(Graph):
         """
         return self.has_driver(start, end) and self.__drivers[start][end].get(starting_time) is not None
 
-    def add_driver(self, start, end, starting_time=0, nb=1):
+    def add_driver(self, start, end, starting_time=0, nb=1, force=False):
         """
         add `nb` drivers starting at `start` and ending at `end` with starting tim `starting_time`
 
@@ -177,7 +176,7 @@ class GPSGraph(Graph):
             * ``starting_time=0``: starting time for the driver
             * ``nb=1``: number of drivers to add
         """
-        if self.has_node(start) and self.has_node(end):
+        if force or self.has_node(start) and self.has_node(end):
             if isinstance(nb, int) and nb > 0:
                 self.__drivers.setdefault(start, {})
                 self.__drivers[start].setdefault(end, {})
@@ -361,3 +360,22 @@ class GPSGraph(Graph):
         for _, _, _, nb in self.get_all_drivers():
             res += nb
         return res
+
+    # ----------------------------------------------------------------------------------------
+    # ------------------------------------ OTHERS --------------------------------------------
+    # ----------------------------------------------------------------------------------------
+
+    def belong_to_same_road(self, u0, v0, u1, v1):
+        """
+        We check the number of lanes, the name, the max_speed and the traffic limit of both edges.
+        If It is the same, we return True
+
+        :return: boolean
+        """
+        params0 = self.get_edge_data(u0, v0)
+        params1 = self.get_edge_data(u1, v1)
+        if super(GPSGraph, self).belong_to_same_road(u0, v0, u1, v1) \
+                and params0[labels.MAX_SPEED] == params1[labels.MAX_SPEED] \
+                and params0[labels.TRAFFIC_LIMIT] == params1[labels.MAX_SPEED]:
+            return True
+        return False

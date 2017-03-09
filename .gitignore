@@ -50,7 +50,7 @@ coverage.xml
 *.pot
 
 # Django stuff:
-*.log
+optimizedGPS/gurobi.log
 local_settings.py
 
 # Flask stuff:
@@ -81,7 +81,6 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
-env/
 
 # Spyder project settings
 .spyderproject
@@ -97,5 +96,5 @@ src/static/pictures/*
 
 # output
 optimizedGPS/output/
-optimizedGPS/data/api_config.json
-optimizedGPS/logs/
+# optimizedGPS/data/api_config.json
+*.log

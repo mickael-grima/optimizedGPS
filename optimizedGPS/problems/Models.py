@@ -2,15 +2,23 @@
 # !/bin/env python
 
 import logging
+import sys
 
-from gurobipy import GRB, quicksum
+try:
+    from gurobipy import GRB, quicksum
+except:
+    pass
 
 import labels
 from Problem import Model
+from optimizedGPS.structure.TimeExpandedGraph import TimeExpandedGraph as TEG
 
 __all__ = ["MainContinuousTimeModel", "BestPathTrafficModel", "FixedWaitingTimeModel"]
 
 log = logging.getLogger(__name__)
+
+
+HORIZON = 1000
 
 
 class EdgeCharacterizationModel(Model):
