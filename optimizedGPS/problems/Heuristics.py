@@ -4,6 +4,7 @@
 import logging
 import sys
 import time
+from collections import defaultdict
 
 from Problem import SimulatorProblem, Problem
 from SearchProblem import BacktrackingSearch
@@ -87,3 +88,28 @@ class ShortestPathTrafficFree(Problem):
                 self.value += self.graph.get_minimum_waiting_time(*edge)
 
         self.running_time = time.time() - ct
+
+
+class RealGPS(Problem):
+    def __init__(self, graph, **kwargs):
+        super(RealGPS, self).__init__(**kwargs)
+        self.graph = graph
+
+    def getGraph(self):
+        return self.graph
+
+    def solve(self):
+        drivers = self.graph.get_time_ordered_drivers()
+        # we here iteratively the drivers who already has a path
+        # for each driver and each visited edge, we also store here when driver has enter and leave the given edge
+        traffic = defaultdict(lambda: defaultdict(lambda: 0))
+        for driver in drivers:
+            driver_history = self.graph.get_shortest_path_with_traffic(driver.start, driver.end, driver.time, traffic)
+            path = ()
+            for i in range(len(driver_history) - 1):
+                node, t = driver_history[i]
+                nxt = driver_history[i + 1][0]
+                path += (node,)
+                traffic[node, nxt][t] += 1
+            path += (driver_history[-1][0],)
+            self.addOptimalPathToDriver(driver.to_tuple(), path)

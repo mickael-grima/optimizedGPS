@@ -15,7 +15,7 @@ from optimizedGPS.data.data_generator import (
     generate_test_graph
 )
 from optimizedGPS.problems.SearchProblem import BacktrackingSearch
-from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic, ShortestPathTrafficFree
+from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic, ShortestPathTrafficFree, RealGPS
 from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel
 from optimizedGPS.problems.Comparator import BoundsHandler, Comparator, MultipleGraphComparator, ResultsHandler
 
@@ -107,6 +107,7 @@ class ProblemsTest(unittest.TestCase):
         handler.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=2)
         handler.appendAlgorithm(BestPathTrafficModel, timeout=2)
         handler.appendAlgorithm(FixedWaitingTimeModel, timeout=2)
+        handler.appendAlgorithm(RealGPS, timeout=2)
 
         results = handler.compare()
 

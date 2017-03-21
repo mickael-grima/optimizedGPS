@@ -197,6 +197,14 @@ class GPSGraph(Graph):
             res += nb
         return res
 
+    def get_time_ordered_drivers(self):
+        """
+        Return a list of drivers sorted by starting time
+
+        :return: list
+        """
+        return sorted(self.get_all_unique_drivers(), key=lambda d: d.time)
+
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------
     # ----------------------------------------------------------------------------------------
@@ -215,3 +223,80 @@ class GPSGraph(Graph):
                 and params0[labels.TRAFFIC_LIMIT] == params1[labels.MAX_SPEED]:
             return True
         return False
+
+    def get_shortest_path_with_traffic(self, start, end, time, traffic_history):
+        """
+        Then considering the traffic_history we compute the fastest path from start to end starting at time
+
+        :param start: starting node
+        :param end: ending node
+        :param time: starting time
+        :param traffic_history: for each edge, we associate a dictionnary of time, traffic.
+        :return: the traffic history of this shortest path, as if a driver would have driven on it
+        """
+        if not self.has_node(start):
+            log.error("Node %s not in graph %s", start, self.name)
+            raise KeyError("Node %s not in graph %s" % (start, self.name))
+        # paths: to each node we associate path used to rech this node
+        # each path is a tuple of (node, current_time)
+        paths = {start: {((start, time),)}}
+
+        # Set the time for the start node to zero
+        next_nodes = {time: {start}}
+        times = [time]
+
+        # Unvisited nodes
+        visited = set()
+        current = None
+
+        while len(times) > 0 and current != end:
+            # Pops a vertex with the smallest distance
+            t = times[0]
+            current = next_nodes[t].pop()
+
+            # remove nodes from nexts and distances
+            if len(next_nodes[t]) == 0:
+                del next_nodes[t]
+                del times[0]
+
+            for n in self.successors(current):
+                # if visited, skip
+                if n in visited:
+                    continue
+
+                # else add t in visited
+                visited.add(n)
+
+                # get traffic at t
+                current_traffic = 0
+                for i in sorted(traffic_history.get((current, n), {}).keys()):
+                    if i > t:
+                        break
+                    current_traffic = traffic_history[current, n][i]
+
+                # compute new time
+                new_time = t + self.get_congestion_function(current, n)(current_traffic)
+
+                # add new node in next_nodes
+                next_nodes.setdefault(new_time, set())
+                next_nodes[new_time].add(n)
+
+                # add new time in the sorted list times
+                i = 0
+                while i < len(times):
+                    if times[i] == new_time:
+                        i = -1
+                        break
+                    elif times[i] > new_time:
+                        break
+                    i += 1
+                if i >= 0:
+                    times.insert(i, new_time)
+
+                # update paths
+                paths.setdefault(n, set())
+                for path in paths[current]:
+                    if path[-1][1] == t:
+                        paths[n].add(path + ((n, new_time),))
+
+        return min(paths[end], key=lambda p: p[-1][1])
