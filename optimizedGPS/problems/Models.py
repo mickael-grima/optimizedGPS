@@ -224,6 +224,13 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
     def get_traffic(self, edge, driver):
         return self.C[edge, driver]
 
+    def solve_with_heuristic(self):
+        for driver in self.drivers:
+            for edge in self.graph.edges():
+                self.graph.set_edge_property(edge[0], edge[1], 'waiting_time', self.C[edge, driver])
+            path = self.graph.get_shortest_path(driver.start, driver.end, edge_property='waiting_time')
+            self.set_optimal_path_to_driver(driver, path)
+
 
 class TEGLinearCongestionModel(EdgeCharacterizationModel):
     def __init__(self, graph, timeout=sys.maxint, horizon=1000):

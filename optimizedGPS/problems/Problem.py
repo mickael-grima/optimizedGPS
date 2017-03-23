@@ -19,14 +19,20 @@ __all__ = []
 log = logging.getLogger(__name__)
 
 
+class SolvinType:
+    SOLVER = 0
+    HEURISTIC = 1
+
+
 class Problem(object):
     """ Initialize the problems' classes
     """
-    def __init__(self, timeout=sys.maxint):
+    def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER):
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
         self.opt_solution = {}  # On wich path are each driver
         self.timeout = timeout  # After this time we stop the algorithms
+        self.solving_type = solving_type
 
         self.status = options.NOT_RUN  # status
 
@@ -53,9 +59,9 @@ class Problem(object):
         """
         Solve the current problem
         """
-        if heuristic:
+        if self.solving_type == SolvinType.HEURISTIC:
             self.solve_with_heuristic()
-        else:
+        elif self.solving_type == SolvinType.SOLVER:
             self.solve_with_solver()
 
     def set_optimal_solution(self):

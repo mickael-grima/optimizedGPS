@@ -246,6 +246,19 @@ class Graph(DiGraph):
             return self.PROPERTIES['edges'][labels.DISTANCE]
         return math.sqrt((sy - sx) * (sy - sx) + (ty - tx) * (ty - tx))
 
+    def set_edge_property(self, source, target, prop, value):
+        """
+        Set value to property in edge's properties' set
+
+        :param source: source node
+        :param target: target node
+        :param prop: property key
+        :param value: property value
+        :return:
+        """
+        if self.has_edge(source, target):
+            self.adj[source][target][prop] = value
+
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------
     # ----------------------------------------------------------------------------------------
@@ -317,7 +330,7 @@ class Graph(DiGraph):
     # ------------------------------------ ALGORITHMS ----------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def djikstra(self, start, end, length=0):
+    def djikstra(self, start, end, length=0, edge_property=labels.DISTANCE):
         """
         find every path from start with given length
 
@@ -353,7 +366,7 @@ class Graph(DiGraph):
                 del nexts[d]
                 del distances[0]
 
-            for n in self.successors_with_property(current, props={'distance'}):
+            for n in self.successors_with_property(current, props={edge_property}):
                 # if visited, skip
                 if n in visited:
                     continue
@@ -363,7 +376,7 @@ class Graph(DiGraph):
                     visited.add(n)
 
                 # compute new distance
-                new_dist = d + self.get_edge_property(current, n, 'distance')
+                new_dist = d + self.get_edge_property(current, n, edge_property)
                 if min_length is not None and new_dist > min_length + length:
                     continue
                 if min_length is None and n == end:
@@ -431,7 +444,7 @@ class Graph(DiGraph):
         for path in self.djikstra_rec(start, end, paths={start: {(start,)}}):
             yield path
 
-    def get_paths_from_to(self, start, end, length=0):
+    def get_paths_from_to(self, start, end, length=0, edge_property=labels.DISTANCE):
         """
         yield every path from start to end
 
@@ -446,18 +459,18 @@ class Graph(DiGraph):
         if not self.has_node(end):
             log.error("Node %s not in graph %s", end, self.name)
             raise KeyError("Node %s not in graph %s" % (end, self.name))
-        paths = self.djikstra(start, end, length=length).get(end) or {}
+        paths = self.djikstra(start, end, length=length, edge_property=edge_property).get(end) or {}
         for path in paths:
             yield path[:-1]
 
-    def get_shortest_path(self, start, end):
+    def get_shortest_path(self, start, end, edge_property=labels.DISTANCE):
         """
         :param start: source node
         :param end: target node
 
         :return: the shortest path between `start` and `end`
         """
-        return self.get_paths_from_to(start, end).next()
+        return self.get_paths_from_to(start, end, edge_property=edge_property).next()
 
     def generate_path_from_edges(self, start, end, edges):
         """

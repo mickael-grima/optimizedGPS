@@ -68,7 +68,7 @@ class TimeExpandedGraph(object):
 
         # add drivers
         if isinstance(graph, GPSGraph):
-            for start, end, time, nb in graph.get_all_drivers():
-                TEG.add_driver(start, end, time, nb=nb, force=True)
+            for driver in graph.get_all_drivers():
+                TEG.add_driver(driver)
 
         return TEG
