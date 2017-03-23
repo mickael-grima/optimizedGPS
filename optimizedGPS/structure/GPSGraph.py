@@ -8,6 +8,7 @@ from Graph import Graph
 from constants import constants
 from optimizedGPS import labels
 from utils.tools import congestion_function
+from collections import defaultdict
 
 __all__ = ["GPSGraph"]
 
@@ -28,9 +29,9 @@ class GPSGraph(Graph):
     })
 
     def __init__(self, name='graph', data=None, **attr):
-        super(GPSGraph, self).__init__(name=name, data=None, **attr)
+        super(GPSGraph, self).__init__(name=name, data=data, **attr)
         # drivers
-        self.__drivers = {}
+        self.__drivers = defaultdict(lambda: defaultdict())
 
     # ----------------------------------------------------------------------------------------
     # ---------------------------------- EDGES -----------------------------------------------
@@ -76,126 +77,67 @@ class GPSGraph(Graph):
     # ---------------------------------- DRIVERS ---------------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def has_driver(self, start, end):
+    def has_driver(self, driver):
         """ return True if graph contains at least one driver from start to end
         """
-        return self.has_node(start) and self.has_node(end) and self.__drivers.get(start, {}).get(end) is not None
+        return self.has_node(driver.start) and self.has_node(driver.end) and driver in self.__drivers
 
-    def has_starting_time(self, start, end, starting_time):
-        """ returns True if there exists at least one driver from start to end with the given starting time
-        """
-        return self.has_driver(start, end) and self.__drivers[start][end].get(starting_time) is not None
-
-    def add_driver(self, start, end, starting_time=0, nb=1, force=False):
+    def add_driver(self, driver, force=False):
         """ add nb drivers with the given properties
         """
-        if force or self.has_node(start) and self.has_node(end):
-            if isinstance(nb, int) and nb > 0:
-                self.__drivers.setdefault(start, {})
-                self.__drivers[start].setdefault(end, {})
-                self.__drivers[start][end].setdefault(starting_time, {})
-                self.__drivers[start][end][starting_time].setdefault('nb', 0)
-                self.__drivers[start][end][starting_time]['nb'] += nb
-                log.info("Driver from %s to %s added to graph %s", start, end, self.name)
-                return True
-            else:
-                log.warning("Impossible to add either non-int number of drivers or 0 driver. nb=%s" % nb)
-        log.warning("Node %s or %s doesn't exist in graph %s", start, end, self.name)
+        if force or self.has_node(driver.start) and self.has_node(driver.end):
+            self.__drivers[driver] = {}
+            return True
+        log.warning("Node %s or %s doesn't exist in graph %s", driver.start, driver.end, self.name)
         return False
 
-    def set_drivers_property(self, start, end, prop, value, starting_time=None):
+    def set_drivers_property(self, driver, prop, value):
         """ set properties to the given drivers and returns True if driver exists
             else return False
 
             if starting_time == None, add a property to every drivers from start to end
         """
-        if self.has_driver(start, end):
-            if starting_time is not None:
-                if self.has_starting_time(start, end, starting_time):
-                    self.__drivers[start][end][starting_time][prop] = value
-                    return True
-                log.warning("Drivers from node %s to node %s doesn't start at %s in graph %s",
-                            start, end, starting_time, self.name)
-                return False
-            self.__drivers[start][end][prop] = value
+        if self.has_driver(driver):
+            self.__drivers[driver][prop] = value
             return True
-        log.warning('No drivers from node %s to node %s in graph %s', start, end, self.name)
+        log.warning('Driver %s doesn\'t exist in graph %s', driver, self.name)
         return False
 
     def get_drivers(self, start, end, starting_time=None):
         """ return the drivers from start to end, and with the given starting_time if not None
         """
-        if self.has_driver(start, end):
-            if starting_time is not None:
-                if self.has_starting_time(start, end, starting_time):
-                    return self.__drivers[start][end][starting_time]['nb']
-                log.warning("Drivers from node %s to node %s doesn't start at %s in graph %s",
-                            start, end, starting_time, self.name)
-                return 0
-            else:
-                return self.__drivers[start][end]
-        log.warning('No drivers from node %s to node %s in graph %s', start, end, self.name)
-        return 0
+        for driver in self.__drivers:
+            if driver.start == start and driver.end == end and (starting_time is None or driver.time == starting_time):
+                yield driver
 
-    def get_drivers_property(self, start, end, prop, starting_time=None):
-        if self.has_driver(start, end):
-            if starting_time is not None:
-                if self.has_starting_time(start, end, starting_time):
-                    return self.__drivers[start][end][starting_time].get(prop)
-                log.warning("Drivers from node %s to node %s doesn't start at %s in graph %s",
-                            start, end, starting_time, self.name)
-                return None
-            return self.__drivers[start][end].get(prop)
-        log.warning('No drivers from node %s to node %s in graph %s', start, end, self.name)
+    def get_drivers_property(self, driver, prop):
+        if self.has_driver(driver):
+            return self.__drivers[driver].get(prop)
+        log.warning('Driver %s doesn\'t exist in graph %s', driver, self.name)
         return None
 
     def get_all_drivers(self):
-        for start, dct in self.__drivers.iteritems():
-            for end, d in dct.iteritems():
-                for time, props in d.iteritems():
-                    yield start, end, time, props['nb']
-
-    def get_all_unique_drivers(self):
-        """ return the drivers making them unique if more than one for same starting, ending nodes and starting time
-        """
-        for start, dct in self.__drivers.iteritems():
-            for end, d in dct.iteritems():
-                for time, props in d.iteritems():
-                    for _ in range(props['nb']):
-                        yield Driver(start, end, time)
+        for driver in self.__drivers:
+            yield driver
 
     def get_all_drivers_from_starting_node(self, start):
-        for end, dct in self.__drivers.get(start, {}).iteritems():
-            for time, props in dct.iteritems():
-                yield start, end, time, props['nb']
+        for driver in self.__drivers:
+            if driver.start == start:
+                yield driver
 
     def get_all_drivers_to_ending_node(self, end):
-        for start, dct in self.__drivers.iteritems():
-            for e, d in dct.iteritems():
-                if e == end:
-                    for time, props in d.iteritems():
-                        yield start, end, time, props['nb']
+        for driver in self.__drivers:
+            if driver.end == end:
+                yield driver
 
-    def remove_driver(self, start, end, starting_time, nb=1):
-        if self.has_starting_time(start, end, starting_time):
-            self.__drivers[start][end][starting_time]['nb'] -= nb
-            if self.__drivers[start][end][starting_time]['nb'] <= 0:
-                del self.__drivers[start][end][starting_time]
-            if not self.__drivers[start][end]:
-                del self.__drivers[start][end]
-            if not self.__drivers[start]:
-                del self.__drivers[start]
-            log.info("driver removed from %s to %s with starting time %s in graph %s",
-                     start, end, starting_time, self.name)
-            return True
-        log.warning("No driver from %s to %s with starting time %s in graph %s", start, end, starting_time, self.name)
+    def remove_driver(self, driver):
+        if self.has_driver(driver):
+            del self.__drivers[driver]
+        log.warning('Driver %s doesn\'t exist in graph %s', driver, self.name)
         return False
 
     def number_of_drivers(self):
-        res = 0
-        for _, _, _, nb in self.get_all_drivers():
-            res += nb
-        return res
+        return len(self.__drivers)
 
     def get_time_ordered_drivers(self):
         """
@@ -203,7 +145,7 @@ class GPSGraph(Graph):
 
         :return: list
         """
-        return sorted(self.get_all_unique_drivers(), key=lambda d: d.time)
+        return sorted(self.get_all_drivers(), key=lambda d: d.time)
 
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------

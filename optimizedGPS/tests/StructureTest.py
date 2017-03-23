@@ -14,6 +14,7 @@ from optimizedGPS.structure import Graph
 from optimizedGPS.structure import GPSGraph
 from optimizedGPS.structure import TimeExpandedGraph
 from optimizedGPS.data.data_generator import generate_graph_from_file
+from optimizedGPS.structure import Driver
 
 
 class StructureTest(unittest.TestCase):
@@ -67,33 +68,32 @@ class StructureTest(unittest.TestCase):
         graph.add_node('node1')
         graph.add_edge('node0', 'node1', size=3)
 
+        driver0 = Driver('node0', 'node1', 0)
+        driver1 = Driver('node0', 'node2', 2)
+
         # add drivers
-        self.assertTrue(graph.add_driver('node0', 'node1', 0, nb=3))
-        self.assertFalse(graph.add_driver('node0', 'node2', 2))
+        self.assertTrue(graph.add_driver(driver0))
+        self.assertFalse(graph.add_driver(driver1))
 
         # "has" assertions
-        self.assertTrue(graph.has_starting_time('node0', 'node1', 0))
-        self.assertFalse(graph.has_driver('node1', 'node0'))
-        self.assertTrue(graph.has_driver('node0', 'node1'))
+        self.assertFalse(graph.has_driver(driver0))
+        self.assertTrue(graph.has_driver(driver1))
 
         # "getAll" functions
-        self.assertEqual(('node0', 'node1', 0, 3), graph.get_all_drivers().next())
-        self.assertEqual(('node0', 'node1', 0, 3), graph.get_all_drivers_from_starting_node('node0').next())
-        self.assertEqual(('node0', 'node1', 0, 3), graph.get_all_drivers_to_ending_node('node1').next())
+        self.assertEqual({driver0, driver1}, set(graph.get_all_drivers()))
+        self.assertEqual({driver0, driver1}, set(graph.get_all_drivers_from_starting_node('node0')))
+        self.assertEqual(driver0, graph.get_all_drivers_to_ending_node('node1').next())
 
         # properties
-        self.assertTrue(graph.set_drivers_property('node0', 'node1', 'names', {'first': 'first', 'last': 'last'},
-                                                   starting_time=0))
-        self.assertIsNone(graph.get_drivers_property('node0', 'node1', 'names'))
-        self.assertEqual({'first': 'first', 'last': 'last'},
-                         graph.get_drivers_property('node0', 'node1', 'names', starting_time=0))
+        self.assertTrue(graph.set_drivers_property(driver0, 'names', {'first': 'first', 'last': 'last'}))
+        self.assertIsNone(graph.get_drivers_property(driver1, 'names'))
+        self.assertEqual({'first': 'first', 'last': 'last'}, graph.get_drivers_property(driver0, 'names'))
 
         # remove
-        self.assertTrue(graph.remove_driver('node0', 'node1', 0))
-        self.assertTrue(graph.has_driver('node0', 'node1'))
-        self.assertTrue(graph.remove_driver('node0', 'node1', 0, nb=2))
-        self.assertFalse(graph.has_driver('node0', 'node1'))
-        self.assertFalse(graph.remove_driver('node1', 'node0', 2))
+        self.assertTrue(graph.remove_driver(driver0))
+        self.assertTrue(graph.has_driver(driver1))
+        self.assertFalse(graph.has_driver(driver0))
+        self.assertFalse(graph.remove_driver(driver0))
 
     def testParser(self):
         graph = generate_graph_from_file('static/graph-test-0.graphml')
