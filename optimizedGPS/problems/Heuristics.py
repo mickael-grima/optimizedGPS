@@ -62,7 +62,7 @@ class UpdatedBySortingShortestPath(Problem):
         self.graph = graph
         self.traffics = {}
 
-    def solve(self):
+    def solve_with_heuristic(self):
         drivers = sorted(self.graph.get_all_unique_drivers(), key=lambda d: d.time)
         for driver in drivers:
             self.addOptimalPathToDriver(driver.to_tuple(), ())
@@ -79,7 +79,7 @@ class ShortestPathTrafficFree(Problem):
     def getOptimalValue(self):
         return self.getValue()
 
-    def solve(self):
+    def solve_with_heuristic(self):
         ct = time.time()
 
         for driver in self.graph.get_all_unique_drivers():
@@ -98,7 +98,7 @@ class RealGPS(Problem):
     def getGraph(self):
         return self.graph
 
-    def solve(self):
+    def solve_with_heuristic(self):
         drivers = self.graph.get_time_ordered_drivers()
         # we here iteratively the drivers who already has a path
         # for each driver and each visited edge, we also store here when driver has enter and leave the given edge

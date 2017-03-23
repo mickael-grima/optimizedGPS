@@ -148,7 +148,7 @@ class Bound(Comparator):
 
     # bounds status
     def getBoundStatus(self):
-        return options.STATUS[self.status.get(self.best_algo)]
+        return options.STATUS.get(self.status.get(self.best_algo))
 
     def getBestAlgo(self):
         return self.best_algo

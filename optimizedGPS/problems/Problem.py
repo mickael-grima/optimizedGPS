@@ -32,9 +32,26 @@ class Problem(object):
     def isTimedOut(self):
         return self.__timed_out
 
-    def solve(self):
-        log.error("Not implemented yet")
-        raise NotImplementedError("Not implemented yet")
+    def solve_with_solver(self):
+        message = "Solution with solver not implemented yet"
+        log.error(message)
+        raise NotImplementedError(message)
+
+    def solve_with_heuristic(self):
+        message = "No heuristics available yet"
+        log.error(message)
+        raise NotImplementedError(message)
+
+    def solve(self, heuristic=False):
+        if heuristic:
+            self.solve_with_heuristic()
+        else:
+            self.solve_with_solver()
+
+    def setOptimalSolution(self):
+        message = "Not implemented yet"
+        log.error(message)
+        raise NotImplementedError(message)
 
     def addOptimalPathToDriver(self, driver, path):
         self.opt_solution.setdefault(driver, [])
@@ -94,7 +111,7 @@ class SimulatorProblem(Problem):
         log.error("Not implemented yet")
         raise NotImplementedError("Not implemented yet")
 
-    def solve(self):
+    def solve_with_heuristic(self):
         ct = time.time()
 
         # simulate
@@ -166,7 +183,7 @@ class Model(Problem):
     def optimize(self):
         self.model.optimize()
 
-    def solve(self):
+    def solve_with_solver(self):
         t = time.time()
         self.optimize()
         self.running_time = time.time() - t
