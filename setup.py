@@ -21,7 +21,9 @@ setup(
         'networkx',
         'matplotlib',
         'requests',
-        'osmapi'
+        'osmapi',
+        'sortedcontainers',
+        'mock'
     ],
     zip_safe=False
 )

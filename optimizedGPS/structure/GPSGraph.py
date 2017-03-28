@@ -2,13 +2,12 @@
 # !/bin/env python
 
 import logging
+from collections import defaultdict
 
-from Driver import Driver
 from Graph import Graph
 from constants import constants
 from optimizedGPS import labels
 from utils.tools import congestion_function
-from collections import defaultdict
 
 __all__ = ["GPSGraph"]
 

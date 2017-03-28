@@ -1,4 +1,1 @@
-from FiniteHorizonSimulator import FiniteHorizonSimulator
-from GPSSimulator import GPSSimulator
-from ModelTransformationSimulator import ModelTransformationSimulator
-import utils
+from Simulator import FromEdgeDescriptionSimulator

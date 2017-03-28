@@ -5,12 +5,9 @@ Created on Wed Apr 01 21:38:37 2015
 @author: Mickael Grima
 """
 import logging
+from collections import defaultdict, namedtuple
 
-import matplotlib.pyplot as plt
-import networkx as nx
-import yaml
-
-from utils.tools import assert_file_location
+from sortedcontainers import SortedListWithKey
 
 __all__ = []
 
@@ -18,99 +15,221 @@ log = logging.getLogger(__name__)
 
 
 class Simulator(object):
+    """
+    A simulator object return an edge-description and the starting time on each edge for each driver (+ a special
+    starting time on a fake edge representing the fact that a driver leaves the edge)
+
+    Every Subclasses have to implement the `get_next_edge()` method.
+    This method moves the next driver to the next edge.
+    How to obtain the next edge should be implemented in the subclass as well.
+    """
+
+    EXIT = '@@EXIT@@'
+    Time = namedtuple('Time', ['object', 'time'])
+
     def __init__(self, graph):
+        """graph instance, containing drivers"""
         self.graph = graph
-        self._props = yaml.load(open('config.yml', 'r')).get('properties', {})
+        """Which driver is entered in which edge at which time"""
+        self.events = defaultdict(lambda: SortedListWithKey(key=lambda c: c.time))
+        """Sorted list of tuple (driver, clock)"""
+        self.clocks = SortedListWithKey(key=lambda c: c.time)
+        for driver in graph.get_all_drivers():
+            self.add_clock(driver, driver.time)
 
-    def initialize(self):
-        """ we define here the dynamic class intances
+    def add_clock(self, driver, time):
         """
-        self.previous_states = []
-        self.time = 0
-        self.current_clock = 0
+        Add a clock for driver.
+        This method should be preferred each time one wants to add a clock for a driver.
 
-    def reinitialize(self, state={}):
-        """ return to the first step
+        :param driver: Driver object
+        :param time: Current time in the simulation
+        :return:
         """
-        if state:
-            for attr, value in state.iteritems():
-                setattr(self, attr, value)
+        self.clocks.add(self.Time(object=driver, time=time))
+
+    def add_event(self, driver, edge, time):
+        """
+        Save the event for driver on edge at time
+
+        :param driver: driver object
+        :param edge: edge in graph
+        :param time: current time in the simulation
+        :return:
+        """
+        self.events[driver].add(self.Time(object=edge, time=time))
+
+    def get_current_edge(self, driver):
+        """
+        Return the edge which driver is currently
+
+        :param driver: driver object
+        """
+        return self.events[driver][-1].object if len(self.events[driver]) > 0 else None
+
+    def get_next_edge(self, driver):
+        """
+        Return the next edge for driver.
+        Should be implemented in subclasses.
+
+        :param driver: Driver object
+        """
+        message = "Not implemented yet"
+        log.error(message)
+        raise NotImplementedError(message)
+
+    def get_next_driver(self):
+        """
+        Return the next driver respecting the clocks order
+        """
+        return self.clocks[0].object
+
+    def get_waiting_time(self, edge, traffic):
+        """
+        Compute and return the current waiting time on this edge.
+
+        :param edge: edge in graph
+        :param traffic: traffic supposed on this edge
+        """
+        return self.graph.get_congestion_function(*edge)(traffic)
+
+    def move_driver(self, driver, current_time, current_edge=None, next_edge=None):
+        """
+        Move driver from current_edge to next edge at time current_time.
+        Update every simulator's instances:
+          - add event for driver on next edge at time current time
+          - compute new time when the driver should leave the next edge
+          - delete the previous time we have for driver in self.clocks instance
+
+        :param driver: driver object
+        :param current_edge: current edge for driver
+        :param current_time: current time in the simulation
+        :param next_edge: next edge for driver
+        """
+        if self.clocks[0].object != driver:
+            raise KeyError("driver %s shouldn't be next" % str(driver))
+        if next_edge is None:
+            if current_edge is None:
+                message = "Driver %s has no current edge and no next edge. He should be deleted from data" % str(driver)
+                log.warning(message)
+                self.add_event(driver, (driver.start, self.EXIT), current_time)
+            else:
+                self.add_event(driver, (current_edge[1], self.EXIT), current_time)
         else:
-            self.initialize()
-
-    def get_current_state(self):
-        """ save the dynamic classe's instances
-
-            WARNING: Do not forget to copy the instances since it will be modified by next() method
-        """
-        return {'time': self.time}
-
-    def has_previous_state(self):
-        return len(self.previous_states) > 0
-
-    def save_current_state(self):
-        self.previous_states.append(self.get_current_state())
-
-    def previous(self, state=None):
-        if state is not None:
-            self.reinitialize(state=state)
-        elif self.has_previous_state():
-            self.reinitialize(state=self.previous_states[-1])
-            del self.previous_states[-1]
-        else:
-            log.error("No previous state found")
-            raise Exception("No previous state found")
+            if current_edge is not None and current_edge[1] != next_edge[0]:
+                raise Exception("current edge %s and next edge %s are not connected"
+                                % (str(current_edge), str(next_edge)))
+            self.add_event(driver, next_edge, current_time)
+            waiting_time = self.get_waiting_time(next_edge, self.get_traffic(next_edge, current_time))
+            self.add_clock(driver, current_time + waiting_time)
+        del self.clocks[0]
 
     def has_next(self):
-        """ Check if there is a next step
         """
-        return False
+        Return True if at least one driver is still driving on graph
+        """
+        return len(self.clocks) > 0
 
     def next(self):
-        """ Next step of the simulation
         """
-        log.error("Not implemented yet")
-        raise NotImplementedError()
-
-    def get_value(self):
-        return self.time
-
-    def get_current_solution(self):
-        log.error("Not implemented yet")
-        raise NotImplementedError()
-
-    def get_traffics(self):
-        """ return the traffic on each edge
+        Find the next driver to move and move him to his next edge
         """
-        log.error("Not implemented yet")
-        raise NotImplementedError()
+        driver, current_time = self.clocks[0]
+        self.move_driver(
+            driver,
+            current_time,
+            self.get_current_edge(driver),
+            self.get_next_edge(driver)
+        )
 
-    def get_color_from_traffic(self, edge, traffic):
-        cong_func = self.graph.get_congestion_function(*edge)
-        time_suppl = (cong_func(traffic) - cong_func(0.0)) / cong_func(0.0)
-        keys = sorted(self._props['traffics'].iterkeys(), reverse=True)
-        for key in keys:
-            if key <= time_suppl:
-                return self._props['traffic-colors'][self._props['traffics'][key]]
-
-    def to_image(self, fname=None, **kwards):
-        """ Produce an image describing the current step
+    def simulate(self):
         """
-        traffics = self.get_traffics()
-        for edge in self.graph.edges():
-            self.graph.add_edge(*edge, traffic=traffics.get(edge, 0.0))
+        From the input, we simulate everything to obtain an edge-description and starting time on every visited edges
+        for each driver.
+        """
+        while self.has_next():
+            self.next()
 
-        colors = map(lambda e: self.get_color_from_traffic(e, traffics.get(e, 0.0)), self.graph.edges())
-        positions = {}
-        for n in self.graph.nodes():
-            if self.graph.get_position(n) is not None:
-                positions[n] = self.graph.get_position(n)
-            else:
-                positions = {}
-                break
+    def get_maximum_driving_time(self):
+        """
+        Return the worst driving time
+        """
+        return max(self.events.itervalues(), key=lambda e: e[-1].time if len(e) > 0 else 0)[-1].time
 
-        nx.draw(self.graph, pos=positions, node_color='#000000', edge_color=colors, **kwards)
-        if fname is not None:
-            assert_file_location(fname, typ='picture')
-            plt.savefig(fname)
-            plt.clf()
+    def get_sum_driving_time(self):
+        """
+        Return the sum of every driving time
+        """
+        return sum(map(lambda e: e[-1].time - e[0].time, self.events.itervalues()))
+
+    def get_edge_description(self):
+        """
+        Return the current edge description
+        """
+        return {driver: tuple(map(lambda e: e.object[0], path_clocks))
+                for driver, path_clocks in self.events.iteritems()}
+
+    def get_starting_times(self, driver):
+        """
+        Return the dictionary of starting times on each visited edge by drivers
+
+        :param driver: driver object
+        """
+        if driver not in self.events:
+            message = "driver %s has not been simulated" % str(driver)
+            log.error(message)
+            raise KeyError(message)
+        return {p.object: p.time for p in self.events[driver]}
+
+    def get_traffic(self, edge, time):
+        """
+        Return the traffic on edge at time
+        """
+        traffic = 0
+        for path_clocks in self.events.itervalues():
+            i, visited = 0, False
+            while i < len(path_clocks) - 1:
+                if path_clocks[i].object == edge and path_clocks[i].time < time <= path_clocks[i + 1].time:
+                    visited = True
+                    break
+                i += 1
+            if path_clocks[i].object == edge and path_clocks[i].time < time:
+                visited = True
+            traffic += visited
+        return traffic
+
+
+class FromEdgeDescriptionSimulator(Simulator):
+    """
+    This Simulator simulate the edge-description and starting times from an edge_description
+    """
+    def __init__(self, graph, edge_description):
+        super(FromEdgeDescriptionSimulator, self).__init__(graph)
+        """For each driver, the path he has to follow"""
+        self.edge_description = edge_description
+
+    def get_next_edge(self, driver):
+        if driver not in self.edge_description:
+            message = "Driver %s doesn't have associated path" % str(driver)
+            log.error(message)
+            raise KeyError(message)
+        current_edge = self.get_current_edge(driver)
+        edge_iterator = self.graph.iter_edges_in_path(self.edge_description[driver])
+        if current_edge is None:
+            try:
+                return edge_iterator.next()
+            except StopIteration:
+                return None
+        while True:
+            try:
+                if edge_iterator.next() == current_edge:
+                    try:
+                        return edge_iterator.next()
+                    except StopIteration:
+                        return None
+            except StopIteration:
+                message = "Driver %s on edge %s which doesn't appear in given edge_description"\
+                          % (str(driver), str(current_edge))
+                log.error(message)
+                raise StopIteration(message)
+
