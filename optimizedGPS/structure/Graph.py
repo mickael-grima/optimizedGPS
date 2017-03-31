@@ -16,8 +16,30 @@ log = logging.getLogger(__name__)
 
 
 class Graph(DiGraph):
-    """ This class contains every instances and methods describing a Graph for our problem
-        It inherits from networkx.DiGraph
+    """
+    This class represents the static part of the data.
+    It inherits from :class:``DiGraph <networkx.DiGraph>``, so the created graph is always directed.
+
+    **Example:**
+
+    >>> from optimizedGPS import Graph
+    >>>
+    >>> graph = Graph(name='test')
+    >>> graph.add_node('node0', 0, 1)  # Add node on position (0, 1)
+    >>> graph.add_node('node1', 1, 1)  # Add node on position (1, 1)
+    >>> graph.add_edge('node0', 'node1', 3, 2)  # Add an edge between 'node0' and 'node1' with 2 lanes and distance 3
+    >>>
+    >>> pos = graph.get_position('node0')  # get positions of node0
+    >>> print "positions of %s: %s" % ('node0', str(pos))  #doctest: +NORMALIZE_WHITESPACE
+    # positions of node0: (0, 1) #
+    >>> length = graph.get_edge_length('node0', 'node1')  # get edge's length
+    >>> print "length: %s" % length  #doctest: +NORMALIZE_WHITESPACE
+    # length: 3 #
+    """
+
+    """
+    Default properties when adding a node or an edge
+    When adding node or edge, if these properties are not specified, the default one is added
     """
     PROPERTIES = {
         'edges': {
@@ -31,6 +53,9 @@ class Graph(DiGraph):
     }
 
     def __init__(self, name='graph', data=None, **attr):
+        """
+        Name of the graph
+        """
         self.__name = name
         super(Graph, self).__init__(data=data, **attr)
 
@@ -44,13 +69,17 @@ class Graph(DiGraph):
 
     def add_node(self, n, lat=None, lon=None, attr_dict=None, **attr):
         """
+        Add `n` as node on position (`lat`, `lon`). Other attributes can also be added. It calls the super method
+        :func:`networkx.DiGraph.add_node <networkx.DiGraph.add_node>`
 
         :param n: node to add
-        :param lat: latitude
-        :param lon: longitude
-        :param attr_dict: dictionary form of attributes
-        :param attr: dictionary
-        :return: None
+
+        * options:
+
+            * ``lat=None``: The latitude of the added node. If not specified, the default value is added.
+            * ``lon=None``: The longitude of the added node. If not specified, the default value is added.
+            * ``attr_dict=None``: Other attributes to add.
+            * ``**attr``: Other attributes to add.
         """
         props = {k: v for k, v in self.PROPERTIES['nodes'].iteritems()}
         if attr_dict is not None:
@@ -60,7 +89,10 @@ class Graph(DiGraph):
         super(Graph, self).add_node(n, attr_dict=props, **attr)
 
     def get_position(self, node):
-        """ returns the node's position if it exists, otherwise returns None
+        """
+        returns the node's position if it exists, otherwise returns None
+
+        :param node: a node
         """
         try:
             return self.node[node][labels.LATITUDE], self.node[node][labels.LONGITUDE]
@@ -69,12 +101,21 @@ class Graph(DiGraph):
 
     def get_random_node(self, black_list=set(), random_walk_start=None, seed=None,
                         starting_node=False, ending_node=False):
-        """ Pick uniformly at random among the graph's nodes (except among black_list nodes)
-            If `random_walk_start` is a node in graph we generate a random number between 1 and len(nodes): n.
-            We do a uniform random walk from the given node, and after n steps we return the current node
+        """
+        Pick uniformly at random among the graph's nodes (except among black_list nodes),
+        respecting the following rules:
 
-            if starting_node is True, we want a node which has successors
-            if ending_node is True, we want a node which has predecessors
+        * options:
+
+            * ``black_list=set()``: These nodes are not visited and can't be returned
+            * ``random_walk_start=None``: If it is a node in graph we generate a random number between 1 and n,
+                    where n = len(self.nodes()). We do a uniform random walk from the given node,
+                    and after n steps we return the current node.
+            * ``seed=None``: see random.seed(seed)
+            * ``starting_node=False``: if True, it returns a node which has successors.
+            * ``ending_node=False``: if True, it returns a node which has predecessors.
+
+        :return: A node with the wanted properties
         """
         random.seed(seed)
 
@@ -152,6 +193,20 @@ class Graph(DiGraph):
     # ----------------------------------------------------------------------------------------
 
     def add_edge(self, u, v, distance=None, lanes=None, attr_dict=None, **attr):
+        """
+        Add a directed edge between `u` and `v`. If one or both nodes don't exist, we add it before.
+        It calls the super-method :func:``networkx.DiGraph.add_edge <networkx.DiGraph.add_edge>``.
+
+        :param u: node source
+        :param v: node target
+
+        * options:
+
+            * ``distance=None``: distance of the added edge. If None, we add the default value.
+            * ``lanes=None``: number of lanes of the added edge. If None, we add the default value.
+            * ``attr_dict=None``: Other attributes to add.
+            * ``**attr``: Other attributes to add.
+        """
         props = {labels.DISTANCE: self.get_edge_length(u, v), labels.LANES: self.PROPERTIES['edges'][labels.LANES]}
         if attr_dict is not None:
             props.update(attr_dict)
@@ -160,8 +215,15 @@ class Graph(DiGraph):
         super(Graph, self).add_edge(u, v, attr_dict=props, **attr)
 
     def get_edge_property(self, source, target, prop):
-        """ return the wanted property for the given edge
-            return None if the edge doesn't exist
+        """
+        return the wanted property for the given edge
+        return None if the edge doesn't exist
+
+        :param source: source node
+        :param target: target node
+        :param prop: wanted property's keyword
+
+        :return: the wanted property's value
         """
         if self.has_edge(source, target):
             return self.adj[source][target].get(prop)
@@ -170,11 +232,12 @@ class Graph(DiGraph):
 
     def get_edge_length(self, source, target):
         """
-        Compute the edge's length considering the longitude and latitude of source and target
-        If one of these data doesn't exist we return a DEFAULT_DISTANCE (see options.py)
+        Compute the edge's length considering the longitude and latitude of source and target.
+        If one of these data doesn't exist we return a DEFAULT_DISTANCE (see options.py).
 
-        :param source: node source
-        :param target: node target
+        :param source: source node
+        :param target: target node
+
         :return: a float representing the edge's length
         """
         sx, sy = self.get_position(source) or (None, None)
@@ -187,8 +250,17 @@ class Graph(DiGraph):
     # ------------------------------------ OTHERS --------------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def successors_with_property(self, node, props={}):
-        """ iterator which yield only the successors' nodes which belongs one of the given properties
+    def successors_with_property(self, node, props=set()):
+        """
+        iterator which yield only the successors' nodes which have one of the given properties
+
+        :param node: node
+
+        * options:
+
+            * ``props=set()``: set of properties that the returned nodes should have (one of them at least)
+
+        :return: `node`'s successors with the given properties
         """
         for n in self.successors(node):
             for prop in props:
@@ -197,7 +269,11 @@ class Graph(DiGraph):
                     break
 
     def assert_is_adjacent_edge_to(self, edge, next_edge):
-        """ raise an Exception if next_edge is not adjacent to edge in graph
+        """
+        raise an Exception if next_edge is not adjacent to edge in graph
+
+        :param edge: source edge
+        :param next_edge: adjacent edge to `edge`
         """
         if not self.has_edge(*next_edge):
             log.error("Edge from node %s to node %s doesn't exist in graph %s",
@@ -211,7 +287,14 @@ class Graph(DiGraph):
                             % (str(edge), str(next_edge), self.name))
 
     def is_edge_in_path(self, edge, path):
-        """ return True if edge belongs to path, else False
+        """
+        return True if edge belongs to path, else False
+
+        :param edge: edge
+        :param path: tuple of nodes
+        :type path: tuple
+
+        :return: boolean
         """
         if self.has_edge(*edge):
             for i in range(len(path) - 1):
@@ -220,6 +303,13 @@ class Graph(DiGraph):
         return False
 
     def iter_edges_in_path(self, path):
+        """
+        iterate the edges in path, without considering whether the edge exists in current graph
+
+        :param path: tuple of nodes
+        :type path: tuple
+        :return: an iterator
+        """
         for i in range(len(path) - 1):
             yield path[i], path[i + 1]
 
@@ -228,12 +318,16 @@ class Graph(DiGraph):
     # ----------------------------------------------------------------------------------------
 
     def djikstra(self, start, end, length=0):
-        """ find every path from start with given length
-            options `length`: if 0 stops when a path from start to end has been discovered (shortest path).
-                              if length > 0 stop when every paths whose length is the shortest path's length + length
-                                  have been discovered
+        """
+        find every path from start with given length
 
-            TODO: make it an iterator
+        * options:
+
+            * ``length=0``: if 0 stops when a path from start to end has been discovered (shortest path).
+                            if length > 0 stop when every paths whose length is the shortest path's length + `length`
+                                have been discovered
+
+        :return: a dictionnary with length as key and associated set of paths as value
         """
         if not self.has_node(start):
             log.error("Node %s not in graph %s", start, self.name)
@@ -298,7 +392,17 @@ class Graph(DiGraph):
         return {n: set([path for path in ps if path[-2] == end]) for n, ps in paths.iteritems()}
 
     def djikstra_rec(self, start, end, paths={}):
-        """ recursive version of djikstra algorithm
+        """
+        recursive version of djikstra algorithm
+        iterate the path with the following properties:
+
+        * options:
+
+            * ``length=0``: if 0 stops when a path from start to end has been discovered (shortest path).
+                            if length > 0 stop when every paths whose length is the shortest path's length + `length`
+                                have been discovered
+
+        :return: an iterator
         """
         if start != end:
             for n in self.successors_iter(start):
@@ -316,14 +420,28 @@ class Graph(DiGraph):
                         yield path
 
     def get_all_paths_without_cycle(self, start, end):
-        """ yield every path from start to end wthout cycle
+        """
+        yield every path from start to end without cycle
+
+        :param start: source node
+        :param end: target node
+
+        :return: an iterator
         """
         for path in self.djikstra_rec(start, end, paths={start: {(start,)}}):
             yield path
 
     def get_paths_from_to(self, start, end, length=0):
-        """ yield every path from start to end
-            length is to be used in the same way as for djikstra above
+        """
+        yield every path from start to end
+
+        * options:
+
+            * ``length=0``: if 0 stops when a path from start to end has been discovered (shortest path).
+                            if length > 0 stop when every paths whose length is the shortest path's length + `length`
+                                have been discovered
+
+        :return: an iterator
         """
         if not self.has_node(end):
             log.error("Node %s not in graph %s", end, self.name)
@@ -333,9 +451,25 @@ class Graph(DiGraph):
             yield path[:-1]
 
     def get_shortest_path(self, start, end):
+        """
+        :param start: source node
+        :param end: target node
+
+        :return: the shortest path between `start` and `end`
+        """
         return self.get_paths_from_to(start, end).next()
 
     def generate_path_from_edges(self, start, end, edges):
+        """
+        Starting at `start` and ending at `end`, we build a path using only the edge in `edges`.
+        It raises an Exception if no path can be built
+
+        :param start: source node
+        :param end: target node
+        :param edges: list or set of edges
+
+        :return: a tuple of nodes which represents a path
+        """
         path = (start,)
         visited, count = set(), 0
         while path[-1] != end:
@@ -414,4 +548,10 @@ class Graph(DiGraph):
                 self.remove_node(node)
 
     def get_attribute(self, attr):
+        """
+        If Graph object has `attr` as attribute, we return the associated value, else None
+
+        :param attr: object
+        :return: object
+        """
         return self.graph.get(attr)

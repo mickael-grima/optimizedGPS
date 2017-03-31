@@ -16,12 +16,20 @@ __all__ = ["GraphMLParser"]
 log = logging.getLogger(__name__)
 
 
-
 class GraphMLParser(object):
+    """
+    This class allows to create graph from .graphml file or to write .graphml files from graphs
+    """
 
     def __init__(self):
         config = yaml.load(open('%s/config.yml' % options.PACKAGE_PATH, 'r'))
+        """
+        Set of configurations needed for creating the .graphml file
+        """
         self._conf = config.get('graphml', {})
+        """
+        Set of properties
+        """
         self._props = config.get('properties', {})
 
     def set_head(self, head):
@@ -122,10 +130,19 @@ class GraphMLParser(object):
         return edge
 
     def compute_edge_coords(self, graph, source, target):
-        """ if there is only one edge from source to target return 0.0, 0.0, 0.0, 0.0
-            otherwise we follow these rules:
-                - the edge from left to rigth is always under the one from rigth to left
-                - if both edges are vertical, the edge from bottom to top is always to the right
+        """
+        Compute the coordinates of the edges between both source and target, and target and source.
+        The edge's coordinates is the pair of edge's tail's coordinates and edge's head's coordinates.
+        if there is only one edge from source to target return 0.0, 0.0, 0.0, 0.0
+        otherwise we follow these rules:
+            - the edge from left to rigth is always under the one from rigth to left
+            - if both edges are vertical, the edge from bottom to top is always to the right
+
+        :param graph: Graph
+        :param source: source node
+        :param target: target node
+
+        :return: tuple
         """
         if graph.has_edge(target, source):
             node_size = self._conf['geometry']['node-size']
@@ -140,8 +157,13 @@ class GraphMLParser(object):
         return 0.0, 0.0, 0.0, 0.0
 
     def compute_edge_color(self, time_suppl):
-        """ time_suppl represents the time we need to road on edge minus the time we need to drive without circulation
-            red means time_suppl = +infinity, green: time_suppl = 0
+        """
+        Compute the color of edge. red means time_suppl = +infinity, green means time_suppl = 0
+
+        :param time_suppl: it represents the time we need to road on edge minus the time we need to drive
+                           without traffic
+
+        :return: string (represents a color)
         """
         keys = sorted(self._props['traffics'].iterkeys(), reverse=True)
         for key in keys:
@@ -150,6 +172,11 @@ class GraphMLParser(object):
 
     def write(self, graph, fname):
         """
+        Create a file with name `fname` and extension .graphml from `graph`
+
+        :param graph: Graph
+        :param fname: file name
+        :type fname: string
         """
         assert_has_graph_GUI_infos(graph)
 
@@ -192,6 +219,17 @@ class GraphMLParser(object):
 
     def parse(self, fname, distance_factor=1.0, distance_default=0.0, traffic_limit=1):
         """
+        read a .graphml file and convert it into a GPSGraph.
+
+        :param fname: file name
+
+        * options:
+
+            * ``distance_factor=1.0``:
+            * ``distance_default=1.0``: default distance for edges if not given
+            * ``traffic_limit=1``: traffic limit for edges if not given
+
+        :return: :class:``GPSGraph <GPSGraph.GPSGraph>``
         """
         dom = minidom.parse(open(fname, 'r'))
         root = dom.getElementsByTagName("graphml")[0]
