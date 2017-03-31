@@ -162,6 +162,12 @@ class Simulator(object):
         """
         return sum(map(lambda e: e[-1].time - e[0].time, self.events.itervalues()))
 
+    def get_sum_ending_time(self):
+        """
+        Return the sum of ending times
+        """
+        return sum(map(lambda e: e[-1].time, self.events.itervalues()))
+
     def get_edge_description(self):
         """
         Return the current edge description
