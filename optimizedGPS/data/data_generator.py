@@ -7,13 +7,14 @@ import random
 
 from optimizedGPS.structure import GPSGraph
 from optimizedGPS.structure import GraphMLParser
+from optimizedGPS.structure import Driver
 
 
-def generate_grid_data(length=5, width=5, **kwards):
+def generate_grid_data(length=5, width=5, **kwargs):
     """ build a grid where the top-links node has name node_0_0
         from a given node, the reachable nodes are the one to the right and at the bottom
     """
-    graph = GPSGraph(name=kwards.get('graph_name') or 'graph-%s-%s' % (length, width))
+    graph = GPSGraph(name=kwargs.get('graph_name') or 'graph-%s-%s' % (length, width))
     for i in range(length):
         for j in range(width):
             source = 'n_%s_%s' % (i, j)
@@ -50,7 +51,8 @@ def generate_random_drivers(graph, total_drivers=10, av_drivers=3, seed=None):
         # add some drivers from start to end
         nb = max(random.gauss(av_drivers, 1.), 0.0)
         nb = int(min(nb, total))
-        graph.add_driver(start, end, nb=nb)
+        for n in range(nb):
+            graph.add_driver(Driver(start, end, 0))
         total -= nb
 
 
@@ -60,13 +62,14 @@ def generate_test_graph(length=2, width=3):
     """
     graph = generate_grid_data(length=length, width=width, graph_name='graph-%s-%s-test' % (length, width))
 
-    graph.add_driver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
-    graph.add_driver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=1, nb=2)
-    graph.add_driver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
-    graph.add_driver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), starting_time=2)
-    graph.add_driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=0)
-    graph.add_driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=1)
-    graph.add_driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), starting_time=2)
+    graph.add_driver(Driver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), 0))
+    graph.add_driver(Driver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), 1))
+    graph.add_driver(Driver('n_0_0', 'n_%s_%s' % (length - 1, width - 1), 1))
+    graph.add_driver(Driver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), 0))
+    graph.add_driver(Driver('n_0_1', 'n_%s_%s' % (length - 1, width - 1), 2))
+    graph.add_driver(Driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), 0))
+    graph.add_driver(Driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), 1))
+    graph.add_driver(Driver('n_1_0', 'n_%s_%s' % (length - 1, width - 1), 2))
 
     return graph
 

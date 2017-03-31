@@ -4,7 +4,7 @@
 import logging
 from datetime import datetime
 
-from Heuristics import ShortestPathTrafficFree, ShortestPathHeuristic
+from Heuristics import ShortestPathTrafficFree, RealGPS
 from optimizedGPS import options
 from utils.utils import SafeOpen
 
@@ -21,14 +21,17 @@ def around(number):
 
 
 class Comparator(object):
+    """
+    Object for comparing several algorithms
+    """
     def __init__(self):
-        self.algorithms = []  # algorithm
+        self.algorithms = []  # algorithms
 
         self.values = {}
         self.running_times = {}
         self.status = {}
 
-    def setGraph(self, graph):
+    def set_graph(self, graph):
         self.graph = graph
 
     def reinitialize(self):
@@ -36,34 +39,32 @@ class Comparator(object):
         self.running_times = {}
         self.status = {}
 
-    def appendAlgorithm(self, algo, *arguments, **kwards):
-        if algo.__class__.__name__ in options.KNOWN_PROBLEMS + options.KNOWN_HEURISTICS:
-            self.algorithms.append(options.ALGO(algo, arguments, kwards))
+    def append_algorithm(self, algorithm, *arguments, **kwargs):
+        if algorithm.__class__.__name__ in options.KNOWN_PROBLEMS + options.KNOWN_HEURISTICS:
+            self.algorithms.append(options.ALGO(algorithm, arguments, kwargs))
         else:
-            log.warning("Algorithm %s not known. To allow it, modifu your options.py file", algo.__class__.__name__)
+            log.warning("Algorithm %s not known. To allow it, modify your options.py file",
+                        algorithm.__class__.__name__)
 
     def solve(self):
         """ solve algo stored
         """
         for algo in self.algorithms:
             log.info("algorithm %s is being solved" % algo.algo.__name__)
-            a = algo.algo(self.graph, *algo.args, **algo.kwards)
+            a = algo.algo(self.graph, *algo.args, **algo.kwargs)
             try:
                 a.solve()
-                self.values.setdefault(algo.algo.__name__, a.getOptimalValue())
-                self.running_times.setdefault(algo.algo.__name__, a.getRunningTime())
-                if a.isTimedOut():
-                    self.status.setdefault(algo.algo.__name__, options.TIMEOUT)
-                else:
-                    self.status.setdefault(algo.algo.__name__, options.SUCCESS)
+                self.values.setdefault(algo.algo.__name__, a.get_optimal_value())
+                self.running_times.setdefault(algo.algo.__name__, a.get_running_time())
+                self.status.setdefault(algo.algo.__name__, a.get_status())
             except:
                 self.values.setdefault(algo.algo.__name__, None)
                 self.running_times.setdefault(algo.algo.__name__, None)
                 self.status.setdefault(algo.algo.__name__, options.FAILED)
 
     def compare(self):
-        """ Compute some results about the given algorithms
-            value, running time
+        """ Compute some results about the given algorithms:
+            value, running time, status
         """
         self.solve()
         res = {}  # 'optimal' for optimal algo, else index in the list
@@ -85,27 +86,27 @@ class MultipleGraphComparator(Comparator):
         self.graphs = []
         self.__file = 'output/results/%s-%s.csv' % (self.__class__.__name__, datetime.now().strftime('%Y%m%d-%H%M%S'))
 
-    def appendGraphs(self, *graphs):
+    def append_graphs(self, *graphs):
         for graph in graphs:
             self.graphs.append(graph)
 
-    def deleteGraphs(self):
+    def delete_graphs(self):
         self.graphs = []
 
     def compare(self):
         res = []
         for graph in self.graphs:
-            self.setGraph(graph)
+            self.set_graph(graph)
             res.append(super(MultipleGraphComparator, self).compare())
             self.reinitialize()
         return res
 
-    def getAlgorithms(self):
+    def get_algorithms(self):
         return map(lambda el: el.algo.__name__, self.algorithms)
 
     def writeIntoFile(self, results):
         with SafeOpen(self.__file, 'w') as f:
-            algos = self.getAlgorithms()
+            algos = self.get_algorithms()
             f.write('%s\n' % '\t\t'.join(['\t'.join([''] + algos) for _ in range(3)]))
             for i in range(len(results)):
                 g, res = self.graphs[i].name, results[i]
@@ -120,44 +121,44 @@ class Bound(Comparator):
         super(Bound, self).__init__()
         self.best_algo = None
         if default is True:
-            self.appendDefaultBound()
+            self.append_default_bound()
 
     def reinitialize(self):
         super(Bound, self).reinitialize()
         self.best_algo = None
 
-    def setBestBound(self):
+    def set_best_bound(self):
         pass
 
-    def appendBound(self, algorithm, *args, **kwards):
+    def append_bound(self, algorithm, *args, **kwards):
         self.algorithms.append(options.ALGO(algorithm, args, kwards))
 
-    def appendDefaultBound(self):
+    def append_default_bound(self):
         if self.DEFAULT_BOUND is None:
             log.error("Default bound is None")
             raise Exception("Default bound is None")
-        self.appendBound(self.DEFAULT_BOUND)
+        self.append_bound(self.DEFAULT_BOUND)
 
     # Bounds values
-    def getBound(self):
+    def get_bound(self):
         return self.values.get(self.best_algo)
 
     # Bounds running times
-    def getBoundRunningTime(self):
+    def get_bound_running_time(self):
         return self.running_times.get(self.best_algo)
 
     # bounds status
-    def getBoundStatus(self):
-        return options.STATUS[self.status.get(self.best_algo)]
+    def get_bound_status(self):
+        return options.STATUS.get(self.status.get(self.best_algo))
 
-    def getBestAlgo(self):
+    def get_best_algo(self):
         return self.best_algo
 
 
 class LowerBound(Bound):
     DEFAULT_BOUND = ShortestPathTrafficFree
 
-    def setBestBound(self):
+    def set_best_bound(self):
         try:
             self.best_algo = min(
                 filter(lambda a: self.status[a] in [options.TIMEOUT, options.SUCCESS], self.values.iterkeys()),
@@ -168,9 +169,9 @@ class LowerBound(Bound):
 
 
 class UpperBound(Bound):
-    DEFAULT_BOUND = ShortestPathHeuristic
+    DEFAULT_BOUND = RealGPS
 
-    def setBestBound(self):
+    def set_best_bound(self):
         try:
             self.best_algo = max(
                 filter(lambda a: self.status[a] in [options.TIMEOUT, options.SUCCESS], self.values.iterkeys()),
@@ -185,44 +186,44 @@ class BoundsHandler(object):
         self.lower = LowerBound(default=default)
         self.upper = UpperBound(default=default)
 
-    def setGraph(self, graph):
-        self.lower.setGraph(graph)
-        self.upper.setGraph(graph)
+    def set_graph(self, graph):
+        self.lower.set_graph(graph)
+        self.upper.set_graph(graph)
 
     def reinitialize(self):
         self.lower.reinitialize()
         self.upper.reinitialize()
 
-    def appendLowerBound(self, algorithm, *args, **kwards):
-        self.lower.appendBound(algorithm, *args, **kwards)
+    def append_lower_bound(self, algorithm, *args, **kwargs):
+        self.lower.append_bound(algorithm, *args, **kwargs)
 
-    def appendUpperBound(self, algorithm, *args, **kwards):
-        self.upper.appendBound(algorithm, *args, **kwards)
+    def append_upper_bound(self, algorithm, *args, **kwargs):
+        self.upper.append_bound(algorithm, *args, **kwargs)
 
-    def computeBounds(self):
+    def compute_bounds(self):
         for a in [self.lower, self.upper]:
             a.solve()
-            a.setBestBound()
+            a.set_best_bound()
 
-    def getLowerBound(self):
-        return self.lower.getBound()
+    def get_lower_bound(self):
+        return self.lower.get_bound()
 
-    def getUpperBound(self):
-        return self.upper.getBound()
+    def get_upper_bound(self):
+        return self.upper.get_bound()
 
     # Bounds running times
-    def getLowerBoundRunningTime(self):
-        return self.lower.getBoundRunningTime()
+    def get_lower_bound_running_time(self):
+        return self.lower.get_bound_running_time()
 
-    def getUpperBoundRunningTime(self):
-        return self.upper.getBoundRunningTime()
+    def get_upper_bound_running_time(self):
+        return self.upper.get_bound_running_time()
 
     # bounds status
-    def getLowerBoundStatus(self):
-        return self.lower.getBoundStatus()
+    def get_lower_bound_status(self):
+        return self.lower.get_bound_status()
 
-    def getUpperBoundStatus(self):
-        return self.upper.getBoundStatus()
+    def get_upper_bound_status(self):
+        return self.upper.get_bound_status()
 
 
 class ResultsHandler(MultipleGraphComparator, BoundsHandler):
@@ -230,9 +231,9 @@ class ResultsHandler(MultipleGraphComparator, BoundsHandler):
         MultipleGraphComparator.__init__(self)
         BoundsHandler.__init__(self, default=default)
 
-    def setGraph(self, graph):
-        MultipleGraphComparator.setGraph(self, graph)
-        BoundsHandler.setGraph(self, graph)
+    def set_graph(self, graph):
+        MultipleGraphComparator.set_graph(self, graph)
+        BoundsHandler.set_graph(self, graph)
 
     def reinitialize(self):
         MultipleGraphComparator.reinitialize(self)
@@ -241,20 +242,28 @@ class ResultsHandler(MultipleGraphComparator, BoundsHandler):
     def compare(self):
         res = []
         for graph in self.graphs:
-            self.setGraph(graph)
+            self.set_graph(graph)
             r = super(MultipleGraphComparator, self).compare()
-            self.computeBounds()
+            self.compute_bounds()
             r.setdefault(
                 options.LOWER_BOUND_LABEL,
-                (around(self.getLowerBound()), around(self.getLowerBoundRunningTime()), self.getLowerBoundStatus())
+                (
+                    around(self.get_lower_bound()),
+                    around(self.get_lower_bound_running_time()),
+                    self.get_lower_bound_status()
+                )
             )
             r.setdefault(
                 options.UPPER_BOUND_LABEL,
-                (around(self.getUpperBound()), around(self.getUpperBoundRunningTime()), self.getUpperBoundStatus())
+                (
+                    around(self.get_upper_bound()),
+                    around(self.get_upper_bound_running_time()),
+                    self.get_upper_bound_status()
+                )
             )
             res.append(r)
             self.reinitialize()
         return res
 
-    def getAlgorithms(self):
-        return [options.LOWER_BOUND_LABEL] + super(ResultsHandler, self).getAlgorithms() + [options.UPPER_BOUND_LABEL]
+    def get_algorithms(self):
+        return [options.LOWER_BOUND_LABEL] + super(ResultsHandler, self).get_algorithms() + [options.UPPER_BOUND_LABEL]

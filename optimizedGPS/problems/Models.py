@@ -22,7 +22,7 @@ class EdgeCharacterizationModel(Model):
         self.vtype = GRB.BINARY if binary else GRB.CONTINUOUS
         self.initialize_drivers()
 
-    def buildVariables(self):
+    def build_variables(self):
         self.x = {}
         for edge in self.graph.edges():
             for driver in self.drivers:
@@ -32,9 +32,9 @@ class EdgeCharacterizationModel(Model):
     def initialize_drivers(self):
         """ Make drivers unique entities
         """
-        self.drivers = set(self.graph.get_all_unique_drivers())
+        self.drivers = set(self.graph.get_all_drivers())
 
-    def setOptimalSolution(self):
+    def set_optimal_solution(self):
         paths = {}
         for (edge, driver), var in self.x.iteritems():
             paths.setdefault(driver, [])
@@ -42,8 +42,8 @@ class EdgeCharacterizationModel(Model):
                 paths[driver].append(edge)
 
         for driver, edges in paths.iteritems():
-            self.addOptimalPathToDriver(
-                driver.to_tuple(),
+            self.set_optimal_path_to_driver(
+                driver,
                 self.graph.generate_path_from_edges(driver.start, driver.end, edges)
             )
 
@@ -58,9 +58,9 @@ class MainContinuousTimeModel(EdgeCharacterizationModel):
     def horizon(self):
         return self.hor
 
-    def buildVariables(self):
+    def build_variables(self):
         # add here variables
-        super(MainContinuousTimeModel, self).buildVariables()
+        super(MainContinuousTimeModel, self).build_variables()
 
         self.S = {}  # starting time variables
         self.E = {}  # ending time variables
@@ -70,26 +70,26 @@ class MainContinuousTimeModel(EdgeCharacterizationModel):
                 self.S[edge, driver] = self.model.addVar(0.0, name='S[%s,%s]' % (str(edge), str(driver)))
                 self.E[edge, driver] = self.model.addVar(0.0, name='E[%s,%s]' % (str(edge), str(driver)))
 
-    def getTraffic(self, edge, time):
+    def get_traffic(self, edge, time):
         raise NotImplementedError("Not implemented yet")
 
-    def buildConstraints(self, notify=True):
+    def build_constraints(self, notify=True):
         if notify:
             log.info("ADDING Constraints ...")
 
         for driver in self.drivers:
             # starting edges constraints
-            self.addConstraint(
+            self.add_constraint(
                 quicksum(self.x[(n, driver.end), driver] for n in self.graph.predecessors_iter(driver.end)) == 1,
                 name="%s:%s" % (labels.STARTING_EDGES, str(driver))
             )
             # ending edges constraints
-            self.addConstraint(
+            self.add_constraint(
                 quicksum(self.x[(driver.start, n), driver] for n in self.graph.successors_iter(driver.start)) == 1,
                 name="%s:%s" % (labels.ENDING_EDGES, str(driver))
             )
             # initial conditions
-            self.addConstraint(
+            self.add_constraint(
                 quicksum(self.S[(driver.start, t), driver]
                          for t in self.graph.successors_iter(driver.start)) == driver.time + 1,
                 name="%s:%s" % (labels.INITIAL_CONDITIONS, str(driver))
@@ -97,25 +97,25 @@ class MainContinuousTimeModel(EdgeCharacterizationModel):
             for node in self.graph.nodes():
                 if node not in [driver.start, driver.end]:
                     # on one node, driver comes from only one node and goes to only one node
-                    self.addConstraint(
+                    self.add_constraint(
                         quicksum(self.x[(n, node), driver] for n in self.graph.predecessors_iter(node)) ==
                         quicksum(self.x[(node, n), driver] for n in self.graph.successors_iter(node)),
                         name="%s:%s:%s" % (labels.NO_CYCLE, str(driver), str(node))
                     )
                     # ending time constraints
-                    self.addConstraint(
+                    self.add_constraint(
                         quicksum(self.E[(n, node), driver] for n in self.graph.predecessors_iter(node)) <=
                         quicksum(self.S[(node, n), driver] for n in self.graph.successors_iter(node)),
                         name="%s:%s:%s" % (labels.ENDING_TIME, str(driver), str(node))
                     )
             for edge in self.graph.edges():
                 # non visited edges constraint
-                self.addConstraint(
+                self.add_constraint(
                     self.S[edge, driver] <= self.horizon() * self.x[edge, driver],
                     name="%s:%s:%s" % (labels.NON_VISITED_EDGES, str(driver), str(edge))
                 )
                 # visited edges constraint
-                self.addConstraint(
+                self.add_constraint(
                     self.S[edge, driver] >= self.x[edge, driver],
                     name="%s:%s:%s" % (labels.VISITED_EDGES, str(driver), str(edge))
                 )
@@ -127,7 +127,7 @@ class MainContinuousTimeModel(EdgeCharacterizationModel):
                 # transfert equation
                 self.model.addConstr(
                     self.E[edge, driver] - self.S[edge, driver] + self.horizon() * (1 - self.x[edge, driver]) >=
-                    self.getTraffic(edge, driver),
+                    self.get_traffic(edge, driver),
                     name="%s:%s:%s" % (labels.TRANSFERT, str(driver), str(edge))
                 )
 
@@ -135,7 +135,7 @@ class MainContinuousTimeModel(EdgeCharacterizationModel):
             log.info("Constraints ADDED: %s" % ",".join("%s: %s added" % (n, c) for n, c in self.count.iteritems()
                                                         if n in labels.CONSTRAINTS))
 
-    def setObjective(self):
+    def set_objective(self):
         self.model.setObjective(
             quicksum(self.E[edge, driver] for edge in self.graph.edges() for driver in self.drivers
                      if edge[1] == driver.end),
@@ -144,7 +144,7 @@ class MainContinuousTimeModel(EdgeCharacterizationModel):
 
 
 class BestPathTrafficModel(EdgeCharacterizationModel):
-    def buildConstants(self):
+    def build_constants(self):
         """ For each driver we find the edges belonging to his shortest path
         """
         self.X = {}
@@ -156,40 +156,40 @@ class BestPathTrafficModel(EdgeCharacterizationModel):
                     self.X[driver.start, driver.end][edge] = 1
 
     def buildVariables(self):
-        super(BestPathTrafficModel, self).buildVariables()
+        super(BestPathTrafficModel, self).build_variables()
         self.z = self.model.addVar(name="z")
 
-    def buildConstraints(self, notify=True):
+    def build_constraints(self, notify=True):
         if notify:
             log.info("ADDING Constraints ...")
 
         for edge in self.graph.edges():
-            self.addConstraint(
+            self.add_constraint(
                 quicksum(self.x[edge, driver] - self.graph.get_traffic_limit(*edge) for driver in self.drivers) <=
                 self.z,
                 name="%s:%s" % (labels.DIFFERENCE_TO_BEST_TRAFFIC, str(edge))
             )
         for driver in self.drivers:
-            self.model.addConstr(
+            self.add_constraint(
                 quicksum(self.graph.get_minimum_waiting_time(*edge) *
                          (self.x[edge, driver] - self.X[driver.start, driver.end].get(edge, 0))
                          for edge in self.graph.edges()) <= self.z,
                 name="%s:%s" % (labels.DIFFERENCE_TO_SHORTEST_PATH, str(driver))
             )
             # starting edges constraints
-            self.model.addConstr(
+            self.add_constraint(
                 quicksum(self.x[(n, driver.end), driver] for n in self.graph.predecessors_iter(driver.end)) == 1,
                 name="%s:%s" % (labels.STARTING_EDGES, str(driver))
             )
             # ending edges constraints
-            self.model.addConstr(
+            self.add_constraint(
                 quicksum(self.x[(driver.start, n), driver] for n in self.graph.successors_iter(driver.start)) == 1,
                 name="%s:%s" % (labels.ENDING_EDGES, str(driver))
             )
             for node in self.graph.nodes():
                 if node not in [driver.start, driver.end]:
                     # on one node, driver comes from only one node and goes to only one node
-                    self.model.addConstr(
+                    self.add_constraint(
                         quicksum(self.x[(n, node), driver] for n in self.graph.predecessors_iter(node)) ==
                         quicksum(self.x[(node, n), driver] for n in self.graph.successors_iter(node)),
                         name="%s:%s:%s" % (labels.NO_CYCLE, str(driver), str(node))
@@ -199,22 +199,22 @@ class BestPathTrafficModel(EdgeCharacterizationModel):
             log.info("Constraints ADDED: %s" % ",".join("%s: %s added" % (n, c) for n, c in self.count.iteritems()
                                                         if n in labels.CONSTRAINTS))
 
-    def setObjective(self):
+    def set_objective(self):
         self.model.setObjective(self.z, GRB.MINIMIZE)
 
 
 class FixedWaitingTimeModel(MainContinuousTimeModel):
-    def initialize(self, **kwards):
+    def initialize(self, **kwargs):
         super(FixedWaitingTimeModel, self).initialize()
-        C, self.C = kwards.get('waiting_times', {}), {}
+        C, self.C = kwargs.get('waiting_times', {}), {}
         for driver in self.drivers:
             for edge in self.graph.edges():
-                self.setWaitingTime(driver, edge, value=C.get((driver, edge)))
+                self.set_waiting_time(driver, edge, value=C.get((driver, edge)))
 
-    def setWaitingTime(self, driver, edge, value=None):
+    def set_waiting_time(self, driver, edge, value=None):
         if value is None:
             value = self.graph.get_minimum_waiting_time(*edge)
         self.C[edge, driver] = value
 
-    def getTraffic(self, edge, driver):
+    def get_traffic(self, edge, driver):
         return self.C[edge, driver]
