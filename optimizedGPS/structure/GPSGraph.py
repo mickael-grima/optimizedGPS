@@ -79,7 +79,7 @@ class GPSGraph(Graph):
     def has_driver(self, driver):
         """ return True if graph contains at least one driver from start to end
         """
-        return self.has_node(driver.start) and self.has_node(driver.end) and driver in self.__drivers
+        return driver in self.__drivers
 
     def add_driver(self, driver, force=False):
         """ add nb drivers with the given properties
@@ -132,6 +132,7 @@ class GPSGraph(Graph):
     def remove_driver(self, driver):
         if self.has_driver(driver):
             del self.__drivers[driver]
+            return True
         log.warning('Driver %s doesn\'t exist in graph %s', driver, self.name)
         return False
 

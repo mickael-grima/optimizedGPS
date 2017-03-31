@@ -70,18 +70,21 @@ class StructureTest(unittest.TestCase):
 
         driver0 = Driver('node0', 'node1', 0)
         driver1 = Driver('node0', 'node2', 2)
+        driver2 = Driver('node0', 'node2', 2)
 
         # add drivers
         self.assertTrue(graph.add_driver(driver0))
         self.assertFalse(graph.add_driver(driver1))
+        self.assertTrue(graph.add_driver(driver2, force=True))
 
         # "has" assertions
-        self.assertFalse(graph.has_driver(driver0))
-        self.assertTrue(graph.has_driver(driver1))
+        self.assertTrue(graph.has_driver(driver0))
+        self.assertFalse(graph.has_driver(driver1))
+        self.assertTrue(graph.has_driver(driver2))
 
         # "getAll" functions
-        self.assertEqual({driver0, driver1}, set(graph.get_all_drivers()))
-        self.assertEqual({driver0, driver1}, set(graph.get_all_drivers_from_starting_node('node0')))
+        self.assertEqual({driver0, driver2}, set(graph.get_all_drivers()))
+        self.assertEqual({driver0, driver2}, set(graph.get_all_drivers_from_starting_node('node0')))
         self.assertEqual(driver0, graph.get_all_drivers_to_ending_node('node1').next())
 
         # properties
@@ -91,7 +94,7 @@ class StructureTest(unittest.TestCase):
 
         # remove
         self.assertTrue(graph.remove_driver(driver0))
-        self.assertTrue(graph.has_driver(driver1))
+        self.assertTrue(graph.has_driver(driver2))
         self.assertFalse(graph.has_driver(driver0))
         self.assertFalse(graph.remove_driver(driver0))
 

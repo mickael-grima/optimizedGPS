@@ -5,9 +5,13 @@ Created on Wed Apr 01 21:38:37 2015
 @author: Mickael Grima
 """
 import logging
+import sys
+import time
 from collections import defaultdict, namedtuple
 
 from sortedcontainers import SortedListWithKey
+
+from optimizedGPS import options
 
 __all__ = []
 
@@ -27,9 +31,13 @@ class Simulator(object):
     EXIT = '@@EXIT@@'
     Time = namedtuple('Time', ['object', 'time'])
 
-    def __init__(self, graph):
+    def __init__(self, graph, timeout=sys.maxint):
         """graph instance, containing drivers"""
         self.graph = graph
+        """Maximum time allowed for simulating"""
+        self.timeout = timeout
+        """Status"""
+        self.status = options.NOT_RUN
         """Which driver is entered in which edge at which time"""
         self.events = defaultdict(lambda: SortedListWithKey(key=lambda c: c.time))
         """Sorted list of tuple (driver, clock)"""
@@ -147,8 +155,13 @@ class Simulator(object):
         From the input, we simulate everything to obtain an edge-description and starting time on every visited edges
         for each driver.
         """
+        ct = time.time()
         while self.has_next():
             self.next()
+            if time.time() - ct >= self.timeout:
+                self.status = options.TIMEOUT
+                return
+        self.status = options.SUCCESS
 
     def get_maximum_driving_time(self):
         """
@@ -168,12 +181,25 @@ class Simulator(object):
         """
         return sum(map(lambda e: e[-1].time, self.events.itervalues()))
 
+    def get_value(self):
+        """
+        return the default value, here the maximum of ending time
+        """
+        return self.get_sum_ending_time()
+
     def get_edge_description(self):
         """
         Return the current edge description
         """
         return {driver: tuple(map(lambda e: e.object[0], path_clocks))
                 for driver, path_clocks in self.events.iteritems()}
+
+    def iter_edge_description(self):
+        """
+        Iterate the current edge description
+        """
+        for driver, path_clocks in self.events.iteritems():
+            yield driver, tuple(map(lambda e: e.object[0], path_clocks))
 
     def get_starting_times(self, driver):
         """
@@ -209,8 +235,8 @@ class FromEdgeDescriptionSimulator(Simulator):
     """
     This Simulator simulate the edge-description and starting times from an edge_description
     """
-    def __init__(self, graph, edge_description):
-        super(FromEdgeDescriptionSimulator, self).__init__(graph)
+    def __init__(self, graph, edge_description, timeout=sys.maxint):
+        super(FromEdgeDescriptionSimulator, self).__init__(graph, timeout=timeout)
         """For each driver, the path he has to follow"""
         self.edge_description = edge_description
 

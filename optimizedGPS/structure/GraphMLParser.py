@@ -9,16 +9,18 @@ import yaml
 
 from GPSGraph import GPSGraph
 from utils.tools import assert_has_graph_GUI_infos
+from optimizedGPS import options
 
 __all__ = ["GraphMLParser"]
 
 log = logging.getLogger(__name__)
 
 
+
 class GraphMLParser(object):
 
     def __init__(self):
-        config = yaml.load(open('config.yml', 'r'))
+        config = yaml.load(open('%s/config.yml' % options.PACKAGE_PATH, 'r'))
         self._conf = config.get('graphml', {})
         self._props = config.get('properties', {})
 

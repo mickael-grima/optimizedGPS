@@ -7,10 +7,10 @@ import time
 from collections import defaultdict
 
 from Problem import SimulatorProblem, Problem
-from SearchProblem import BacktrackingSearch
-from simulator.GPSSimulator import GPSSimulator
+from simulator import FromEdgeDescriptionSimulator
+from optimizedGPS import options
 
-__all__ = ["ShortestPathHeuristic", "AllowedPathsHeuristic", "UpdatedBySortingShortestPath", "ShortestPathTrafficFree"]
+__all__ = ["ShortestPathHeuristic", "ShortestPathTrafficFree", "RealGPS"]
 
 log = logging.getLogger(__name__)
 
@@ -20,73 +20,51 @@ class ShortestPathHeuristic(SimulatorProblem):
     """
     def __init__(self, graph, timeout=sys.maxint):
         super(ShortestPathHeuristic, self).__init__(timeout=timeout)
-        paths = {}
-        for start, end, t, nb in graph.get_all_drivers():
+        edges_description = {}  # fro each driver we assign him a path
+        for driver in graph.get_all_drivers():
             try:
-                path = graph.get_paths_from_to(start, end).next()
+                path = graph.get_shortest_path(driver.start, driver.end)
             except StopIteration:
-                log.error("Imposible to find shortest path from node %s to node %s in graph %s",
-                          start, end, graph.name)
-                raise Exception("Imposible to find shortest path from node %s to node %s in graph %s"
-                                % (start, end, graph.name))
-            paths.setdefault(path, {})
-            paths[path][t] = nb
-        self.simulator = GPSSimulator(graph, paths)
+                message = "Imposible to find shortest path from node %s to node %s in graph %s"\
+                          % (driver.start, driver.end, graph.name)
+                log.error(message)
+                raise Exception(message)
+            edges_description[driver] = path
+        self.simulator = FromEdgeDescriptionSimulator(graph, edges_description, timeout=self.timeout)
 
     def simulate(self):
-        ct = time.time()
-
-        # simulate
-        while self.simulator.has_next():
-            if time.time() - ct >= self.timeout:
-                log.warning("Problem %s timed out", self.__class__.__name__)
-                self.__timed_out = True
-                break
-            self.simulator.next()
-
-        self.setOptimalSolution()
-
-
-class AllowedPathsHeuristic(BacktrackingSearch):
-    def __init__(self, graph, initial_value=sys.maxint, diff_length=0, timeout=sys.maxint):
-        allowed_paths = []
-        for s, t, _, _ in graph.get_all_drivers():
-            allowed_paths.extend(graph.get_paths_from_to(s, t, length=diff_length))
-        super(AllowedPathsHeuristic, self).__init__(graph, initial_value=initial_value, allowed_paths=allowed_paths,
-                                                    timeout=timeout)
-
-
-class UpdatedBySortingShortestPath(Problem):
-    def __init__(self, graph, **kwards):
-        super(UpdatedBySortingShortestPath, self).__init__(**kwards)
-        self.graph = graph
-        self.traffics = {}
-
-    def solve_with_heuristic(self):
-        drivers = sorted(self.graph.get_all_unique_drivers(), key=lambda d: d.time)
-        for driver in drivers:
-            self.addOptimalPathToDriver(driver.to_tuple(), ())
+        self.simulator.simulate()
+        self.status = self.simulator.status
+        self.set_optimal_solution()
 
 
 class ShortestPathTrafficFree(Problem):
     """ We give each drivers his shortest path, and we simulate considering no interaction between drivers
         Return a lower bound of our problem
     """
-    def __init__(self, graph, **kwards):
-        super(ShortestPathTrafficFree, self).__init__(**kwards)
+    def __init__(self, graph, **kwargs):
+        super(ShortestPathTrafficFree, self).__init__(**kwargs)
         self.graph = graph
 
-    def getOptimalValue(self):
-        return self.getValue()
+    def get_graph(self):
+        return self.graph
+
+    def get_optimal_value(self):
+        return self.get_value()
 
     def solve_with_heuristic(self):
         ct = time.time()
+        status = None
 
-        for driver in self.graph.get_all_unique_drivers():
+        for driver in self.graph.get_all_drivers():
+            self.value += driver.time
             path = self.graph.get_shortest_path(driver.start, driver.end)
             for edge in self.graph.iter_edges_in_path(path):
                 self.value += self.graph.get_minimum_waiting_time(*edge)
+            if time.time() - ct > self.timeout:
+                status = options.TIMEOUT
 
+        self.status = status if status is not None else options.SUCCESS
         self.running_time = time.time() - ct
 
 
@@ -95,7 +73,7 @@ class RealGPS(Problem):
         super(RealGPS, self).__init__(**kwargs)
         self.graph = graph
 
-    def getGraph(self):
+    def get_graph(self):
         return self.graph
 
     def solve_with_heuristic(self):
@@ -112,4 +90,4 @@ class RealGPS(Problem):
                 path += (node,)
                 traffic[node, nxt][t] += 1
             path += (driver_history[-1][0],)
-            self.addOptimalPathToDriver(driver.to_tuple(), path)
+            self.set_optimal_path_to_driver(driver, path)

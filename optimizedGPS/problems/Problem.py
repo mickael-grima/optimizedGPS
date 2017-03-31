@@ -11,7 +11,8 @@ try:
 except ImportError:
     gb, GurobiError = None, None
 
-from simulator.ModelTransformationSimulator import ModelTransformationSimulator
+from simulator import FromEdgeDescriptionSimulator
+from optimizedGPS import options
 
 __all__ = []
 
@@ -25,87 +26,108 @@ class Problem(object):
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
         self.opt_solution = {}  # On wich path are each driver
-        self.timeout = timeout
+        self.timeout = timeout  # After this time we stop the algorithms
 
-        self.__timed_out = False
+        self.status = options.NOT_RUN  # status
 
-    def isTimedOut(self):
-        return self.__timed_out
+    def get_status(self):
+        return self.status
 
     def solve_with_solver(self):
+        """
+        Implement this method when using Gurobi
+        """
         message = "Solution with solver not implemented yet"
         log.error(message)
         raise NotImplementedError(message)
 
     def solve_with_heuristic(self):
+        """
+        Implement this method when solving with another algorithm (For example polynomial one)
+        """
         message = "No heuristics available yet"
         log.error(message)
         raise NotImplementedError(message)
 
     def solve(self, heuristic=False):
+        """
+        Solve the current problem
+        """
         if heuristic:
             self.solve_with_heuristic()
         else:
             self.solve_with_solver()
 
-    def setOptimalSolution(self):
+    def set_optimal_solution(self):
+        """
+        Set the optimal solution. Should be used after solving
+        """
         message = "Not implemented yet"
         log.error(message)
         raise NotImplementedError(message)
 
-    def addOptimalPathToDriver(self, driver, path):
-        self.opt_solution.setdefault(driver, [])
-        self.opt_solution[driver].append(path)
-
-    def iterOptimalSolution(self):
-        """ yield for each driver the path he had
+    def set_optimal_path_to_driver(self, driver, path):
         """
-        for driver, paths in self.opt_solution.iteritems():
-            for path in paths:
-                yield driver, path
+        Assign a path to driver
 
-    def getGraph(self):
+        :param driver: Driver object
+        :param path: nodes' tuple
+        :return:
+        """
+        if not isinstance(path, tuple):
+            message = "Path should be a tuple of nodes"
+            log.error(message)
+            raise TypeError(message)
+        self.opt_solution[driver] = path
+
+    def iter_optimal_solution(self):
+        """ yield for each driver his assigned path
+        """
+        for driver, path in self.opt_solution.iteritems():
+            yield driver, path
+
+    def get_graph(self):
+        """
+        return the graph (GPSGraph instance)
+        """
         log.error("Not implemented yet")
         raise NotImplementedError("Not implemented yet")
 
-    def getOptimalValue(self):
-        paths = {}
-        for driver, path in self.iterOptimalSolution():
-            paths.setdefault(path, {})
-            paths[path].setdefault(driver[2], 0)
-            paths[path][driver[2]] += 1
-
-        if not paths:
-            log.warning("Problem has not been solved yet ! Problem=%s" % self.__class__.__name__)
-            return 0.0
-        simulator = ModelTransformationSimulator(self.getGraph(), paths)
-
-        # simulate
-        while simulator.has_next():
-            simulator.next()
-
+    def get_optimal_value(self):
+        """
+        Using the self.optimal_solution, we simulate with FromEdgeDescriptionSimulator the optimal value.
+        """
+        simulator = FromEdgeDescriptionSimulator(self.get_graph(), self.opt_solution)
+        simulator.simulate()
         return simulator.get_value()
 
-    def getValue(self):
+    def get_value(self):
+        """
+        Return the value obtained with the algorithm we used to solve the problem.
+
+        ** IMPORTANT **: In order to compare different problem the method get_optimal_value should be used.
+        """
         return self.value
 
-    def getRunningTime(self):
+    def get_running_time(self):
         return self.running_time
 
 
 class SimulatorProblem(Problem):
-    """ Initialize the simulator's model's classes
+    """ Initialize algorithm which use a simulator.
+    The attribute simulator  should be instantiate in each subclass.
+    The simulator should inherits from the super class Simulator
     """
     def __init__(self, timeout=sys.maxint):
         super(SimulatorProblem, self).__init__(timeout=timeout)
 
-    def getGraph(self):
+    def get_graph(self):
         return self.simulator.graph
 
-    def setOptimalSolution(self):
+    def set_optimal_solution(self):
         self.opt_solution = {}
-        for driver, path in self.simulator.get_current_solution():
-            self.addOptimalPathToDriver(driver, path)
+        for driver, path in self.simulator.iter_edge_description():
+            self.set_optimal_path_to_driver(driver, path)
 
     def simulate(self):
         log.error("Not implemented yet")
@@ -118,7 +140,7 @@ class SimulatorProblem(Problem):
         self.simulate()
 
         self.running_time = time.time() - ct
-        self.value = self.getOptimalValue()
+        self.value = self.get_optimal_value()
 
 
 class Model(Problem):
@@ -130,28 +152,40 @@ class Model(Problem):
         self.graph = graph
         params['TimeLimit'] = timeout
         params['LogToConsole'] = 0
-        self.setParameters(**params)
+        self.set_parameters(**params)
 
         self.count = {}
 
         self.initialize(**params)
-        self.buildModel()
+        self.build_model()
 
-    def initialize(self, *args, **kwards):
+    def initialize(self, *args, **kwargs):
+        """
+        We initialize here every attributes before building the model
+        """
         pass
 
-    def setParameters(self, **kwards):
-        for key, value in kwards.iteritems():
+    def set_parameters(self, **kwargs):
+        """
+        Set Gurobi parameters
+        """
+        for key, value in kwargs.iteritems():
             self.model.setParam(key, value)
 
-    def buildConstants(self):
+    def build_constants(self):
+        """
+        Set the constants of the problem
+        """
         pass
 
-    def buildVariables(self):
+    def build_variables(self):
+        """
+        Set the variables of the problem
+        """
         pass
 
-    def addConstraint(self, constr, name=None):
-        """ constr: constraint to add
+    def add_constraint(self, constraint, name=None):
+        """ constraint: constraint to add
             name: name of the constraint. For counting we split this name wrt ":".
             after ":" the words are here only to make the constraint unique inside Gurobipy
         """
@@ -162,22 +196,28 @@ class Model(Problem):
 
         name = str(name)
         self.count.setdefault(name.split(':')[0], 0)
-        self.model.addConstr(constr, name)
+        self.model.addConstr(constraint, name)
         self.count[name.split(':')[0]] += 1
 
-    def buildConstraints(self):
+    def build_constraints(self):
+        """
+        Set the constraints of the problem
+        """
         pass
 
-    def setObjective(self):
+    def set_objective(self):
+        """
+        Set the constants of the problem
+        """
         pass
 
-    def buildModel(self):
+    def build_model(self):
         log.info("** Model building STARTED **")
-        self.buildConstants()
-        self.buildVariables()
+        self.build_constants()
+        self.build_variables()
         self.model.update()
-        self.buildConstraints()
-        self.setObjective()
+        self.build_constraints()
+        self.set_objective()
         log.info("** Model building FINISHED **")
 
     def optimize(self):
@@ -187,13 +227,13 @@ class Model(Problem):
         t = time.time()
         self.optimize()
         self.running_time = time.time() - t
-        self.setOptimalSolution()
-        self.value = self.getOptimalValue()
+        self.set_optimal_solution()
+        self.value = self.get_optimal_value()
 
-    def getGraph(self):
+    def get_graph(self):
         return self.graph
 
-    def getObj(self):
+    def get_objectif(self):
         try:
             return self.model.ObjVal
         except GurobiError:

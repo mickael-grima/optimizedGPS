@@ -1,75 +1,47 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
-from optimizedGPS import options
-
-from optimizedGPS.logger import configure
-
-configure()
-
 import unittest
 
+from optimizedGPS import options
 from optimizedGPS.data.data_generator import (
     generate_graph_from_file,
-    generate_grid_data,
-    generate_test_graph
+    generate_grid_data
 )
-from optimizedGPS.problems.SearchProblem import BacktrackingSearch
-from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, AllowedPathsHeuristic, ShortestPathTrafficFree, RealGPS
+from optimizedGPS.problems.Comparator import BoundsHandler, MultipleGraphComparator, ResultsHandler
+from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, ShortestPathTrafficFree, RealGPS
 from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel
-from optimizedGPS.problems.Comparator import BoundsHandler, Comparator, MultipleGraphComparator, ResultsHandler
+from optimizedGPS.structure import Driver
 
 
 class ProblemsTest(unittest.TestCase):
+    def setUp(self):
+        self.graph0 = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)
+        self.graph0.add_driver(Driver('1', '6', 0))
+        self.graph0.add_driver(Driver('1', '6', 1))
+        self.graph0.add_driver(Driver('1', '6', 1))
+        self.graph0.add_driver(Driver('2', '6', 0))
+        self.graph0.add_driver(Driver('2', '6', 2))
+        self.graph0.add_driver(Driver('3', '6', 0))
+        self.graph0.add_driver(Driver('3', '6', 1))
+        self.graph0.add_driver(Driver('3', '6', 2))
 
-    def testSearchProblem(self):
-        graph = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)
-
-        graph.add_driver('1', '6', starting_time=0)
-        graph.add_driver('1', '6', starting_time=1, nb=2)
-        graph.add_driver('2', '6', starting_time=0)
-        graph.add_driver('2', '6', starting_time=2)
-        graph.add_driver('3', '6', starting_time=0)
-        graph.add_driver('3', '6', starting_time=1)
-        graph.add_driver('3', '6', starting_time=2)
-
-        comparator = Comparator()
-        comparator.setGraph(graph)
-        comparator.appendAlgorithm(BacktrackingSearch)
-        comparator.appendAlgorithm(ShortestPathHeuristic)
-
-        results = comparator.compare()
-        self.assertTrue(set(map(lambda el: el[2], results.itervalues())).issubset({'SUCCESS'}))
+        self.graph1 = generate_grid_data(length=3, width=5, graph_name='grid-graph-3-5-test')
+        self.graph1.add_driver(Driver('n_0_0', 'n_2_4', 0))
+        self.graph1.add_driver(Driver('n_0_0', 'n_2_4', 1))
+        self.graph1.add_driver(Driver('n_0_0', 'n_2_4', 1))
+        self.graph1.add_driver(Driver('n_0_1', 'n_2_4', 0))
+        self.graph1.add_driver(Driver('n_0_1', 'n_2_4', 2))
+        self.graph1.add_driver(Driver('n_1_0', 'n_2_4', 0))
+        self.graph1.add_driver(Driver('n_1_0', 'n_2_4', 1))
+        self.graph1.add_driver(Driver('n_1_0', 'n_2_4', 2))
 
     def testMultipleGraphComparator(self):
-        graph0 = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)
-        graph0.add_driver('1', '6', starting_time=0)
-        graph0.add_driver('1', '6', starting_time=1, nb=2)
-        graph0.add_driver('2', '6', starting_time=0)
-        graph0.add_driver('2', '6', starting_time=2)
-        graph0.add_driver('3', '6', starting_time=0)
-        graph0.add_driver('3', '6', starting_time=1)
-        graph0.add_driver('3', '6', starting_time=2)
-
-        length, width = 3, 5
-        graph1 = generate_grid_data(length=length, width=width, graph_name='grid-graph-%s-%s-test' % (length, width))
-        graph1.add_driver('n_0_0', 'n_2_4', starting_time=0)
-        graph1.add_driver('n_0_0', 'n_2_4', starting_time=1, nb=2)
-        # graph1.addDriver('n_0_1', 'n_2_4', starting_time=0)
-        # graph1.addDriver('n_0_1', 'n_2_4', starting_time=2)
-        # graph1.addDriver('n_1_0', 'n_2_4', starting_time=0)
-        # graph1.addDriver('n_1_0', 'n_2_4', starting_time=1)
-        # graph1.addDriver('n_1_0', 'n_2_4', starting_time=2)
-
-        graphs = [graph0, graph1]
-
         comparator = MultipleGraphComparator()
-        comparator.appendGraphs(*graphs)
-        comparator.appendAlgorithm(BacktrackingSearch, timeout=2)
-        comparator.appendAlgorithm(ShortestPathHeuristic, timeout=2)
-        comparator.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=2)
-        comparator.appendAlgorithm(BestPathTrafficModel, timeout=2)
-        comparator.appendAlgorithm(ShortestPathTrafficFree, timeout=2)
+        comparator.append_graphs(self.graph0, self.graph1)
+        comparator.append_algorithm(ShortestPathHeuristic, timeout=2)
+        comparator.append_algorithm(BestPathTrafficModel, timeout=2)
+        comparator.append_algorithm(ShortestPathTrafficFree, timeout=2)
 
         results = comparator.compare()
         self.assertEqual(len(results), len(comparator.graphs))
@@ -81,33 +53,27 @@ class ProblemsTest(unittest.TestCase):
     def testBoundHandler(self):
         graph = generate_grid_data()
         handler = BoundsHandler()
-        handler.setGraph(graph)
+        handler.set_graph(graph)
 
         # add bounds
-        handler.appendLowerBound(ShortestPathTrafficFree)
-        handler.appendUpperBound(ShortestPathHeuristic)
+        handler.append_lower_bound(ShortestPathTrafficFree)
+        handler.append_upper_bound(ShortestPathHeuristic)
 
         # bompute bounds
-        handler.computeBounds()
+        handler.compute_bounds()
 
-        self.assertGreaterEqual(handler.getUpperBound(), handler.getLowerBound())
+        self.assertGreaterEqual(handler.get_upper_bound(), handler.get_lower_bound())
 
     def testResultsHandler(self):
-        graph0 = generate_test_graph()
-        graph1 = generate_test_graph(length=3, width=2)
-        graphs = [graph0, graph1]
-
         handler = ResultsHandler()
-        handler.appendGraphs(*graphs)
+        handler.append_graphs(self.graph0, self.graph1)
 
-        handler.appendLowerBound(ShortestPathTrafficFree)
-        handler.appendUpperBound(ShortestPathHeuristic)
+        handler.append_lower_bound(ShortestPathTrafficFree)
+        handler.append_upper_bound(ShortestPathHeuristic)
 
-        handler.appendAlgorithm(BacktrackingSearch, timeout=2)
-        handler.appendAlgorithm(AllowedPathsHeuristic, diff_length=1, timeout=2)
-        handler.appendAlgorithm(BestPathTrafficModel, timeout=2)
-        handler.appendAlgorithm(FixedWaitingTimeModel, timeout=2)
-        handler.appendAlgorithm(RealGPS, timeout=2)
+        handler.append_algorithm(BestPathTrafficModel, timeout=2)
+        handler.append_algorithm(FixedWaitingTimeModel, timeout=2)
+        handler.append_algorithm(RealGPS, timeout=2)
 
         results = handler.compare()
 
