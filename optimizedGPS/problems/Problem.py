@@ -31,6 +31,7 @@ class Problem(object):
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
         self.opt_solution = {}  # On wich path are each driver
+        self.waiting_times = {}  # Waiting times of each driver for opt solution
         self.timeout = timeout  # After this time we stop the algorithms
         self.solving_type = solving_type
 
@@ -75,6 +76,15 @@ class Problem(object):
         log.error(message)
         raise NotImplementedError(message)
 
+    def get_optimal_driver_path(self, driver):
+        """
+        Return the optimal path set to driver
+
+        :param driver: Driver object
+        :return: tuple of nodes
+        """
+        return self.opt_solution.get(driver, ())
+
     def set_optimal_path_to_driver(self, driver, path):
         """
         Assign a path to driver
@@ -108,6 +118,8 @@ class Problem(object):
         """
         simulator = FromEdgeDescriptionSimulator(self.get_graph(), self.opt_solution)
         simulator.simulate()
+        self.waiting_times = {driver: simulator.get_driver_waiting_times(driver)
+                              for driver in self.get_graph().get_all_drivers()}
         return simulator.get_value()
 
     def set_optimal_value(self):
@@ -182,7 +194,8 @@ class Model(Problem):
         Set Gurobi parameters
         """
         for key, value in kwargs.iteritems():
-            self.model.setParam(key, value)
+            if key != "horizon":
+                self.model.setParam(key, value)
 
     def build_constants(self):
         """

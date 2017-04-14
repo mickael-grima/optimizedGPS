@@ -10,6 +10,7 @@ except:
     pass
 
 import labels
+from optimizedGPS import options
 from Problem import Model
 from optimizedGPS.structure.TimeExpandedGraph import TimeExpandedGraph as TEG
 
@@ -224,12 +225,23 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
     def get_traffic(self, edge, driver):
         return self.C[edge, driver]
 
+    def get_optimal_driver_waiting_times(self, driver):
+        """
+        Return the waiting times of driver
+
+        :param driver: Driver object
+        :return: dict with waiting time on each edge: {edge: waiting_time}
+        """
+        return self.waiting_times.get(driver, {})
+
     def solve_with_heuristic(self):
         for driver in self.drivers:
             for edge in self.graph.edges():
                 self.graph.set_edge_property(edge[0], edge[1], 'waiting_time', self.C[edge, driver])
             path = self.graph.get_shortest_path(driver.start, driver.end, edge_property='waiting_time')
             self.set_optimal_path_to_driver(driver, path)
+        self.set_optimal_value()
+        self.set_status(options.SUCCESS)
 
 
 class TEGLinearCongestionModel(EdgeCharacterizationModel):

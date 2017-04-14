@@ -201,6 +201,11 @@ class Simulator(object):
         for driver, path_clocks in self.events.iteritems():
             yield driver, tuple(map(lambda e: e.object[0], path_clocks))
 
+    def iter_edge_in_driver_path(self, driver):
+        path = [edge for d, edge in self.iter_edge_description() if d == driver][0]
+        for e in self.graph.iter_edges_in_path(path):
+            yield e
+
     def get_starting_times(self, driver):
         """
         Return the dictionary of starting times on each visited edge by drivers
@@ -212,6 +217,23 @@ class Simulator(object):
             log.error(message)
             raise KeyError(message)
         return {p.object: p.time for p in self.events[driver]}
+
+    def get_driver_waiting_times(self, driver):
+        """
+        For each edge, compute the associated waiting time of driver
+
+        :param driver: Driver object
+        :return: dict
+        """
+        previous_edge = None
+        waiting_times = defaultdict(lambda: 0)
+        starting_times = self.get_starting_times(driver)
+        for edge in self.iter_edge_in_driver_path(driver):
+            starting_time = starting_times[edge]
+            if previous_edge is not None:
+                waiting_times[previous_edge] = starting_time - waiting_times[previous_edge]
+            if edge[-1] != self.EXIT:
+                waiting_times[edge] = starting_time
 
     def get_traffic(self, edge, time):
         """
