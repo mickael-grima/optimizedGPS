@@ -160,7 +160,7 @@ class BestPathTrafficModel(EdgeCharacterizationModel):
                 for edge in self.graph.iter_edges_in_path(path):
                     self.X[driver.start, driver.end][edge] = 1
 
-    def buildVariables(self):
+    def build_variables(self):
         super(BestPathTrafficModel, self).build_variables()
         self.z = self.model.addVar(name="z")
 

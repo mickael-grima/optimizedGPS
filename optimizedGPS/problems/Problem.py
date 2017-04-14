@@ -39,6 +39,9 @@ class Problem(object):
     def get_status(self):
         return self.status
 
+    def set_status(self, status):
+        self.status = status
+
     def solve_with_solver(self):
         """
         Implement this method when using Gurobi
@@ -55,7 +58,7 @@ class Problem(object):
         log.error(message)
         raise NotImplementedError(message)
 
-    def solve(self, heuristic=False):
+    def solve(self):
         """
         Solve the current problem
         """
@@ -107,6 +110,12 @@ class Problem(object):
         simulator.simulate()
         return simulator.get_value()
 
+    def set_optimal_value(self):
+        """
+        After solving, we set self.value using a simulator
+        """
+        self.value = self.get_optimal_value()
+
     def get_value(self):
         """
         Return the value obtained with the algorithm we used to solve the problem.
@@ -124,9 +133,6 @@ class SimulatorProblem(Problem):
     The attribute simulator  should be instantiate in each subclass.
     The simulator should inherits from the super class Simulator
     """
-    def __init__(self, timeout=sys.maxint):
-        super(SimulatorProblem, self).__init__(timeout=timeout)
-
     def get_graph(self):
         return self.simulator.graph
 
@@ -152,8 +158,8 @@ class SimulatorProblem(Problem):
 class Model(Problem):
     """ Initialize the models' classes
     """
-    def __init__(self, graph, timeout=sys.maxint, **params):
-        super(Model, self).__init__(timeout=timeout)
+    def __init__(self, graph, timeout=sys.maxint, solving_type=SolvinType.SOLVER, **params):
+        super(Model, self).__init__(timeout=timeout, solving_type=solving_type)
         self.model = gb.Model()
         self.graph = graph
         params['TimeLimit'] = timeout
@@ -235,6 +241,7 @@ class Model(Problem):
         self.running_time = time.time() - t
         self.set_optimal_solution()
         self.value = self.get_optimal_value()
+        self.set_status(options.SUCCESS)
 
     def get_graph(self):
         return self.graph

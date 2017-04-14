@@ -74,7 +74,7 @@ class ProblemsTest(unittest.TestCase):
         handler.append_algorithm(BestPathTrafficModel, timeout=2)
         handler.append_algorithm(FixedWaitingTimeModel, timeout=2)
         handler.append_algorithm(RealGPS, timeout=2)
-        handler.append_algorithm(TEGLinearCongestionModel, timeout=2)
+        # handler.append_algorithm(TEGLinearCongestionModel, timeout=2)
 
         results = handler.compare()
 
