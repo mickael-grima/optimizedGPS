@@ -139,6 +139,18 @@ class Problem(object):
     def get_running_time(self):
         return self.running_time
 
+    def get_driver_driving_time(self, driver):
+        """
+        Return the driving time of driver considering the optimal solution
+
+        :param driver: Driver object
+        :return: Integer
+        """
+        value = 0
+        for edge in self.get_graph().iter_edges_in_path(self.get_optimal_driver_path(driver)):
+            value += self.waiting_times[driver][edge]
+        return value
+
 
 class SimulatorProblem(Problem):
     """ Initialize algorithm which use a simulator.

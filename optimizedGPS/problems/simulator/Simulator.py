@@ -226,7 +226,7 @@ class Simulator(object):
         :return: dict
         """
         previous_edge = None
-        waiting_times = defaultdict(lambda: 0)
+        waiting_times = {}
         starting_times = self.get_starting_times(driver)
         for edge in self.iter_edge_in_driver_path(driver):
             starting_time = starting_times[edge]
@@ -234,6 +234,8 @@ class Simulator(object):
                 waiting_times[previous_edge] = starting_time - waiting_times[previous_edge]
             if edge[-1] != self.EXIT:
                 waiting_times[edge] = starting_time
+            previous_edge = edge
+        return waiting_times
 
     def get_traffic(self, edge, time):
         """

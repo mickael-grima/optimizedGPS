@@ -356,7 +356,7 @@ class Graph(DiGraph):
         # Unvisited nodes
         visited = {start} if length > 0 else set()
 
-        while min_length is None or (len(distances) > 0 and distances[0] <= min_length + length):
+        while nexts and (min_length is None or (len(distances) > 0 and distances[0] <= min_length + length)):
             # Pops a vertex with the smallest distance
             d = distances[0]
             current = nexts[d].pop()
