@@ -6,7 +6,7 @@ We merge here every steps of the solving procedure:
 """
 import sys
 
-from optimizedGPS.problems.PreSolver import GlobalPreSolver, DriverPreSolver
+from optimizedGPS.problems.PreSolver import GlobalPreSolver, DrivingTimeIntervalPresolver
 from optimizedGPS.problems.Problem import Problem
 
 
@@ -31,14 +31,15 @@ class Solver(Problem):
         drivers_graph = self.drivers_graphs.pop()
         presolver = GlobalPreSolver(self.graph, drivers_graph)
         for edge in presolver.iter_unused_edges():
-            self.graph.remove_edge(*edge)
-            if not self.graph.neighbors[edge[0]]:
-                self.graph.remove_node(edge[0])
-            if not self.graph.neighbors[edge[1]]:
-                self.graph.remove_node(edge[1])
+            if self.graph.has_edge(*edge):
+                self.graph.remove_edge(*edge)
+                if not self.graph.neighbors(edge[0]):
+                    self.graph.remove_node(edge[0])
+                if not self.graph.neighbors(edge[1]):
+                    self.graph.remove_node(edge[1])
 
         # Clean the drivers
-        presolver = DriverPreSolver(self.graph, drivers_graph)
+        presolver = DrivingTimeIntervalPresolver(self.graph, drivers_graph)
         presolver.solve()
         self.drivers_structure = presolver.drivers_structure
         self.drivers_structure.set_edges_to_drivers_graph()

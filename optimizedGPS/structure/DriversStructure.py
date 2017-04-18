@@ -46,7 +46,7 @@ class DriversStructure(object):
         """
         source_interval = self.get_safety_interval(driver, edge_source)
         target_interval = self.get_safety_interval(driver, edge_target)
-        if not self.graph.has_edge(edge_source) or not self.graph.has_edge(edge_target):
+        if not self.graph.has_edge(*edge_source) or not self.graph.has_edge(*edge_target):
             return False
         if edge_source[0] != edge_target[0]:
             return False
@@ -101,4 +101,4 @@ class DriversStructure(object):
                     self.drivers_graph.add_edge(driver, d)
 
     def split_drivers_graph(self):
-        return nx.connected_component_subgraphs(self)
+        return nx.connected_component_subgraphs(self.drivers_graph)
