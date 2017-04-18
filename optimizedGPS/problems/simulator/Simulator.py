@@ -218,6 +218,17 @@ class Simulator(object):
             raise KeyError(message)
         return {p.object: p.time for p in self.events[driver]}
 
+    def get_ending_time(self, driver):
+        """
+        Return the time at which the driver reach @@EXIT@@
+
+        :param driver: driver object
+        :return:
+        """
+        for p in self.events[driver]:
+            if p.object[-1] == self.EXIT:
+                return p.time
+
     def get_driver_waiting_times(self, driver):
         """
         For each edge, compute the associated waiting time of driver
@@ -230,11 +241,12 @@ class Simulator(object):
         starting_times = self.get_starting_times(driver)
         for edge in self.iter_edge_in_driver_path(driver):
             starting_time = starting_times[edge]
+            waiting_times[edge] = starting_time
             if previous_edge is not None:
                 waiting_times[previous_edge] = starting_time - waiting_times[previous_edge]
-            if edge[-1] != self.EXIT:
-                waiting_times[edge] = starting_time
             previous_edge = edge
+        if previous_edge in waiting_times:
+            waiting_times[previous_edge] = self.get_ending_time(driver) - waiting_times[previous_edge]
         return waiting_times
 
     def get_traffic(self, edge, time):

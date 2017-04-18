@@ -83,7 +83,7 @@ class GPSGraph(Graph):
             props.update(attr_dict)
         props[labels.TRAFFIC_LIMIT] = traffic_limit if traffic_limit is not None else props[labels.TRAFFIC_LIMIT]
         props[labels.MAX_SPEED] = max_speed if max_speed is not None else props[labels.MAX_SPEED]
-        super(Graph, self).add_edge(u, v, distance=distance, lanes=lanes, attr_dict=props, **attr)
+        super(GPSGraph, self).add_edge(u, v, distance=distance, lanes=lanes, attr_dict=props, **attr)
 
     def compute_traffic_limit(self, source, target, **data):
         """

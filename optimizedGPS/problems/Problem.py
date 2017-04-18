@@ -13,6 +13,7 @@ except ImportError:
 
 from simulator import FromEdgeDescriptionSimulator
 from optimizedGPS import options
+from PreSolver import PreSolver
 
 __all__ = []
 
@@ -27,7 +28,7 @@ class SolvinType:
 class Problem(object):
     """ Initialize the problems' classes
     """
-    def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER):
+    def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER, presolving=True):
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
         self.opt_solution = {}  # On wich path are each driver
@@ -36,12 +37,26 @@ class Problem(object):
         self.solving_type = solving_type
 
         self.status = options.NOT_RUN  # status
+        self.presolving = presolving
 
     def get_status(self):
         return self.status
 
     def set_status(self, status):
         self.status = status
+
+    def presolve(self):
+        """
+        Using the presolver, we find out which wont be used by the drivers in the final solution,
+        and we remove them from the graph
+        """
+        graph = self.get_graph()
+        presolver = PreSolver(graph)
+        for edge in presolver.iter_unused_edges():
+            graph.remove_edge(*edge)
+            for node in edge:
+                if len(graph.neighbors(node)) == 0:
+                    graph.remove(node)
 
     def solve_with_solver(self):
         """
@@ -63,6 +78,8 @@ class Problem(object):
         """
         Solve the current problem
         """
+        if self.presolving is True:
+            self.presolve()
         if self.solving_type == SolvinType.HEURISTIC:
             self.solve_with_heuristic()
         elif self.solving_type == SolvinType.SOLVER:

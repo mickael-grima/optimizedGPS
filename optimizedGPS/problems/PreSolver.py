@@ -3,17 +3,14 @@
 In this file, we introduce some algorithm in order to simplify the problem before solving it
 """
 
-from Heuristics import RealGPS
-
 
 class PreSolver(object):
     """
     This Heuristic will be used in some methods. It should provide a feasible solution.
     """
-    HEURISTIC = RealGPS
-
-    def __init__(self, graph):
-        self.heuristic = self.HEURISTIC(graph)
+    def __init__(self, graph, heuristic=None):
+        from optimizedGPS.problems.Heuristics import RealGPS
+        self.heuristic = heuristic(graph, presolving=False) if heuristic is not None else RealGPS(graph, presolving=False)
         self.graph = self.heuristic.get_graph()
 
         # solve the heuristic
@@ -52,3 +49,19 @@ class PreSolver(object):
             driver: list(self.iter_reachable_edges_for_driver(driver))
             for driver in self.graph.get_all_drivers()
         }
+
+    def iter_unused_edges(self):
+        """
+        Iterate the edges on which no drivers will driver
+
+        :return:
+        """
+        drivers_map = self.map_reachable_edges_for_drivers()
+        for edge in self.graph.edges():
+            is_used = False
+            for driver, edges in drivers_map.iteritems():
+                if edge in edges:
+                    is_used = True
+                    break
+            if is_used is False:
+                yield edge
