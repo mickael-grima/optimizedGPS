@@ -28,7 +28,7 @@ class SolvinType:
 class Problem(object):
     """ Initialize the problems' classes
     """
-    def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER, presolving=True):
+    def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER, presolving=False):
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
         self.opt_solution = {}  # On wich path are each driver
@@ -38,6 +38,7 @@ class Problem(object):
 
         self.status = options.NOT_RUN  # status
         self.presolving = presolving
+        self.opt_simulator = None
 
     def get_status(self):
         return self.status
@@ -76,7 +77,8 @@ class Problem(object):
 
     def solve(self):
         """
-        Solve the current problem
+        Solve the current problem.
+        The optimal solution has to be set during the solving
         """
         if self.presolving is True:
             self.presolve()
@@ -84,6 +86,9 @@ class Problem(object):
             self.solve_with_heuristic()
         elif self.solving_type == SolvinType.SOLVER:
             self.solve_with_solver()
+        self.opt_simulator = FromEdgeDescriptionSimulator(self.get_graph(), self.opt_solution)
+        self.opt_simulator.simulate()
+        self.value = self.get_optimal_value()
 
     def set_optimal_solution(self):
         """
@@ -133,11 +138,7 @@ class Problem(object):
         """
         Using the self.optimal_solution, we simulate with FromEdgeDescriptionSimulator the optimal value.
         """
-        simulator = FromEdgeDescriptionSimulator(self.get_graph(), self.opt_solution)
-        simulator.simulate()
-        self.waiting_times = {driver: simulator.get_driver_waiting_times(driver)
-                              for driver in self.get_graph().get_all_drivers()}
-        return simulator.get_value()
+        return self.opt_simulator.get_value()
 
     def set_optimal_value(self):
         """
@@ -164,8 +165,10 @@ class Problem(object):
         :return: Integer
         """
         value = 0
+        waiting_times = {driver: self.opt_simulator.get_driver_waiting_times(driver)
+                         for driver in self.get_graph().get_all_drivers()}
         for edge in self.get_graph().iter_edges_in_path(self.get_optimal_driver_path(driver)):
-            value += self.waiting_times[driver][edge]
+            value += waiting_times[driver][edge]
         return value
 
 
@@ -193,7 +196,6 @@ class SimulatorProblem(Problem):
         self.simulate()
 
         self.running_time = time.time() - ct
-        self.value = self.get_optimal_value()
 
 
 class Model(Problem):
@@ -282,7 +284,6 @@ class Model(Problem):
         self.optimize()
         self.running_time = time.time() - t
         self.set_optimal_solution()
-        self.value = self.get_optimal_value()
         self.set_status(options.SUCCESS)
 
     def get_graph(self):

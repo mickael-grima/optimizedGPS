@@ -54,7 +54,7 @@ class ShortestPathTrafficFree(Problem):
     def get_optimal_value(self):
         return self.get_value()
 
-    def solve_with_heuristic(self):
+    def solve(self):
         ct = time.time()
         status = None
 
@@ -94,5 +94,4 @@ class RealGPS(Problem):
                 traffic[node, nxt][t] += 1
             path += (driver_history[-1][0],)
             self.set_optimal_path_to_driver(driver, path)
-        self.set_optimal_value()
         self.set_status(options.SUCCESS)

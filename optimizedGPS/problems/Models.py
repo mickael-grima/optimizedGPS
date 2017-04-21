@@ -232,7 +232,9 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
         :param driver: Driver object
         :return: dict with waiting time on each edge: {edge: waiting_time}
         """
-        return self.waiting_times.get(driver, {})
+        waiting_times = {driver: self.opt_simulator.get_driver_waiting_times(driver)
+                         for driver in self.get_graph().get_all_drivers()}
+        return waiting_times.get(driver, {})
 
     def solve_with_heuristic(self):
         for driver in self.drivers:
@@ -240,7 +242,6 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
                 self.graph.set_edge_property(edge[0], edge[1], 'waiting_time', self.C[edge, driver])
             path = self.graph.get_shortest_path(driver.start, driver.end, edge_property='waiting_time')
             self.set_optimal_path_to_driver(driver, path)
-        self.set_optimal_value()
         self.set_status(options.SUCCESS)
 
 

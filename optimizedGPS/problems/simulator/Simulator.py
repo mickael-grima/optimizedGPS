@@ -163,23 +163,42 @@ class Simulator(object):
                 return
         self.status = options.SUCCESS
 
-    def get_maximum_driving_time(self):
+    def get_maximum_driving_time(self, drivers=None):
         """
         Return the worst driving time
+        If drivers is not None, we just consider the drivers inside drivers
         """
-        return max(self.events.itervalues(), key=lambda e: e[-1].time if len(e) > 0 else 0)[-1].time
+        if drivers is None:
+            return max(self.events.itervalues(), key=lambda e: e[-1].time if len(e) > 0 else 0)[-1].time
+        else:
+            return max(
+                map(lambda d: self.events[d], filter(lambda d: d in drivers, self.events.iterkeys())),
+                key=lambda e: e[-1].time if len(e) > 0 else 0
+            )[-1].time
 
-    def get_sum_driving_time(self):
+    def get_sum_driving_time(self, drivers=None):
         """
         Return the sum of every driving time
         """
-        return sum(map(lambda e: e[-1].time - e[0].time, self.events.itervalues()))
+        if drivers is None:
+            return sum(map(lambda e: e[-1].time - e[0].time, self.events.itervalues()))
+        else:
+            return sum(map(
+                lambda d: self.events[d][-1].time - self.events[d][0].time,
+                filter(lambda d: d in drivers, self.events.iterkeys())
+            ))
 
-    def get_sum_ending_time(self):
+    def get_sum_ending_time(self, drivers=None):
         """
         Return the sum of ending times
         """
-        return sum(map(lambda e: e[-1].time, self.events.itervalues()))
+        if drivers is None:
+            return sum(map(lambda e: e[-1].time, self.events.itervalues()))
+        else:
+            return sum(map(
+                lambda d: self.events[d][-1].time,
+                filter(lambda d: d in drivers, self.events.iterkeys())
+            ))
 
     def get_value(self):
         """
@@ -300,4 +319,3 @@ class FromEdgeDescriptionSimulator(Simulator):
                           % (str(driver), str(current_edge))
                 log.error(message)
                 raise StopIteration(message)
-
