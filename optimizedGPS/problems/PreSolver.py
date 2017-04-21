@@ -5,9 +5,6 @@ In this file, we introduce some algorithm in order to simplify the problem befor
 
 
 class PreSolver(object):
-    """
-    This Heuristic will be used in some methods. It should provide a feasible solution.
-    """
     def __init__(self, graph, heuristic=None):
         from optimizedGPS.problems.Heuristics import RealGPS
         self.heuristic = heuristic(graph, presolving=False) if heuristic is not None else RealGPS(graph, presolving=False)
@@ -17,22 +14,7 @@ class PreSolver(object):
         self.heuristic.solve()
 
     def is_edge_reachable_for_driver(self, driver, edge):
-        """
-        We compute first a lower bound time for driver to reach edge and then to reach his ending node from edge.
-        If this time is greater than the time provided by the heuristic for this driver to drive from start to end,
-        we return False, otherwise True.
-
-        :param driver: Driver object
-        :param edge: Edge, should belong to self.graph
-        :return: Boolean
-        """
-        try:
-            path = self.graph.get_shortest_path(driver.start, edge[0]) if edge[0] != driver.start else (edge[0],)
-            path += self.graph.get_shortest_path(edge[1], driver.end) if edge[1] != driver.end else (edge[1],)
-        except StopIteration:  # Not path reaching edge
-            return False
-        d_time = sum(map(lambda e: self.graph.get_congestion_function(*e)(0), self.graph.iter_edges_in_path(path)))
-        return d_time <= self.heuristic.get_driver_driving_time(driver)
+        raise NotImplementedError("Not implemented yet")
 
     def iter_reachable_edges_for_driver(self, driver):
         for edge in self.graph.edges():
@@ -65,3 +47,52 @@ class PreSolver(object):
                     break
             if is_used is False:
                 yield edge
+
+
+class DriverPreSolver(PreSolver):
+    """
+    This Heuristic will be used in some methods. It should provide a feasible solution.
+    """
+    def is_edge_reachable_for_driver(self, driver, edge):
+        """
+        We compute first a lower bound time for driver to reach edge and then to reach his ending node from edge.
+        If this time is greater than the time provided by the heuristic for this driver to drive from start to end,
+        we return False, otherwise True.
+
+        :param driver: Driver object
+        :param edge: Edge, should belong to self.graph
+        :return: Boolean
+        """
+        try:
+            path = self.graph.get_shortest_path(driver.start, edge[0]) if edge[0] != driver.start else (edge[0],)
+            path += self.graph.get_shortest_path(edge[1], driver.end) if edge[1] != driver.end else (edge[1],)
+        except StopIteration:  # Not path reaching edge
+            return False
+        d_time = sum(map(lambda e: self.graph.get_congestion_function(*e)(0), self.graph.iter_edges_in_path(path)))
+        return d_time <= self.heuristic.get_driver_driving_time(driver)
+
+
+class GlobalPreSolver(PreSolver):
+    """
+    This Heuristic will be used in some methods. It should provide a feasible solution.
+    """
+    def is_edge_reachable_for_driver(self, driver, edge):
+        """
+        We compute first a lower bound time for driver to reach edge and then to reach his ending node from edge.
+        If this time is greater than the time provided by the heuristic for this driver to drive from start to end,
+        we return False, otherwise True.
+
+        :param driver: Driver object
+        :param edge: Edge, should belong to self.graph
+        :return: Boolean
+        """
+        try:
+            path = self.graph.get_shortest_path(driver.start, edge[0]) if edge[0] != driver.start else (edge[0],)
+            path += self.graph.get_shortest_path(edge[1], driver.end) if edge[1] != driver.end else (edge[1],)
+        except StopIteration:  # Not path reaching edge
+            return False
+        d_time = sum(map(lambda e: self.graph.get_congestion_function(*e)(0), self.graph.iter_edges_in_path(path)))
+
+        other_drivers = [d for d in self.graph.get_all_drivers() if d != driver]
+        partial = self.heuristic.get_partial_optimal_value(other_drivers)
+        return partial + d_time + driver.time <= self.heuristic.get_optimal_value()

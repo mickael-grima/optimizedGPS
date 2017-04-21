@@ -140,6 +140,20 @@ class Problem(object):
         """
         return self.opt_simulator.get_value()
 
+    def get_partial_optimal_value(self, drivers=()):
+        """
+        Compute the optimal value only for the given set of drivers
+
+        :param drivers: set of drivers
+        :return:
+        """
+        simulator = FromEdgeDescriptionSimulator(
+            self.get_graph(),
+            {driver: path for driver, path in self.opt_solution.iteritems() if driver in drivers}
+        )
+        simulator.simulate()
+        return simulator.get_value()
+
     def set_optimal_value(self):
         """
         After solving, we set self.value using a simulator

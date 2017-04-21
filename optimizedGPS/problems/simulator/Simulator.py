@@ -42,7 +42,10 @@ class Simulator(object):
         self.events = defaultdict(lambda: SortedListWithKey(key=lambda c: c.time))
         """Sorted list of tuple (driver, clock)"""
         self.clocks = SortedListWithKey(key=lambda c: c.time)
-        for driver in graph.get_all_drivers():
+        self.initialize_clocks()
+
+    def initialize_clocks(self):
+        for driver in self.graph.get_all_drivers():
             self.add_clock(driver, driver.time)
 
     def add_clock(self, driver, time):
@@ -291,9 +294,13 @@ class FromEdgeDescriptionSimulator(Simulator):
     This Simulator simulate the edge-description and starting times from an edge_description
     """
     def __init__(self, graph, edge_description, timeout=sys.maxint):
-        super(FromEdgeDescriptionSimulator, self).__init__(graph, timeout=timeout)
         """For each driver, the path he has to follow"""
         self.edge_description = edge_description
+        super(FromEdgeDescriptionSimulator, self).__init__(graph, timeout=timeout)
+
+    def initialize_clocks(self):
+        for driver in self.edge_description.iterkeys():
+            self.add_clock(driver, driver.time)
 
     def get_next_edge(self, driver):
         if driver not in self.edge_description:
