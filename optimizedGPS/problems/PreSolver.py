@@ -86,13 +86,27 @@ class GlobalPreSolver(PreSolver):
         :param edge: Edge, should belong to self.graph
         :return: Boolean
         """
-        try:
-            path = self.graph.get_shortest_path(driver.start, edge[0]) if edge[0] != driver.start else (edge[0],)
-            path += self.graph.get_shortest_path(edge[1], driver.end) if edge[1] != driver.end else (edge[1],)
-        except StopIteration:  # Not path reaching edge
-            return False
+        path = self.graph.get_shortest_path_through_edge(driver, edge)
         d_time = sum(map(lambda e: self.graph.get_congestion_function(*e)(0), self.graph.iter_edges_in_path(path)))
 
         other_drivers = [d for d in self.graph.get_all_drivers() if d != driver]
         partial = self.heuristic.get_partial_optimal_value(other_drivers)
         return partial + d_time + driver.time <= self.heuristic.get_optimal_value()
+
+    def iter_reachable_edges_for_driver(self, driver):
+        """
+        Iterate every reachable edge for driver.
+        Since the partial solution shouldn't be computed for each edge, we rewrite the code done in
+        `is_edge_reachable_for_driver`.
+
+        :param driver: Driver instance
+        :return:
+        """
+        other_drivers = [d for d in self.graph.get_all_drivers() if d != driver]
+        partial = self.heuristic.get_partial_optimal_value(other_drivers)
+        for edge in self.graph.edges():
+            path = self.graph.get_shortest_path_through_edge(driver, edge)
+            if path is not None:
+                d_time = sum(map(lambda e: self.graph.get_congestion_function(*e)(0), self.graph.iter_edges_in_path(path)))
+                if partial + d_time + driver.time <= self.heuristic.get_optimal_value():
+                    yield edge

@@ -275,6 +275,29 @@ class GPSGraph(Graph):
         """
         return sorted(self.get_all_drivers(), key=lambda d: d.time)
 
+    def get_shortest_path_through_edge(self, driver, edge, edge_property=labels.DISTANCE):
+        """
+        compute the shortest path for driver containing edge.
+        If edge is unreachable for driver, we return None.
+
+        :param driver:
+        :param edge:
+        :param edge_property: value on edge to consider for computing the shortest path
+        :return: path (tuple of nodes)
+        """
+        try:
+            if edge[0] == driver.start:
+                path = (edge[0],)
+            else:
+                path = self.get_shortest_path(driver.start, edge[0], edge_property=edge_property)
+            if edge[1] == driver.end:
+                path += (edge[1],)
+            else:
+                path += self.get_shortest_path(edge[1], driver.end, edge_property=edge_property)
+            return path
+        except StopIteration:  # Not path reaching edge
+            return None
+
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------
     # ----------------------------------------------------------------------------------------

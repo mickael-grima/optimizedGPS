@@ -9,7 +9,8 @@ testmodules = [
     'StructureTest',
     'SimulatorTest',
     'GurobiTest',
-    'ProblemsTest'
+    'ProblemsTest',
+    'PreSolverTest'
 ]
 
 suite = unittest.TestSuite()

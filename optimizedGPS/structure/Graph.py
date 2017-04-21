@@ -467,6 +467,7 @@ class Graph(DiGraph):
         """
         :param start: source node
         :param end: target node
+        :param edge_property: value on edge to consider for computing the shortest path
 
         :return: the shortest path between `start` and `end`
         """

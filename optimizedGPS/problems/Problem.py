@@ -13,7 +13,7 @@ except ImportError:
 
 from simulator import FromEdgeDescriptionSimulator
 from optimizedGPS import options
-from PreSolver import PreSolver
+from PreSolver import GlobalPreSolver
 
 __all__ = []
 
@@ -31,14 +31,18 @@ class Problem(object):
     def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER, presolving=False):
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
-        self.opt_solution = {}  # On wich path are each driver
-        self.waiting_times = {}  # Waiting times of each driver for opt solution
         self.timeout = timeout  # After this time we stop the algorithms
         self.solving_type = solving_type
-
         self.status = options.NOT_RUN  # status
         self.presolving = presolving
+
+        self.opt_solution = {}  # On wich path are each driver
         self.opt_simulator = None
+        """
+        Given a driver, if an edge is not in the associated set, the driver will never use it in the optimal solution
+        """
+        self.reachable_edges_for_driver = {}
+
 
     def get_status(self):
         return self.status
@@ -48,16 +52,21 @@ class Problem(object):
 
     def presolve(self):
         """
-        Using the presolver, we find out which wont be used by the drivers in the final solution,
-        and we remove them from the graph
+        Using the presolver, we find out which edge wont be used by the drivers in the final solution,
+        and we remove them from the graph.
+        Furthermore, for each driver, we save the edges which could be used by driver
         """
         graph = self.get_graph()
-        presolver = PreSolver(graph)
-        for edge in presolver.iter_unused_edges():
-            graph.remove_edge(*edge)
-            for node in edge:
-                if len(graph.neighbors(node)) == 0:
-                    graph.remove(node)
+        presolver = GlobalPreSolver(graph)
+        for driver in graph.get_all_drivers():
+            self.reachable_edges_for_driver[driver] = set(presolver.iter_reachable_edges_for_driver(driver))
+
+        for edge in graph.edges():
+            if all(map(lambda d: edge not in self.reachable_edges_for_driver[d], graph.get_all_drivers())):
+                graph.remove_edge(*edge)
+                for node in edge:
+                    if len(graph.neighbors(node)) == 0:
+                        graph.remove(node)
 
     def solve_with_solver(self):
         """
@@ -184,6 +193,9 @@ class Problem(object):
         for edge in self.get_graph().iter_edges_in_path(self.get_optimal_driver_path(driver)):
             value += waiting_times[driver][edge]
         return value
+
+    def is_edge_reachable_for_driver(self, driver, edge):
+        return edge in self.reachable_edges_for_driver.get(driver, ())
 
 
 class SimulatorProblem(Problem):
