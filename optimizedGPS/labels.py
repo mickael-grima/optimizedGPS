@@ -9,6 +9,7 @@ DISTANCE = 'distance'
 MAX_SPEED = 'max_speed'
 TRAFFIC_LIMIT = 'traffic_limit'
 CAR_LENGTH = 'car_length'
+CONGESTION_FUNC = 'congestion_func'
 
 # OSM API label
 ONEWAY = 'oneway'
