@@ -202,3 +202,6 @@ class ReducedTimeExpandedGraph(object):
         for n in self.graph.successors_iter(original_node):
             for l in xrange(node_layer + 1, self.horizon):
                 yield self.build_node(n, l)
+
+    def get_all_drivers(self):
+        return self.graph.get_all_drivers()

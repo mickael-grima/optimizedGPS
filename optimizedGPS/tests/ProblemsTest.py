@@ -10,7 +10,7 @@ from optimizedGPS.data.data_generator import (
 )
 from optimizedGPS.problems.Comparator import BoundsHandler, MultipleGraphComparator, ResultsHandler
 from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, ShortestPathTrafficFree, RealGPS
-from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel, TEGLinearCongestionModel
+from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel
 from optimizedGPS.structure import Driver
 
 

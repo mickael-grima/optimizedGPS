@@ -28,13 +28,12 @@ class SolvinType:
 class Problem(object):
     """ Initialize the problems' classes
     """
-    def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER, presolving=False):
+    def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER):
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
         self.timeout = timeout  # After this time we stop the algorithms
         self.solving_type = solving_type
         self.status = options.NOT_RUN  # status
-        self.presolving = presolving
 
         self.opt_solution = {}  # On wich path are each driver
         self.opt_simulator = None
@@ -89,8 +88,6 @@ class Problem(object):
         Solve the current problem.
         The optimal solution has to be set during the solving
         """
-        if self.presolving is True:
-            self.presolve()
         if self.solving_type == SolvinType.HEURISTIC:
             self.solve_with_heuristic()
         elif self.solving_type == SolvinType.SOLVER:

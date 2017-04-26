@@ -1,26 +1,19 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
-import logging
-
-from optimizedGPS.logger import configure
-
-configure()
-log = logging.getLogger(__name__)
-
 import unittest
+
+import mock
+
 from networkx import NetworkXError
 from optimizedGPS.structure import Graph
 from optimizedGPS.structure import GPSGraph
-from optimizedGPS.structure import TimeExpandedGraph
+from optimizedGPS.structure import TimeExpandedGraph, ReducedTimeExpandedGraph
 from optimizedGPS.data.data_generator import generate_graph_from_file
 from optimizedGPS.structure import Driver
 
 
 class StructureTest(unittest.TestCase):
-    def setUp(self):
-        log.info("STARTING tests")
-
     def testStructure(self):
         graph = Graph(name='graph')
 
@@ -159,6 +152,13 @@ class StructureTest(unittest.TestCase):
         TEG = TimeExpandedGraph.create_time_expanded_graph_from_linear_congestion(graph, 3)
         self.assertEqual(TEG.nodes(), ['1:0', '1:1', '1:2', '2:2', '2:1', '2:0'])
         self.assertEqual(TEG.edges(), [('1:0', '2:2'), ('1:0', '2:1'), ('1:1', '2:2')])
+
+    def testReducedTimeExpandedGraph(self):
+        graph = Graph()
+        graph.add_edge(1, 2)
+        TEG = ReducedTimeExpandedGraph(graph, 3)
+        self.assertEqual(set(TEG.nodes_iter()), {'1:::0', '1:::1', '1:::2', '2:::2', '2:::1', '2:::0'})
+        self.assertEqual(set(TEG.edges_iter()), {('1:::0', '2:::2'), ('1:::0', '2:::1'), ('1:::1', '2:::2')})
 
 
 if __name__ == '__main__':
