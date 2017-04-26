@@ -4,6 +4,7 @@
 import logging
 import sys
 import time
+from collections import defaultdict
 
 try:
     import gurobipy as gb
@@ -40,7 +41,7 @@ class Problem(object):
         """
         Given a driver, if an edge is not in the associated set, the driver will never use it in the optimal solution
         """
-        self.reachable_edges_for_driver = {}
+        self.unreachable_edges_for_driver = defaultdict(set)
 
 
     def get_status(self):
@@ -58,10 +59,12 @@ class Problem(object):
         graph = self.get_graph()
         presolver = GlobalPreSolver(graph)
         for driver in graph.get_all_drivers():
-            self.reachable_edges_for_driver[driver] = set(presolver.iter_reachable_edges_for_driver(driver))
+            self.unreachable_edges_for_driver[driver] = set(self.get_graph().edges_iter())
+            for edge in presolver.iter_reachable_edges_for_driver(driver):
+                self.unreachable_edges_for_driver[driver].discard(edge)
 
         for edge in graph.edges():
-            if all(map(lambda d: edge not in self.reachable_edges_for_driver[d], graph.get_all_drivers())):
+            if all(map(lambda d: edge in self.unreachable_edges_for_driver[d], graph.get_all_drivers())):
                 graph.remove_edge(*edge)
                 for node in edge:
                     if len(graph.neighbors(node)) == 0:
@@ -192,7 +195,7 @@ class Problem(object):
         return value
 
     def is_edge_reachable_for_driver(self, driver, edge):
-        return edge in self.reachable_edges_for_driver.get(driver, ())
+        return edge not in self.unreachable_edges_for_driver.get(driver, set())
 
 
 class SimulatorProblem(Problem):

@@ -7,7 +7,7 @@ In this file, we introduce some algorithm in order to simplify the problem befor
 class PreSolver(object):
     def __init__(self, graph, heuristic=None):
         from optimizedGPS.problems.Heuristics import RealGPS
-        self.heuristic = heuristic(graph, presolving=False) if heuristic is not None else RealGPS(graph, presolving=False)
+        self.heuristic = heuristic(graph) if heuristic is not None else RealGPS(graph)
         self.graph = self.heuristic.get_graph()
 
         # solve the heuristic

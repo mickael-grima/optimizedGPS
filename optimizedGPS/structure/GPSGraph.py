@@ -76,7 +76,8 @@ class GPSGraph(Graph):
             * ``**attr``: Other attributes to add.
         """
         props = {
-            labels.TRAFFIC_LIMIT: self.compute_traffic_limit(u, v),
+            # labels.TRAFFIC_LIMIT: self.compute_traffic_limit(u, v),
+            labels.TRAFFIC_LIMIT: self.PROPERTIES['edges'][labels.TRAFFIC_LIMIT],
             labels.MAX_SPEED: self.PROPERTIES['edges'][labels.MAX_SPEED]
         }
         if attr_dict is not None:
@@ -110,7 +111,8 @@ class GPSGraph(Graph):
         :return: func
         """
         if self.has_edge(source, target):
-            return congestion_function(**self.get_edge_data(source, target))
+            congestion = self.get_edge_property(source, target, labels.CONGESTION_FUNC)
+            return congestion or congestion_function(**self.get_edge_data(source, target))
 
     def get_minimum_waiting_time(self, source, target):
         """
