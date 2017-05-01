@@ -1,4 +1,5 @@
 from collections import defaultdict
+import time
 
 from networkx import Graph
 
@@ -226,7 +227,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
             key=lambda n: self.min_ending_times[n, driver.end][driver]
         )
         if self.max_ending_times[edge][driver] <= self.min_ending_times[(best_pred, driver.end)][driver]:
-            self.opt_solution[driver] = path
+            self.set_optimal_path_to_driver(driver, path)
             return True
         return False
 
@@ -319,16 +320,20 @@ class DrivingTimeIntervalAlgorithm(Problem):
 
     def solve_with_heuristic(self):
         n = 0
+        starting_time = time.time()
         while True:
             while (self.niter < 0 or n <= self.niter) and self.has_next:
                 self.next()
-            if not self.set_optimality():
+                if time.time() - starting_time > self.timeout:
+                    break
+            if not self.set_optimality() or time.time() - starting_time > self.timeout:
                 break
             else:
                 self.has_next = True
         for driver in self.get_graph().get_all_drivers():
             if self.opt_solution.get(driver) is None:
                 self.set_optimal_path_to_driver(driver, self.get_best_driver_path(driver))
+        self.running_time = time.time() - starting_time
 
     def __str__(self):
         to_print = ""
