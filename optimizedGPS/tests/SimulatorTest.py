@@ -6,7 +6,7 @@ import unittest
 import mock
 
 from optimizedGPS.problems.simulator import FromEdgeDescriptionSimulator
-from optimizedGPS.structure import GPSGraph, Driver
+from optimizedGPS.structure import GPSGraph, Driver, DriversGraph
 
 
 class SimulatorTest(unittest.TestCase):
@@ -20,14 +20,15 @@ class SimulatorTest(unittest.TestCase):
         graph.add_edge(1, 2, traffic_limit=0)
         graph.add_edge(2, 3, traffic_limit=0)
 
+        drivers_graph = DriversGraph()
         driver0 = Driver(1, 3, 0)
         driver1 = Driver(2, 3, 1)
         driver2 = Driver(2, 3, 1)
         driver3 = Driver(1, 3, 1)
-        graph.add_driver(driver0)
-        graph.add_driver(driver1)
-        graph.add_driver(driver2)
-        graph.add_driver(driver3)
+        drivers_graph.add_driver(driver0)
+        drivers_graph.add_driver(driver1)
+        drivers_graph.add_driver(driver2)
+        drivers_graph.add_driver(driver3)
 
         edge_description = {
             driver0: (1, 2, 3),
@@ -36,7 +37,7 @@ class SimulatorTest(unittest.TestCase):
             driver3: (1, 2, 3)
         }
 
-        simulator = FromEdgeDescriptionSimulator(graph, edge_description)
+        simulator = FromEdgeDescriptionSimulator(graph, drivers_graph, edge_description)
         simulator.simulate()
 
         self.assertEqual(simulator.get_traffic((2, 3), 2), 2)

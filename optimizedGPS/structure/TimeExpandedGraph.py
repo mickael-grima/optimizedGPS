@@ -66,11 +66,6 @@ class TimeExpandedGraph(object):
                         graph.get_edge_data(source, target)
                     )
 
-        # add drivers
-        if isinstance(graph, GPSGraph):
-            for driver in graph.get_all_drivers():
-                TEG.add_driver(driver)
-
         return TEG
 
 
@@ -202,6 +197,3 @@ class ReducedTimeExpandedGraph(object):
         for n in self.graph.successors_iter(original_node):
             for l in xrange(node_layer + 1, self.horizon):
                 yield self.build_node(n, l)
-
-    def get_all_drivers(self):
-        return self.graph.get_all_drivers()

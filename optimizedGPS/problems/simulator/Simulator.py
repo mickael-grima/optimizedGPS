@@ -31,9 +31,11 @@ class Simulator(object):
     EXIT = '@@EXIT@@'
     Time = namedtuple('Time', ['object', 'time'])
 
-    def __init__(self, graph, timeout=sys.maxint):
-        """graph instance, containing drivers"""
+    def __init__(self, graph, drivers_graph, timeout=sys.maxint):
+        """graph instance"""
         self.graph = graph
+        """drivers graph instance, containing drivers"""
+        self.drivers_graph = drivers_graph
         """Maximum time allowed for simulating"""
         self.timeout = timeout
         """Status"""
@@ -45,7 +47,7 @@ class Simulator(object):
         self.initialize_clocks()
 
     def initialize_clocks(self):
-        for driver in self.graph.get_all_drivers():
+        for driver in self.drivers_graph.get_all_drivers():
             self.add_clock(driver, driver.time)
 
     def add_clock(self, driver, time):
@@ -293,10 +295,10 @@ class FromEdgeDescriptionSimulator(Simulator):
     """
     This Simulator simulate the edge-description and starting times from an edge_description
     """
-    def __init__(self, graph, edge_description, timeout=sys.maxint):
+    def __init__(self, graph, drivers_graph, edge_description, timeout=sys.maxint):
         """For each driver, the path he has to follow"""
         self.edge_description = edge_description
-        super(FromEdgeDescriptionSimulator, self).__init__(graph, timeout=timeout)
+        super(FromEdgeDescriptionSimulator, self).__init__(graph, drivers_graph, timeout=timeout)
 
     def initialize_clocks(self):
         for driver in self.edge_description.iterkeys():

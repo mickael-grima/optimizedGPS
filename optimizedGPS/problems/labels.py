@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
-CONSTRAINTS = 'constraints'
 VARIABLES = 'variables'
 
 STARTING_EDGES = 'starting-edges'

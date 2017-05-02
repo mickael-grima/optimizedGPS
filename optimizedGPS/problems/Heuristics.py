@@ -19,10 +19,10 @@ log = logging.getLogger(__name__)
 class ShortestPathHeuristic(SimulatorProblem):
     """ We handle here the heuristics
     """
-    def __init__(self, graph, timeout=sys.maxint):
+    def __init__(self, graph, drivers_graph, timeout=sys.maxint):
         super(ShortestPathHeuristic, self).__init__(timeout=timeout, solving_type=SolvinType.HEURISTIC)
         edges_description = {}  # fro each driver we assign him a path
-        for driver in graph.get_all_drivers():
+        for driver in drivers_graph.get_all_drivers():
             try:
                 path = graph.get_shortest_path(driver.start, driver.end)
             except StopIteration:
@@ -31,7 +31,7 @@ class ShortestPathHeuristic(SimulatorProblem):
                 log.error(message)
                 raise Exception(message)
             edges_description[driver] = path
-        self.simulator = FromEdgeDescriptionSimulator(graph, edges_description, timeout=self.timeout)
+        self.simulator = FromEdgeDescriptionSimulator(graph, drivers_graph, edges_description, timeout=self.timeout)
 
     def simulate(self):
         self.simulator.simulate()
@@ -43,13 +43,17 @@ class ShortestPathTrafficFree(Problem):
     """ We give each drivers his shortest path, and we simulate considering no interaction between drivers
         Return a lower bound of our problem
     """
-    def __init__(self, graph, **kwargs):
+    def __init__(self, graph, drivers_graph, **kwargs):
         kwargs["solving_type"] = SolvinType.HEURISTIC
         super(ShortestPathTrafficFree, self).__init__(**kwargs)
         self.graph = graph
+        self.drivers_graph = drivers_graph
 
     def get_graph(self):
         return self.graph
+
+    def get_drivers_graph(self):
+        return self.drivers_graph
 
     def get_optimal_value(self):
         return self.get_value()
@@ -58,7 +62,7 @@ class ShortestPathTrafficFree(Problem):
         ct = time.time()
         status = None
 
-        for driver in self.graph.get_all_drivers():
+        for driver in self.drivers_graph.get_all_drivers():
             self.value += driver.time
             path = self.graph.get_shortest_path(driver.start, driver.end)
             for edge in self.graph.iter_edges_in_path(path):
@@ -71,16 +75,20 @@ class ShortestPathTrafficFree(Problem):
 
 
 class RealGPS(Problem):
-    def __init__(self, graph, **kwargs):
+    def __init__(self, graph, drivers_graph, **kwargs):
         kwargs["solving_type"] = SolvinType.HEURISTIC
         super(RealGPS, self).__init__(**kwargs)
         self.graph = graph
+        self.drivers_graph = drivers_graph
 
     def get_graph(self):
         return self.graph
 
+    def get_drivers_graph(self):
+        return self.drivers_graph
+
     def solve_with_heuristic(self):
-        drivers = self.graph.get_time_ordered_drivers()
+        drivers = self.drivers_graph.get_time_ordered_drivers()
         # we here iteratively the drivers who already has a path
         # for each driver and each visited edge, we also store here when driver has enter and leave the given edge
         traffic = defaultdict(lambda: defaultdict(lambda: 0))

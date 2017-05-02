@@ -11,8 +11,9 @@ Interval = namedtuple("Interval", ["lower", "upper"])
 
 
 class DriversStructure(object):
-    def __init__(self, graph):
+    def __init__(self, graph, drivers_graph):
         self.graph = graph
+        self.drivers_graph = drivers_graph
         self.unreachable_edges = defaultdict(lambda: defaultdict(lambda: 0))
         self.safety_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, sys.maxint)))
         self.presence_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, sys.maxint)))
@@ -89,15 +90,12 @@ class DriversStructure(object):
                         return True
         return False
 
-    def get_drivers_graph(self):
+    def set_edges_to_drivers_graph(self):
         """
         Compute the drivers graph.
         If optimal is set to true, we consider the optimal drivers as well. Otherwise no.
         """
-        graph = nx.Graph()
-        for driver in self.graph.get_all_drivers():
-            graph.add_node(driver)
-            for d in self.graph.get_all_drivers():
-                if not graph.has_edge(driver, d) and self.are_drivers_dependent(driver, d):
-                    graph.add_edge(driver, d)
-        return graph
+        for driver in self.drivers_graph.get_all_drivers():
+            for d in self.drivers_graph.get_all_drivers():
+                if not self.drivers_graph.has_edge(driver, d) and self.are_drivers_dependent(driver, d):
+                    self.drivers_graph.add_edge(driver, d)

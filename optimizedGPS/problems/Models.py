@@ -38,7 +38,7 @@ class EdgeCharacterizationModel(Model):
     def initialize_drivers(self):
         """ Make drivers unique entities
         """
-        self.drivers = set(self.graph.get_all_drivers())
+        self.drivers = set(self.drivers_graph.get_all_drivers())
 
     def set_optimal_solution(self):
         paths = {}
@@ -233,7 +233,7 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
         :return: dict with waiting time on each edge: {edge: waiting_time}
         """
         waiting_times = {driver: self.opt_simulator.get_driver_waiting_times(driver)
-                         for driver in self.get_graph().get_all_drivers()}
+                         for driver in self.get_drivers_graph().get_all_drivers()}
         return waiting_times.get(driver, {})
 
     def solve_with_heuristic(self):
@@ -246,9 +246,6 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
 
 
 class TEGLinearCongestionModel(EdgeCharacterizationModel):
-    def __init__(self, graph, timeout=sys.maxint, horizon=1000):
-        super(TEGLinearCongestionModel, self).__init__(graph, timeout=timeout, horizon=horizon)
-
     def initialize(self, horizon=HORIZON, **kwargs):
         self.presolve()
         self.graph = TEG(self.graph, horizon)

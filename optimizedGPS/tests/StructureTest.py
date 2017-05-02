@@ -86,7 +86,7 @@ class StructureTest(unittest.TestCase):
 
         # remove
         drivers_graph.remove_driver(driver0)
-        self.assertFalse(graph.has_driver(driver0))
+        self.assertFalse(drivers_graph.has_driver(driver0))
 
     def testParser(self):
         graph = generate_graph_from_file('static/graph-test-0.graphml')

@@ -57,14 +57,15 @@ class Problem(object):
         Furthermore, for each driver, we save the edges which could be used by driver
         """
         graph = self.get_graph()
+        drivers_graph = self.get_drivers_graph()
         presolver = GlobalPreSolver(graph)
-        for driver in graph.get_all_drivers():
-            self.unreachable_edges_for_driver[driver] = set(self.get_graph().edges_iter())
+        for driver in drivers_graph.get_all_drivers():
+            self.unreachable_edges_for_driver[driver] = set(graph.edges_iter())
             for edge in presolver.iter_reachable_edges_for_driver(driver):
                 self.unreachable_edges_for_driver[driver].discard(edge)
 
         for edge in graph.edges():
-            if all(map(lambda d: edge in self.unreachable_edges_for_driver[d], graph.get_all_drivers())):
+            if all(map(lambda d: edge in self.unreachable_edges_for_driver[d], drivers_graph.get_all_drivers())):
                 graph.remove_edge(*edge)
                 for node in edge:
                     if len(graph.neighbors(node)) == 0:
@@ -95,7 +96,8 @@ class Problem(object):
             self.solve_with_heuristic()
         elif self.solving_type == SolvinType.SOLVER:
             self.solve_with_solver()
-        self.opt_simulator = FromEdgeDescriptionSimulator(self.get_graph(), self.opt_solution)
+        self.opt_simulator = FromEdgeDescriptionSimulator(
+            self.get_graph(), self.get_drivers_graph(), self.opt_solution)
         self.opt_simulator.simulate()
         self.value = self.get_optimal_value()
 
@@ -143,6 +145,13 @@ class Problem(object):
         log.error("Not implemented yet")
         raise NotImplementedError("Not implemented yet")
 
+    def get_drivers_graph(self):
+        """
+        return the drivers' graph (DriversGraph instance)
+        """
+        log.error("Not implemented yet")
+        raise NotImplementedError("Not implemented yet")
+
     def get_optimal_value(self):
         """
         Using the self.optimal_solution, we simulate with FromEdgeDescriptionSimulator the optimal value.
@@ -158,6 +167,7 @@ class Problem(object):
         """
         simulator = FromEdgeDescriptionSimulator(
             self.get_graph(),
+            self.get_drivers_graph(),
             {driver: path for driver, path in self.opt_solution.iteritems() if driver in drivers}
         )
         simulator.simulate()
@@ -189,7 +199,7 @@ class Problem(object):
         """
         value = 0
         waiting_times = {driver: self.opt_simulator.get_driver_waiting_times(driver)
-                         for driver in self.get_graph().get_all_drivers()}
+                         for driver in self.get_drivers_graph().get_all_drivers()}
         for edge in self.get_graph().iter_edges_in_path(self.get_optimal_driver_path(driver)):
             value += waiting_times[driver][edge]
         return value
@@ -205,6 +215,9 @@ class SimulatorProblem(Problem):
     """
     def get_graph(self):
         return self.simulator.graph
+
+    def get_drivers_graph(self):
+        return self.simulator.drivers_graph
 
     def set_optimal_solution(self):
         self.opt_solution = {}
@@ -227,10 +240,11 @@ class SimulatorProblem(Problem):
 class Model(Problem):
     """ Initialize the models' classes
     """
-    def __init__(self, graph, timeout=sys.maxint, solving_type=SolvinType.SOLVER, **params):
+    def __init__(self, graph, drivers_graph, timeout=sys.maxint, solving_type=SolvinType.SOLVER, **params):
         super(Model, self).__init__(timeout=timeout, solving_type=solving_type)
         self.model = gb.Model()
         self.graph = graph
+        self.drivers_graph = drivers_graph
         params['TimeLimit'] = timeout
         params['LogToConsole'] = 0
         self.set_parameters(**params)
@@ -314,6 +328,9 @@ class Model(Problem):
 
     def get_graph(self):
         return self.graph
+
+    def get_drivers_graph(self):
+        return self.drivers_graph
 
     def get_objectif(self):
         try:

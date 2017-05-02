@@ -8,8 +8,8 @@ from Problem import Problem, SolvinType
 
 
 class ConstantModelAlgorithm(Problem):
-    def __init__(self, graph, **kwargs):
-        self.model = FixedWaitingTimeModel(graph, **kwargs)
+    def __init__(self, graph, drivers_graph, **kwargs):
+        self.model = FixedWaitingTimeModel(graph, drivers_graph, **kwargs)
         for driver in self.model.drivers:
             for edge in self.get_graph().edges():
                 self.model.set_waiting_time(driver, edge, self.get_graph().get_congestion_function(*edge)(0))
@@ -19,6 +19,9 @@ class ConstantModelAlgorithm(Problem):
 
     def get_graph(self):
         return self.model.get_graph()
+
+    def get_drivers_graph(self):
+        return self.model.get_drivers_graph()
 
     def solve_with_heuristic(self):
         for i in range(10):
@@ -44,15 +47,16 @@ class DrivingTimeIntervalAlgorithm(Problem):
     At each step we compute theoretical maximal and minimal traffics on each edge for each driver, and from these
     traffics we ae able to compute the intervals into the next steps.
     """
-    def __init__(self, graph, solving_type=SolvinType.HEURISTIC, niter=-1, **kwargs):
+    def __init__(self, graph, drivers_graph, solving_type=SolvinType.HEURISTIC, niter=-1, **kwargs):
         super(DrivingTimeIntervalAlgorithm, self).__init__(solving_type=solving_type, **kwargs)
         self.graph = graph
+        self.drivers_graph = drivers_graph
         self.has_next = True
         self.niter = niter
         self.optimal_drivers = set()
         # Traffics for each driver on each edge
         self.min_traffics = defaultdict(lambda: defaultdict(lambda: 0))
-        self.max_traffics = defaultdict(lambda: defaultdict(lambda: self.get_graph().number_of_drivers()))
+        self.max_traffics = defaultdict(lambda: defaultdict(lambda: self.get_drivers_graph().number_of_drivers()))
         # minimal and maximal starting and ending times for each driver on each edge
         self.min_starting_times = defaultdict(lambda: defaultdict(lambda: None))
         self.max_starting_times = defaultdict(lambda: defaultdict(lambda: None))
@@ -61,6 +65,9 @@ class DrivingTimeIntervalAlgorithm(Problem):
 
     def get_graph(self):
         return self.graph
+
+    def get_drivers_graph(self):
+        return self.drivers_graph
 
     def compute_minimum_starting_time(self, driver, edge):
         """
@@ -126,7 +133,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
         Considering the starting and ending times, get the minimal possible traffic for driver on edge
         """
         traffic = 0
-        for d in self.get_graph().get_all_drivers():
+        for d in self.get_drivers_graph().get_all_drivers():
             if d != driver and self.min_starting_times[edge][driver] <= self.min_ending_times[edge][d] and \
                             self.max_starting_times[edge][driver] >= self.max_starting_times[edge][d]:
                 traffic += 1
@@ -137,7 +144,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
         Considering the starting and ending times, get the maximal possible traffic for driver on edge
         """
         traffic = 0
-        for d in self.get_graph().get_all_drivers():
+        for d in self.get_drivers_graph().get_all_drivers():
             if d != driver and self.min_starting_times[edge][driver] <= self.max_ending_times[edge][d] and \
                             self.max_starting_times[edge][driver] >= self.min_starting_times[edge][d]:
                 traffic += 1
@@ -232,7 +239,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
         return False
 
     def has_reached_optimality(self):
-        for driver in self.get_graph().get_all_drivers():
+        for driver in self.get_drivers_graph().get_all_drivers():
             if not self.has_reached_optimality_for_driver(driver):
                 return False
         return True
@@ -256,7 +263,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
 
     def set_optimality(self):
         change = False
-        for driver in self.get_graph().get_all_drivers():
+        for driver in self.get_drivers_graph().get_all_drivers():
             change = self.set_optimality_for_driver(driver) or change
         return change
 
@@ -273,21 +280,6 @@ class DrivingTimeIntervalAlgorithm(Problem):
                     return True
         return False
 
-    def get_drivers_graph(self, optimal=True):
-        """
-        Compute the drivers graph.
-        If optimal is set to true, we consider the optimal drivers as well. Otherwise no.
-        """
-        graph = Graph()
-        drivers = [driver for driver in self.get_graph().get_all_drivers()
-                   if optimal or driver not in self.optimal_drivers]
-        for driver in drivers:
-            graph.add_node(driver)
-            for d in drivers:
-                if not graph.has_edge(driver, d) and self.are_drivers_dependent(driver, d):
-                    graph.add_edge(driver, d)
-        return graph
-
     def next(self):
         """
         First we compute minimum and maximum starting and ending times for each driver on each edge.
@@ -296,7 +288,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
         """
         has_new_value = False
         for edge in self.get_graph().edges_iter():
-            for driver in self.get_graph().get_all_drivers():
+            for driver in self.get_drivers_graph().get_all_drivers():
                 if self.is_edge_reachable_for_driver(driver, edge):
                     min_starting_time = self.compute_minimum_starting_time(driver, edge)
                     if self.min_starting_times[edge][driver] != min_starting_time:
@@ -312,7 +304,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
                         self.add_unreachable_edge_for_driver(driver, edge)
 
         for edge in self.get_graph().edges_iter():
-            for driver in self.get_graph().get_all_drivers():
+            for driver in self.get_drivers_graph().get_all_drivers():
                 if self.is_edge_reachable_for_driver(driver, edge):
                     self.min_traffics[edge][driver] = self.compute_minimum_traffic(driver, edge)
                     self.max_traffics[edge][driver] = self.compute_maximal_traffic(driver, edge)
@@ -330,14 +322,14 @@ class DrivingTimeIntervalAlgorithm(Problem):
                 break
             else:
                 self.has_next = True
-        for driver in self.get_graph().get_all_drivers():
+        for driver in self.get_drivers_graph().get_all_drivers():
             if self.opt_solution.get(driver) is None:
                 self.set_optimal_path_to_driver(driver, self.get_best_driver_path(driver))
         self.running_time = time.time() - starting_time
 
     def __str__(self):
         to_print = ""
-        for driver in self.get_graph().get_all_drivers():
+        for driver in self.get_drivers_graph().get_all_drivers():
             line = "%s: \n" % str(driver)
             for edge in self.get_graph().edges_iter():
                 safe_interval = self.get_safety_interval(driver, edge)
