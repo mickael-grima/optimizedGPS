@@ -99,3 +99,7 @@ class DriversStructure(object):
             for d in self.drivers_graph.get_all_drivers():
                 if not self.drivers_graph.has_edge(driver, d) and self.are_drivers_dependent(driver, d):
                     self.drivers_graph.add_edge(driver, d)
+
+    def split_drivers_graph(self):
+        # TODO
+        return ()
