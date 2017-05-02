@@ -1,4 +1,7 @@
 from collections import defaultdict
+import time
+
+from networkx import Graph
 
 from Models import FixedWaitingTimeModel
 from Problem import Problem, SolvinType
@@ -46,6 +49,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
         self.graph = graph
         self.has_next = True
         self.niter = niter
+        self.optimal_drivers = set()
         # Traffics for each driver on each edge
         self.min_traffics = defaultdict(lambda: defaultdict(lambda: 0))
         self.max_traffics = defaultdict(lambda: defaultdict(lambda: self.get_graph().number_of_drivers()))
@@ -141,6 +145,10 @@ class DrivingTimeIntervalAlgorithm(Problem):
 
     def add_unreachable_edge_for_driver(self, driver, edge):
         self.unreachable_edges_for_driver[driver].add(edge)
+        self.min_starting_times[edge][driver] = None
+        self.max_starting_times[edge][driver] = None
+        self.min_ending_times[edge][driver] = None
+        self.max_ending_times[edge][driver] = None
 
     def get_safety_interval(self, driver, edge):
         """
@@ -219,6 +227,7 @@ class DrivingTimeIntervalAlgorithm(Problem):
             key=lambda n: self.min_ending_times[n, driver.end][driver]
         )
         if self.max_ending_times[edge][driver] <= self.min_ending_times[(best_pred, driver.end)][driver]:
+            self.set_optimal_path_to_driver(driver, path)
             return True
         return False
 
@@ -227,6 +236,57 @@ class DrivingTimeIntervalAlgorithm(Problem):
             if not self.has_reached_optimality_for_driver(driver):
                 return False
         return True
+
+    def set_optimality_for_driver(self, driver):
+        """
+        If the driver has reached the optimality, we set his optimal path, and we set to the other edges that
+        they are unreachable.
+
+        Return True if at least one path has been setted to one driver
+        """
+        if driver not in self.optimal_drivers and self.has_reached_optimality_for_driver(driver):
+            path = self.opt_solution[driver]
+            path_edges = set(self.get_graph().iter_edges_in_path(path))
+            for edge in self.get_graph().edges_iter():
+                if edge not in path_edges:
+                    self.add_unreachable_edge_for_driver(driver, edge)
+            self.optimal_drivers.add(driver)
+            return True
+        return False
+
+    def set_optimality(self):
+        change = False
+        for driver in self.get_graph().get_all_drivers():
+            change = self.set_optimality_for_driver(driver) or change
+        return change
+
+    def are_drivers_dependent(self, driver1, driver2):
+        """
+        Return True if both drivers can be on the same edge at the same time
+        """
+        for edge in self.get_graph().edges_iter():
+            if self.min_starting_times[edge][driver1] <= self.min_starting_times[edge][driver2]:
+                if self.max_ending_times[edge][driver1] <= self.max_ending_times[edge][driver2]:
+                    return True
+            else:
+                if self.max_ending_times[edge][driver2] <= self.max_ending_times[edge][driver1]:
+                    return True
+        return False
+
+    def get_drivers_graph(self, optimal=True):
+        """
+        Compute the drivers graph.
+        If optimal is set to true, we consider the optimal drivers as well. Otherwise no.
+        """
+        graph = Graph()
+        drivers = [driver for driver in self.get_graph().get_all_drivers()
+                   if optimal or driver not in self.optimal_drivers]
+        for driver in drivers:
+            graph.add_node(driver)
+            for d in drivers:
+                if not graph.has_edge(driver, d) and self.are_drivers_dependent(driver, d):
+                    graph.add_edge(driver, d)
+        return graph
 
     def next(self):
         """
@@ -260,10 +320,20 @@ class DrivingTimeIntervalAlgorithm(Problem):
 
     def solve_with_heuristic(self):
         n = 0
-        while (self.niter < 0 or n <= self.niter) and self.has_next:
-            self.next()
+        starting_time = time.time()
+        while True:
+            while (self.niter < 0 or n <= self.niter) and self.has_next:
+                self.next()
+                if time.time() - starting_time > self.timeout:
+                    break
+            if not self.set_optimality() or time.time() - starting_time > self.timeout:
+                break
+            else:
+                self.has_next = True
         for driver in self.get_graph().get_all_drivers():
-            self.set_optimal_path_to_driver(driver, self.get_best_driver_path(driver))
+            if self.opt_solution.get(driver) is None:
+                self.set_optimal_path_to_driver(driver, self.get_best_driver_path(driver))
+        self.running_time = time.time() - starting_time
 
     def __str__(self):
         to_print = ""
