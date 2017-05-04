@@ -101,5 +101,4 @@ class DriversStructure(object):
                     self.drivers_graph.add_edge(driver, d)
 
     def split_drivers_graph(self):
-        # TODO
-        return ()
+        return nx.connected_component_subgraphs(self)

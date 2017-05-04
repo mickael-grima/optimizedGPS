@@ -4,11 +4,15 @@ We merge here every steps of the solving procedure:
    2. Separate the problem considering the drivers' graph
    3. Use an algorithm
 """
+import sys
+
 from optimizedGPS.problems.PreSolver import GlobalPreSolver, DriverPreSolver
+from optimizedGPS.problems.Problem import Problem
 
 
-class Solver(object):
-    def __init__(self, graph, drivers_graph, algorithm, drivers_structure, presolving=True, **kwargs):
+class Solver(Problem):
+    def __init__(self, graph, drivers_graph, algorithm, drivers_structure, presolving=True, timeout=sys.maxint, **kwargs):
+        super(Solver, self).__init__(timeout=timeout)
         self.graph = graph
         self.drivers_graphs = {drivers_graph}
         self.drivers_structure = drivers_structure
@@ -38,11 +42,15 @@ class Solver(object):
         presolver.solve()
         self.drivers_structure = presolver.drivers_structure
         self.drivers_structure.set_edges_to_drivers_graph()
-        self.drivers_graphs = self.drivers_structure.split_drivers_graph()
+        self.drivers_graphs = set(self.drivers_structure.split_drivers_graph())
 
     def solve(self):
         if self.presolving is True:
             self.presolve()
+        self.value = 0
         for drivers_graph in self.drivers_graphs:
-            algo = self.algorithm(self.graph, drivers_graph, **self.parameters)
+            algo = self.algorithm(self.graph, drivers_graph, timeout=self.timeout, **self.parameters)
             algo.solve()
+            for driver, path in algo.iter_optimal_solution():
+                self.set_optimal_path_to_driver(driver, path)
+            self.value += algo.get_optimal_value()

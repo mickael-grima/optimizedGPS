@@ -14,7 +14,6 @@ except ImportError:
 
 from simulator import FromEdgeDescriptionSimulator
 from optimizedGPS import options
-from PreSolver import GlobalPreSolver
 
 __all__ = []
 
@@ -43,33 +42,11 @@ class Problem(object):
         """
         self.unreachable_edges_for_driver = defaultdict(set)
 
-
     def get_status(self):
         return self.status
 
     def set_status(self, status):
         self.status = status
-
-    def presolve(self):
-        """
-        Using the presolver, we find out which edge wont be used by the drivers in the final solution,
-        and we remove them from the graph.
-        Furthermore, for each driver, we save the edges which could be used by driver
-        """
-        graph = self.get_graph()
-        drivers_graph = self.get_drivers_graph()
-        presolver = GlobalPreSolver(graph)
-        for driver in drivers_graph.get_all_drivers():
-            self.unreachable_edges_for_driver[driver] = set(graph.edges_iter())
-            for edge in presolver.iter_reachable_edges_for_driver(driver):
-                self.unreachable_edges_for_driver[driver].discard(edge)
-
-        for edge in graph.edges():
-            if all(map(lambda d: edge in self.unreachable_edges_for_driver[d], drivers_graph.get_all_drivers())):
-                graph.remove_edge(*edge)
-                for node in edge:
-                    if len(graph.neighbors(node)) == 0:
-                        graph.remove(node)
 
     def solve_with_solver(self):
         """
