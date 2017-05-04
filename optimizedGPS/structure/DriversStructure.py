@@ -18,7 +18,7 @@ class DriversStructure(object):
 
         self.unreachable_edges = defaultdict(lambda: defaultdict(lambda: 0))
         self.safety_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, sys.maxint)))
-        self.presence_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, sys.maxint)))
+        self.presence_intervals = defaultdict(lambda: defaultdict(lambda: Interval(sys.maxint, sys.maxint)))
 
     def set_unreachable_edge_to_driver(self, driver, edge):
         self.unreachable_edges[driver][edge] = 1
@@ -35,7 +35,7 @@ class DriversStructure(object):
         A safety interval is a time interval outside which we are sure the driver can't be present on edge.
         """
         assert(all(map(lambda i: isinstance(i, int), interval)))
-        self.safety_intervals[driver][edge] = Interval(*interval)
+        self.safety_intervals[driver][edge] = Interval(min(interval[0], self.horizon), min(interval[1], self.horizon))
 
     def set_presence_interval_to_driver(self, driver, edge, interval):
         """
@@ -45,7 +45,7 @@ class DriversStructure(object):
         A presence interval is a time interval in which we are sure the driver is present on edge.
         """
         assert(all(map(lambda i: isinstance(i, int), interval)))
-        self.presence_intervals[driver][edge] = Interval(*interval)
+        self.presence_intervals[driver][edge] = Interval(min(interval[0], self.horizon), min(interval[1], self.horizon))
 
     def is_edge_reachable_by_driver(self, driver, edge):
         return self.unreachable_edges[driver][edge] != 1
@@ -53,7 +53,7 @@ class DriversStructure(object):
     def get_safety_interval(self, driver, edge):
         start, end = self.safety_intervals[driver][edge]
         if start >= self.horizon:
-            return Interval(0, 0)
+            return Interval(self.horizon, self.horizon)
         elif end >= self.horizon:
             return Interval(start, self.horizon)
         else:
@@ -62,7 +62,7 @@ class DriversStructure(object):
     def get_presence_interval(self, driver, edge):
         start, end = self.presence_intervals[driver][edge]
         if start >= self.horizon:
-            return Interval(0, 0)
+            return Interval(self.horizon, self.horizon)
         elif end >= self.horizon:
             return Interval(start, self.horizon)
         else:

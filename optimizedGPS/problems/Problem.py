@@ -124,12 +124,12 @@ class Problem(object):
         else:
             return self.graph.iter_original_edges()
 
-    def get_time_interval(self, driver, edge, horizon=sys.maxint):
+    def get_time_interval(self, driver, edge):
         if self.drivers_structure is not None:
-            start, end = self.drivers_structure.get_safety_interval(driver, edge, horizon=horizon)
+            start, end = self.drivers_structure.get_safety_interval(driver, edge)
             return start if start is not None else 0, end if end is not None else 0
         else:
-            return 0, horizon
+            return 0, self.drivers_structure.horizon
 
     def iter_optimal_solution(self):
         """ yield for each driver his assigned path

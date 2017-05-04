@@ -240,18 +240,50 @@ class TEGLinearCongestionModel(EdgeCharacterizationModel):
         super(TEGLinearCongestionModel, self).initialize(**kwargs)
 
     def start_interval(self, driver):
-        start, end = self.drivers_structure.get_largest_safety_interval_after_start(driver, horizon=self.horizon)
+        start, end = self.drivers_structure.get_largest_safety_interval_after_start(driver)
         return start if start is not None else 0, end + 1 if end is not None else 0
 
     def end_interval(self, driver):
-        start, end = self.drivers_structure.get_largest_safety_interval_before_end(driver, horizon=self.horizon)
+        start, end = self.drivers_structure.get_largest_safety_interval_before_end(driver)
         return start if start is not None else 0, end + 1 if end is not None else 0
+
+    def number_of_variables(self):
+        value = 0
+        for driver in self.drivers_graph.get_all_drivers():
+            for edge in self.get_edges_for_driver(driver):
+                start, end = self.get_time_interval(driver, edge)
+                for i in xrange(start, end + 1):
+                    for j in xrange(i, end + 1):
+                        value += 1
+        return value
+
+    def number_of_constraints(self):
+        value = 0
+        for driver in self.drivers:
+            for edge in self.get_edges_for_driver(driver):
+                start, end = self.get_time_interval(driver, edge)
+                for i in xrange(start, end + 1):
+                    for j in xrange(i + 1, end + 1):
+                        value += 1
+                for dd in self.drivers:
+                    ss, ee = self.get_time_interval(dd, edge)
+                    for i1 in xrange(start, end + 1):
+                        for i2 in xrange(i1 + 1, ee + 1):
+                            for j2 in xrange(i2 + 1, ee + 1):
+                                for j1 in xrange(j2 + 1, end + 1):
+                                    value += 1
+        for driver in self.drivers:
+            value += 1
+            for node in self.graph.nodes_iter():
+                if node not in map(lambda t: self.graph.build_node(driver.end, t), xrange(*self.end_interval(driver))):
+                    value += 1
+        return value
 
     def build_variables(self):
         self.x = {}
         for driver in self.drivers:
             for edge in self.get_edges_for_driver(driver):
-                start, end = self.get_time_interval(driver ,edge, horizon=self.horizon)
+                start, end = self.get_time_interval(driver ,edge)
                 for i in xrange(start, end + 1):
                     for j in xrange(i + 1, end + 1):
                         _edge = self.graph.build_edge(edge, i, j)
@@ -264,7 +296,7 @@ class TEGLinearCongestionModel(EdgeCharacterizationModel):
 
         for driver in self.drivers:
             for edge in self.get_edges_for_driver(driver):
-                start, end = self.get_time_interval(driver, edge, horizon=self.horizon)
+                start, end = self.get_time_interval(driver, edge)
                 for i in xrange(start, end + 1):
                     for j in xrange(i + 1, end + 1):
                         self.add_constraint(
@@ -279,7 +311,7 @@ class TEGLinearCongestionModel(EdgeCharacterizationModel):
                             )
                         )
                 for dd in self.drivers:
-                    ss, ee = self.get_time_interval(dd, edge, horizon=self.horizon)
+                    ss, ee = self.get_time_interval(dd, edge)
                     for i1 in xrange(start, end + 1):
                         for i2 in xrange(i1 + 1, ee + 1):
                             for j2 in xrange(i2 + 1, ee + 1):

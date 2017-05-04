@@ -32,7 +32,7 @@ class Solver(Problem):
         """
         # Clean the graph
         drivers_graph = self.drivers_graphs.pop()
-        presolver = GlobalPreSolver(self.graph, drivers_graph)
+        presolver = GlobalPreSolver(self.graph, drivers_graph, horizon=self.horizon)
         for edge in presolver.iter_unused_edges():
             if self.graph.has_edge(*edge):
                 self.graph.remove_edge(*edge)
@@ -43,7 +43,7 @@ class Solver(Problem):
         self.horizon = presolver.get_horizon()
 
         # Clean the drivers
-        presolver = DrivingTimeIntervalPresolver(self.graph, drivers_graph)
+        presolver = DrivingTimeIntervalPresolver(self.graph, drivers_graph, horizon=self.horizon)
         presolver.solve()
         self.drivers_structure = presolver.drivers_structure
         self.drivers_structure.set_edges_to_drivers_graph()
