@@ -1,7 +1,5 @@
-from collections import defaultdict
 import time
-
-from networkx import Graph
+from collections import defaultdict
 
 from Models import FixedWaitingTimeModel
 from Problem import Problem, SolvinType

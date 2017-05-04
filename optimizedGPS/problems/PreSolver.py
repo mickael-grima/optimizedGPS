@@ -70,6 +70,12 @@ class ShortestPathPreSolver(PreSolver):
             if is_used is False:
                 yield edge
 
+    def get_horizon(self):
+        """
+        return the value of the heuristic (max ending time)
+        """
+        return self.heuristic.opt_simulator.get_maximum_ending_time()
+
 
 class DriverPreSolver(ShortestPathPreSolver):
     """

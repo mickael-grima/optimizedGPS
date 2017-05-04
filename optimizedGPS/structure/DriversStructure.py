@@ -30,11 +30,45 @@ class DriversStructure(object):
     def is_edge_reachable_by_driver(self, driver, edge):
         return self.unreachable_edges[driver][edge] != 1
 
-    def get_safety_interval(self, driver, edge):
-        return self.safety_intervals[driver][edge]
+    def get_safety_interval(self, driver, edge, horizon=sys.maxint):
+        start, end = self.safety_intervals[driver][edge]
+        if start >= horizon:
+            return Interval(horizon, horizon)
+        elif end >= horizon:
+            return Interval(start, horizon)
+        else:
+            return Interval(start, end)
 
-    def get_presence_interval(self, driver, edge):
-        return self.presence_intervals[driver][edge]
+    def get_presence_interval(self, driver, edge, horizon=sys.maxint):
+        start, end = self.presence_intervals[driver][edge]
+        if start >= horizon:
+            return Interval(horizon, horizon)
+        elif end >= horizon:
+            return Interval(start, horizon)
+        else:
+            return Interval(start, end)
+
+    def get_largest_safety_interval_before_end(self, driver, horizon=sys.maxint):
+        """
+        Considering every edge before the end and we return the minimal starting time and the maximum ending time
+        """
+        start, end = None, None
+        for pred in self.graph.predecessors_iter(driver.end):
+            s, e = self.get_safety_interval(driver, (pred, driver.end), horizon=horizon)
+            start = min(start if start is not None else horizon, s) if s is not None else None
+            end = max(end if end is not None else 0, e) if e is not None else None
+        return start, end
+
+    def get_largest_safety_interval_after_start(self, driver, horizon=sys.maxint):
+        """
+        Considering every edge after the start and we return the minimal starting time and the maximum ending time
+        """
+        start, end = None, None
+        for succ in self.graph.successors_iter(driver.start):
+            s, e = self.get_safety_interval(driver, (driver.start, succ), horizon=horizon)
+            start = min(start if start is not None else horizon, s) if s is not None else None
+            end = max(end if end is not None else 0, e) if e is not None else None
+        return start, end
 
     def are_edges_time_connected_for_driver(self, driver, edge_source, edge_target):
         """

@@ -28,12 +28,18 @@ class SolvinType:
 class Problem(object):
     """ Initialize the problems' classes
     """
-    def __init__(self, timeout=sys.maxint, solving_type=SolvinType.SOLVER):
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint,
+                 timeout=sys.maxint, solving_type=SolvinType.SOLVER,):
+        self.graph = graph
+        self.drivers_graph = drivers_graph
+        self.drivers_structure = drivers_structure
+
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
         self.timeout = timeout  # After this time we stop the algorithms
         self.solving_type = solving_type
         self.status = options.NOT_RUN  # status
+        self.horizon = horizon
 
         self.opt_solution = {}  # On wich path are each driver
         self.opt_simulator = None
@@ -109,6 +115,22 @@ class Problem(object):
             raise TypeError(message)
         self.opt_solution[driver] = path
 
+    def get_edges_for_driver(self, driver):
+        """
+        return the set of edges on which the driver can drive
+        """
+        if self.drivers_structure is not None:
+            return self.drivers_structure.get_possible_edges_for_driver(driver)
+        else:
+            return self.graph.iter_original_edges()
+
+    def get_time_interval(self, driver, edge, horizon=sys.maxint):
+        if self.drivers_structure is not None:
+            start, end = self.drivers_structure.get_safety_interval(driver, edge, horizon=horizon)
+            return start if start is not None else 0, end if end is not None else 0
+        else:
+            return 0, horizon
+
     def iter_optimal_solution(self):
         """ yield for each driver his assigned path
         """
@@ -119,15 +141,16 @@ class Problem(object):
         """
         return the graph (GPSGraph instance)
         """
-        log.error("Not implemented yet")
-        raise NotImplementedError("Not implemented yet")
+        return self.graph
 
     def get_drivers_graph(self):
         """
         return the drivers' graph (DriversGraph instance)
         """
-        log.error("Not implemented yet")
-        raise NotImplementedError("Not implemented yet")
+        return self.drivers_graph
+
+    def get_drivers_structure(self):
+        return self.drivers_structure
 
     def get_optimal_value(self):
         """
@@ -190,12 +213,6 @@ class SimulatorProblem(Problem):
     The attribute simulator  should be instantiate in each subclass.
     The simulator should inherits from the super class Simulator
     """
-    def get_graph(self):
-        return self.simulator.graph
-
-    def get_drivers_graph(self):
-        return self.simulator.drivers_graph
-
     def set_optimal_solution(self):
         self.opt_solution = {}
         for driver, path in self.simulator.iter_edge_description():
@@ -217,11 +234,11 @@ class SimulatorProblem(Problem):
 class Model(Problem):
     """ Initialize the models' classes
     """
-    def __init__(self, graph, drivers_graph, timeout=sys.maxint, solving_type=SolvinType.SOLVER, **params):
-        super(Model, self).__init__(timeout=timeout, solving_type=solving_type)
+    def __init__(self, graph, drivers_graph, drivers_structure=None, timeout=sys.maxint, horizon=sys.maxint,
+                 solving_type=SolvinType.SOLVER, **params):
+        super(Model, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure, horizon=horizon,
+                                    timeout=timeout, solving_type=solving_type)
         self.model = gb.Model()
-        self.graph = graph
-        self.drivers_graph = drivers_graph
         params['TimeLimit'] = timeout
         params['LogToConsole'] = 0
         self.set_parameters(**params)

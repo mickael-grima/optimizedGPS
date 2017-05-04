@@ -193,6 +193,18 @@ class Simulator(object):
                 filter(lambda d: d in drivers, self.events.iterkeys())
             ))
 
+    def get_maximum_ending_time(self, drivers=None):
+        """
+        Return the max of ending times
+        """
+        if drivers is None:
+            return max(map(lambda e: e[-1].time, self.events.itervalues()))
+        else:
+            return max(map(
+                lambda d: self.events[d][-1].time,
+                filter(lambda d: d in drivers, self.events.iterkeys())
+            ))
+
     def get_sum_ending_time(self, drivers=None):
         """
         Return the sum of ending times

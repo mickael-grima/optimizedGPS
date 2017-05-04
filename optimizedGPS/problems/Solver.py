@@ -9,13 +9,16 @@ import sys
 from optimizedGPS.problems.PreSolver import GlobalPreSolver, DrivingTimeIntervalPresolver
 from optimizedGPS.problems.Problem import Problem
 
+HORIZON = 1000
+
 
 class Solver(Problem):
-    def __init__(self, graph, drivers_graph, algorithm, drivers_structure, presolving=True, timeout=sys.maxint, **kwargs):
-        super(Solver, self).__init__(timeout=timeout)
-        self.graph = graph
+    def __init__(self, graph, drivers_graph, algorithm, drivers_structure=None, presolving=True, timeout=sys.maxint,
+                 horizon=HORIZON, **kwargs):
+        super(Solver, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure, timeout=timeout,
+                                     horizon=horizon)
         self.drivers_graphs = {drivers_graph}
-        self.drivers_structure = drivers_structure
+
         self.presolving = presolving
         self.algorithm = algorithm
         self.parameters = kwargs
@@ -37,6 +40,7 @@ class Solver(Problem):
                     self.graph.remove_node(edge[0])
                 if not self.graph.neighbors(edge[1]):
                     self.graph.remove_node(edge[1])
+        self.horizon = presolver.get_horizon()
 
         # Clean the drivers
         presolver = DrivingTimeIntervalPresolver(self.graph, drivers_graph)
@@ -50,7 +54,8 @@ class Solver(Problem):
             self.presolve()
         self.value = 0
         for drivers_graph in self.drivers_graphs:
-            algo = self.algorithm(self.graph, drivers_graph, timeout=self.timeout, **self.parameters)
+            algo = self.algorithm(self.graph, drivers_graph, drivers_structure=self.drivers_structure,
+                                  horizon=self.horizon, timeout=self.timeout, **self.parameters)
             algo.solve()
             for driver, path in algo.iter_optimal_solution():
                 self.set_optimal_path_to_driver(driver, path)

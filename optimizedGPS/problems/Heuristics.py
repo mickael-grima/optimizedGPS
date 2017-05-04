@@ -19,9 +19,10 @@ log = logging.getLogger(__name__)
 class ShortestPathHeuristic(SimulatorProblem):
     """ We handle here the heuristics
     """
-    def __init__(self, graph, drivers_graph, timeout=sys.maxint):
-        super(ShortestPathHeuristic, self).__init__(timeout=timeout, solving_type=SolvinType.HEURISTIC)
-        edges_description = {}  # fro each driver we assign him a path
+    def __init__(self, graph, drivers_graph, drivers_structure=None, timeout=sys.maxint):
+        super(ShortestPathHeuristic, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
+                                                    timeout=timeout, solving_type=SolvinType.HEURISTIC)
+        edges_description = {}  # for each driver we assign him a path
         for driver in drivers_graph.get_all_drivers():
             try:
                 path = graph.get_shortest_path(driver.start, driver.end)
@@ -45,9 +46,7 @@ class ShortestPathTrafficFree(Problem):
     """
     def __init__(self, graph, drivers_graph, **kwargs):
         kwargs["solving_type"] = SolvinType.HEURISTIC
-        super(ShortestPathTrafficFree, self).__init__(**kwargs)
-        self.graph = graph
-        self.drivers_graph = drivers_graph
+        super(ShortestPathTrafficFree, self).__init__(graph, drivers_graph, **kwargs)
 
     def get_graph(self):
         return self.graph
@@ -77,9 +76,7 @@ class ShortestPathTrafficFree(Problem):
 class RealGPS(Problem):
     def __init__(self, graph, drivers_graph, **kwargs):
         kwargs["solving_type"] = SolvinType.HEURISTIC
-        super(RealGPS, self).__init__(**kwargs)
-        self.graph = graph
-        self.drivers_graph = drivers_graph
+        super(RealGPS, self).__init__(graph, drivers_graph, **kwargs)
 
     def get_graph(self):
         return self.graph
