@@ -11,62 +11,82 @@ Interval = namedtuple("Interval", ["lower", "upper"])
 
 
 class DriversStructure(object):
-    def __init__(self, graph, drivers_graph):
+    def __init__(self, graph, drivers_graph, horizon=sys.maxint):
         self.graph = graph
         self.drivers_graph = drivers_graph
+        self.horizon = horizon
+
         self.unreachable_edges = defaultdict(lambda: defaultdict(lambda: 0))
         self.safety_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, sys.maxint)))
         self.presence_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, sys.maxint)))
 
     def set_unreachable_edge_to_driver(self, driver, edge):
         self.unreachable_edges[driver][edge] = 1
+        if driver in self.safety_intervals and edge in self.safety_intervals[driver]:
+            del self.safety_intervals[driver][edge]
+        if driver in self.presence_intervals and edge in self.presence_intervals[driver]:
+            del self.presence_intervals[driver][edge]
 
     def set_safety_interval_to_driver(self, driver, edge, interval):
+        """
+        Add a safety interval to driver for edge.
+        Only reachable edge should be added.
+
+        A safety interval is a time interval outside which we are sure the driver can't be present on edge.
+        """
+        assert(all(map(lambda i: isinstance(i, int), interval)))
         self.safety_intervals[driver][edge] = Interval(*interval)
 
     def set_presence_interval_to_driver(self, driver, edge, interval):
+        """
+        Add a presence interval to driver for edge.
+        Only reachable edge should be added.
+
+        A presence interval is a time interval in which we are sure the driver is present on edge.
+        """
+        assert(all(map(lambda i: isinstance(i, int), interval)))
         self.presence_intervals[driver][edge] = Interval(*interval)
 
     def is_edge_reachable_by_driver(self, driver, edge):
         return self.unreachable_edges[driver][edge] != 1
 
-    def get_safety_interval(self, driver, edge, horizon=sys.maxint):
+    def get_safety_interval(self, driver, edge):
         start, end = self.safety_intervals[driver][edge]
-        if start >= horizon:
-            return Interval(horizon, horizon)
-        elif end >= horizon:
-            return Interval(start, horizon)
+        if start >= self.horizon:
+            return Interval(0, 0)
+        elif end >= self.horizon:
+            return Interval(start, self.horizon)
         else:
             return Interval(start, end)
 
-    def get_presence_interval(self, driver, edge, horizon=sys.maxint):
+    def get_presence_interval(self, driver, edge):
         start, end = self.presence_intervals[driver][edge]
-        if start >= horizon:
-            return Interval(horizon, horizon)
-        elif end >= horizon:
-            return Interval(start, horizon)
+        if start >= self.horizon:
+            return Interval(0, 0)
+        elif end >= self.horizon:
+            return Interval(start, self.horizon)
         else:
             return Interval(start, end)
 
-    def get_largest_safety_interval_before_end(self, driver, horizon=sys.maxint):
+    def get_largest_safety_interval_before_end(self, driver):
         """
         Considering every edge before the end and we return the minimal starting time and the maximum ending time
         """
         start, end = None, None
         for pred in self.graph.predecessors_iter(driver.end):
-            s, e = self.get_safety_interval(driver, (pred, driver.end), horizon=horizon)
-            start = min(start if start is not None else horizon, s) if s is not None else None
+            s, e = self.get_safety_interval(driver, (pred, driver.end))
+            start = min(start if start is not None else self.horizon, s) if s is not None else None
             end = max(end if end is not None else 0, e) if e is not None else None
         return start, end
 
-    def get_largest_safety_interval_after_start(self, driver, horizon=sys.maxint):
+    def get_largest_safety_interval_after_start(self, driver):
         """
         Considering every edge after the start and we return the minimal starting time and the maximum ending time
         """
         start, end = None, None
         for succ in self.graph.successors_iter(driver.start):
-            s, e = self.get_safety_interval(driver, (driver.start, succ), horizon=horizon)
-            start = min(start if start is not None else horizon, s) if s is not None else None
+            s, e = self.get_safety_interval(driver, (driver.start, succ))
+            start = min(start if start is not None else self.horizon, s) if s is not None else None
             end = max(end if end is not None else 0, e) if e is not None else None
         return start, end
 
@@ -82,7 +102,7 @@ class DriversStructure(object):
         target_interval = self.get_safety_interval(driver, edge_target)
         if not self.graph.has_edge(*edge_source) or not self.graph.has_edge(*edge_target):
             return False
-        if edge_source[0] != edge_target[0]:
+        if edge_source[1] != edge_target[0]:
             return False
         if any(map(lambda i: i is None, source_interval + target_interval)):
             return False
@@ -94,10 +114,15 @@ class DriversStructure(object):
         driver.start if the edge can be used by driver.
         """
         visited = set()
-        nexts = set(map(lambda s: (driver.start, s), self.graph.successors_iter(driver.start)))
-        accepted = set(map(lambda s: (driver.start, s), self.graph.successors_iter(driver.start)))
+        nexts = set(
+            filter(
+                lambda e: self.is_edge_reachable_by_driver(driver, e),
+                map(lambda s: (driver.start, s), self.graph.successors_iter(driver.start))
+            )
+        )
         while len(nexts) > 0:
             edge = nexts.pop()
+            yield edge
             visited.add(edge)
             for succ in self.graph.successors_iter(edge[1]):
                 next_edge = (edge[1], succ)
@@ -105,8 +130,6 @@ class DriversStructure(object):
                     continue
                 if self.are_edges_time_connected_for_driver(driver, edge, next_edge):
                     nexts.add(next_edge)
-                    accepted.add(next_edge)
-        return accepted
 
     def are_drivers_dependent(self, driver1, driver2):
         """
