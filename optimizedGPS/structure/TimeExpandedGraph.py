@@ -119,7 +119,7 @@ class ReducedTimeExpandedGraph(object):
         :param node: node from original graph
         :param layer: layer of built node
         """
-        for i in xrange(layer, self.horizon):
+        for i in xrange(layer, self.horizon + 1):
             yield self.build_node(node, i)
 
     def nodes_iter(self):
@@ -195,5 +195,5 @@ class ReducedTimeExpandedGraph(object):
         original_node = self.get_original_node(node)
         node_layer = self.get_node_layer(node)
         for n in self.graph.successors_iter(original_node):
-            for l in xrange(node_layer + 1, self.horizon):
+            for l in xrange(node_layer + 1, self.horizon + 1):
                 yield self.build_node(n, l)

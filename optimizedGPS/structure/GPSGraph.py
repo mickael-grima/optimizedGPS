@@ -96,6 +96,28 @@ class GPSGraph(Graph):
             congestion = self.get_edge_property(source, target, labels.CONGESTION_FUNC)
             return congestion or congestion_function(**self.get_edge_data(source, target))
 
+    def set_congestion_function(self, source, target, congestion_func):
+        """
+        Set given congestion function to edge
+
+        :param source: source node
+        :param target: target node
+        :param congestion_func: function taking traffic as argument
+        :return:
+        """
+        if self.has_edge(source, target):
+            self.set_edge_property(source, target, labels.CONGESTION_FUNC, congestion_func)
+
+    def set_global_congestion_function(self, congestion_func):
+        """
+        Set the given congestion function to every edges
+
+        :param congestion_func: function taking traffic as argument
+        :return:
+        """
+        for source, target in self.edges_iter():
+            self.set_congestion_function(source, target, congestion_func)
+
     def get_minimum_waiting_time(self, source, target):
         """
         Computes and returns the time needed to cross the edge without traffic.

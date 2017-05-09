@@ -13,7 +13,7 @@ from optimizedGPS import options
 from Problem import Model
 from optimizedGPS.structure import ReducedTimeExpandedGraph as TEG
 
-__all__ = ["MainContinuousTimeModel", "BestPathTrafficModel", "FixedWaitingTimeModel", "TEGLinearCongestionModel"]
+__all__ = ["MainContinuousTimeModel", "BestPathTrafficModel", "FixedWaitingTimeModel", "TEGModel"]
 
 log = logging.getLogger(__name__)
 
@@ -234,10 +234,10 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
         self.set_status(options.SUCCESS)
 
 
-class TEGLinearCongestionModel(EdgeCharacterizationModel):
+class TEGModel(EdgeCharacterizationModel):
     def initialize(self, **kwargs):
-        self.graph = TEG(self.graph, self.horizon)
-        super(TEGLinearCongestionModel, self).initialize(**kwargs)
+        self.TEGgraph = TEG(self.graph, self.horizon)
+        super(TEGModel, self).initialize(**kwargs)
 
     def start_interval(self, driver):
         start, end = self.drivers_structure.get_largest_safety_interval_after_start(driver)
@@ -246,6 +246,9 @@ class TEGLinearCongestionModel(EdgeCharacterizationModel):
     def end_interval(self, driver):
         start, end = self.drivers_structure.get_largest_safety_interval_before_end(driver)
         return start if start is not None else 0, end + 1 if end is not None else 0
+
+    def bigM(self):
+        return max([self.graph.get_congestion_function(*edge)(self.horizon + 1) for edge in self.graph.edges_iter()])
 
     def number_of_variables(self):
         value = 0
@@ -262,20 +265,14 @@ class TEGLinearCongestionModel(EdgeCharacterizationModel):
         for driver in self.drivers:
             for edge in self.get_edges_for_driver(driver):
                 start, end = self.get_time_interval(driver, edge)
-                for i in xrange(start, end + 1):
+                for i in xrange(start, end):
                     for j in xrange(i + 1, end + 1):
-                        value += 1
-                for dd in self.drivers:
-                    ss, ee = self.get_time_interval(dd, edge)
-                    for i1 in xrange(start, end + 1):
-                        for i2 in xrange(i1 + 1, ee + 1):
-                            for j2 in xrange(i2 + 1, ee + 1):
-                                for j1 in xrange(j2 + 1, end + 1):
-                                    value += 1
+                        value += 2
         for driver in self.drivers:
             value += 1
-            for node in self.graph.nodes_iter():
-                if node not in map(lambda t: self.graph.build_node(driver.end, t), xrange(*self.end_interval(driver))):
+            ending_nodes = set(map(lambda t: self.TEGgraph.build_node(driver.end, t), xrange(*self.end_interval(driver))))
+            for node in self.TEGgraph.nodes_iter():
+                if node not in ending_nodes:
                     value += 1
         return value
 
@@ -283,10 +280,10 @@ class TEGLinearCongestionModel(EdgeCharacterizationModel):
         self.x = {}
         for driver in self.drivers:
             for edge in self.get_edges_for_driver(driver):
-                start, end = self.get_time_interval(driver ,edge)
-                for i in xrange(start, end + 1):
+                start, end = self.get_time_interval(driver, edge)
+                for i in xrange(start, end):
                     for j in xrange(i + 1, end + 1):
-                        _edge = self.graph.build_edge(edge, i, j)
+                        _edge = self.TEGgraph.build_edge(edge, i, j)
                         self.x[_edge, driver] = \
                             self.model.addVar(0.0, name='x[%s,%s]' % (str(_edge), str(driver)), vtype=self.vtype)
 
@@ -297,54 +294,56 @@ class TEGLinearCongestionModel(EdgeCharacterizationModel):
         for driver in self.drivers:
             for edge in self.get_edges_for_driver(driver):
                 start, end = self.get_time_interval(driver, edge)
-                for i in xrange(start, end + 1):
+                for i in xrange(start, end):
                     for j in xrange(i + 1, end + 1):
                         self.add_constraint(
-                            self.x[self.graph.build_edge(edge, i, j), driver] -
-                            quicksum(self.x.get((self.graph.build_edge(edge, ii, j), d), 0)
-                                     for ii in xrange(i) for d in self.drivers)
-                            <= 0,
+                            self.x[self.TEGgraph.build_edge(edge, i, j), driver] * (j - i) <=
+                            self.graph.get_congestion_function(*edge)(
+                                quicksum(self.x.get((self.TEGgraph.build_edge(edge, ii, jj), d), 0)
+                                         for ii in xrange(0, i) for jj in xrange(i + 1, self.horizon + 1)
+                                         for d in self.drivers)
+                            ),
                             name="%s:%s:%s" % (
-                                labels.EXACT_WAITING_TIME,
-                                str(self.graph.build_edge(edge, i, j)),
+                                labels.LOWER_WAITING_TIME,
+                                str(self.TEGgraph.build_edge(edge, i, j)),
                                 str(driver)
                             )
                         )
-                for dd in self.drivers:
-                    ss, ee = self.get_time_interval(dd, edge)
-                    for i1 in xrange(start, end + 1):
-                        for i2 in xrange(i1 + 1, ee + 1):
-                            for j2 in xrange(i2 + 1, ee + 1):
-                                for j1 in xrange(j2 + 1, end + 1):
-                                    self.add_constraint(
-                                        self.x.get((self.graph.build_edge(edge, i1, j1), driver), 0) +
-                                        self.x.get((self.graph.build_edge(edge, i2, j2), dd), 0) <= 1,
-                                        name="%s:%s:%s:%s:%s" % (
-                                            labels.FUTURE_AFTER_PAST,
-                                            str(driver),
-                                            str(self.graph.build_edge(edge, i1, j1)),
-                                            str(dd),
-                                            str(self.graph.build_edge(edge, i2, j2))
-                                        )
-                                    )
+                        self.add_constraint(
+                            self.x[self.TEGgraph.build_edge(edge, i, j), driver] * (j - i) +
+                            self.bigM() * (1 - self.x[self.TEGgraph.build_edge(edge, i, j), driver]) >=
+                            self.graph.get_congestion_function(*edge)(
+                                quicksum(self.x.get((self.TEGgraph.build_edge(edge, ii, jj), d), 0)
+                                         for ii in xrange(0, i) for jj in xrange(i + 1, self.horizon + 1)
+                                         for d in self.drivers)
+                            ),
+                            name="%s:%s:%s" % (
+                                labels.UPPER_WAITING_TIME,
+                                str(self.TEGgraph.build_edge(edge, i, j)),
+                                str(driver)
+                            )
+                        )
         for driver in self.drivers:
             self.add_constraint(
                 quicksum(
-                    self.x.get(((s, self.graph.build_node(driver.end, time)), driver), 0)
+                    self.x.get(((s, self.TEGgraph.build_node(driver.end, time)), driver), 0)
                     for time in xrange(*self.end_interval(driver))
-                    for s in self.graph.predecessors_iter(self.graph.build_node(driver.end, time))
+                    for s in self.TEGgraph.predecessors_iter(self.TEGgraph.build_node(driver.end, time))
                 ) == 1,
                 name="%s:%s" % (labels.ENDING_TIME, str(driver))
             )
-            for node in self.graph.nodes_iter():
-                if node not in map(lambda t: self.graph.build_node(driver.end, t), xrange(*self.end_interval(driver))):
+            ending_nodes = set(map(lambda t: self.TEGgraph.build_node(driver.end, t), xrange(*self.end_interval(driver))))
+            for node in self.TEGgraph.nodes_iter():
+                if node not in ending_nodes:
+                    if self.TEGgraph.get_original_node(node) == driver.start and \
+                                    self.TEGgraph.get_node_layer(node) == driver.time:
+                        res = 1
+                    else:
+                        res = 0
                     self.add_constraint(
-                        quicksum(self.x.get(((node, succ), driver), 0) for succ in self.graph.successors_iter(node)) -
-                        quicksum(self.x.get(((pred, node), driver), 0) for pred in self.graph.predecessors_iter(node)) ==
-                        sum(
-                            1 for time in xrange(*self.start_interval(driver))
-                            if self.graph.build_node(driver.start, time) == node
-                        ),
+                        quicksum(self.x.get(((node, succ), driver), 0) for succ in self.TEGgraph.successors_iter(node)) -
+                        quicksum(self.x.get(((pred, node), driver), 0) for pred in self.TEGgraph.predecessors_iter(node)) ==
+                        res,
                         name="%s:%s:%s" % (labels.TRANSFERT, str(driver), str(node))
                     )
 
@@ -355,9 +354,22 @@ class TEGLinearCongestionModel(EdgeCharacterizationModel):
     def set_objective(self):
         self.model.setObjective(
             quicksum(
-                self.x.get(((s, self.graph.build_node(driver.end, time)), driver), 0) for driver in self.drivers
+                time * self.x.get(((s, self.TEGgraph.build_node(driver.end, time)), driver), 0) for driver in self.drivers
                 for time in xrange(*self.end_interval(driver))
-                for s in self.graph.predecessors_iter(self.graph.build_node(driver.end, time))
+                for s in self.TEGgraph.predecessors_iter(self.TEGgraph.build_node(driver.end, time))
             ),
             GRB.MINIMIZE
         )
+
+    def set_optimal_solution(self):
+        paths = {}
+        for (edge, driver), var in self.x.iteritems():
+            paths.setdefault(driver, [])
+            if var.X == 1.0:
+                paths[driver].append(self.TEGgraph.get_original_edge(edge))
+
+        for driver, edges in paths.iteritems():
+            self.set_optimal_path_to_driver(
+                driver,
+                self.graph.generate_path_from_edges(driver.start, driver.end, edges)
+            )

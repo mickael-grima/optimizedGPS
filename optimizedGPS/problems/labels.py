@@ -15,8 +15,10 @@ NO_CYCLE = 'no-cycle'
 
 ONE_DRIVER_PER_EDGE = "one-driver-per-edge"
 TIME_TRANSFERT = "time-transfert"
-EXACT_WAITING_TIME = "exact-waiting-time"
+LOWER_WAITING_TIME = "lower-waiting-time"
+UPPER_WAITING_TIME = "upper-waiting-time"
 FUTURE_AFTER_PAST = "future-after-past"
+NO_INTERSECTION = "no_intersection"
 
 DIFFERENCE_TO_SHORTEST_PATH = 'difference-to-shortest-path'
 DIFFERENCE_TO_BEST_TRAFFIC = 'difference-to-best-traffic'

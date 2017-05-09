@@ -154,7 +154,7 @@ class StructureTest(unittest.TestCase):
     def testReducedTimeExpandedGraph(self):
         graph = Graph()
         graph.add_edge(1, 2)
-        TEG = ReducedTimeExpandedGraph(graph, 3)
+        TEG = ReducedTimeExpandedGraph(graph, 2)
         self.assertEqual(set(TEG.nodes_iter()), {'1:::0', '1:::1', '1:::2', '2:::2', '2:::1', '2:::0'})
         self.assertEqual(set(TEG.edges_iter()), {('1:::0', '2:::2'), ('1:::0', '2:::1'), ('1:::1', '2:::2')})
 
