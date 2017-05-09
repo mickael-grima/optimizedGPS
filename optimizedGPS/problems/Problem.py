@@ -14,6 +14,7 @@ except ImportError:
 
 from simulator import FromEdgeDescriptionSimulator
 from optimizedGPS import options
+from optimizedGPS.structure import DriversStructure
 
 __all__ = []
 
@@ -32,7 +33,7 @@ class Problem(object):
                  timeout=sys.maxint, solving_type=SolvinType.SOLVER,):
         self.graph = graph
         self.drivers_graph = drivers_graph
-        self.drivers_structure = drivers_structure
+        self.drivers_structure = drivers_structure or DriversStructure(graph, drivers_graph, horizon=horizon)
 
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
@@ -121,8 +122,6 @@ class Problem(object):
         """
         if self.drivers_structure is not None:
             return self.drivers_structure.get_possible_edges_for_driver(driver)
-        else:
-            return self.graph.iter_original_edges()
 
     def get_time_interval(self, driver, edge):
         if self.drivers_structure is not None:

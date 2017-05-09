@@ -3,7 +3,7 @@
 
 import unittest
 
-from optimizedGPS import options
+from optimizedGPS import options, labels
 from optimizedGPS.data.data_generator import (
     generate_graph_from_file,
     generate_grid_data,
@@ -11,8 +11,8 @@ from optimizedGPS.data.data_generator import (
 )
 from optimizedGPS.problems.Comparator import BoundsHandler, MultipleGraphComparator, ResultsHandler
 from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, ShortestPathTrafficFree, RealGPS
-from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel
-from optimizedGPS.structure import Driver, DriversGraph
+from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel, TEGModel
+from optimizedGPS.structure import Driver, DriversGraph, GPSGraph
 
 
 class ProblemsTest(unittest.TestCase):
@@ -89,6 +89,44 @@ class ProblemsTest(unittest.TestCase):
             for algo, rs in res.iteritems():
                 if algo not in [options.LOWER_BOUND_LABEL, options.UPPER_BOUND_LABEL]:
                     self.assertIn(rs[2], ['SUCCESS', 'TIMEOUT'], 'FAILED for algo %s on graph %s' % (algo, graph))
+
+    def testTEGModel(self):
+        # 1 driver
+        graph = GPSGraph()
+        graph.add_edge("0", "1", **{labels.CONGESTION_FUNC: lambda x: x + 2})
+        graph.add_edge("0", "2", **{labels.CONGESTION_FUNC: lambda x: 2 * x + 2})
+        graph.add_edge("1", "2", **{labels.CONGESTION_FUNC: lambda x: x + 1})
+
+        drivers_graph = DriversGraph()
+        driver = Driver("0", "2", 0)
+        drivers_graph.add_driver(driver)
+
+        model = TEGModel(graph, drivers_graph, horizon=2)
+
+        self.assertEqual(len(model.x), 9)  # number of variables
+
+        model.solve()
+
+        self.assertEqual(model.opt_solution[driver], ('0', '2'))
+        self.assertEqual(model.value, 2)
+
+        # 3 drivers
+        driver2 = Driver("0", "2", 0)
+        driver3 = Driver("0", "2", 1)
+        drivers_graph.add_driver(driver2)
+        drivers_graph.add_driver(driver3)
+
+        model = TEGModel(graph, drivers_graph, horizon=4)
+
+        self.assertEqual(len(model.x), 90)
+
+        model.solve()
+
+        # self.assertEqual(filter(lambda v: v.X == 1, model.x.itervalues()), 2)
+        self.assertEqual(model.opt_solution[driver], ('0', '2'))
+        self.assertEqual(model.opt_solution[driver2], ('0', '2'))
+        self.assertEqual(model.opt_solution[driver3], ('0', '1', '2'))
+        self.assertEqual(model.value, 8)
 
 
 if __name__ == '__main__':

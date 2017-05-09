@@ -17,8 +17,8 @@ class DriversStructure(object):
         self.horizon = horizon
 
         self.unreachable_edges = defaultdict(lambda: defaultdict(lambda: 0))
-        self.safety_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, sys.maxint)))
-        self.presence_intervals = defaultdict(lambda: defaultdict(lambda: Interval(sys.maxint, sys.maxint)))
+        self.safety_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, horizon)))
+        self.presence_intervals = defaultdict(lambda: defaultdict(lambda: Interval(horizon, horizon)))
 
     def set_unreachable_edge_to_driver(self, driver, edge):
         self.unreachable_edges[driver][edge] = 1
