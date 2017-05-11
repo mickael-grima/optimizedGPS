@@ -4,6 +4,7 @@
 import logging
 import sys
 import time
+from collections import defaultdict
 
 try:
     import gurobipy as gb
@@ -13,25 +14,46 @@ except ImportError:
 
 from simulator import FromEdgeDescriptionSimulator
 from optimizedGPS import options
+from optimizedGPS.structure import DriversStructure
 
 __all__ = []
 
 log = logging.getLogger(__name__)
 
 
+class SolvinType:
+    SOLVER = 0
+    HEURISTIC = 1
+
+
 class Problem(object):
     """ Initialize the problems' classes
     """
-    def __init__(self, timeout=sys.maxint):
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint,
+                 timeout=sys.maxint, solving_type=SolvinType.SOLVER,):
+        self.graph = graph
+        self.drivers_graph = drivers_graph
+        self.drivers_structure = drivers_structure or DriversStructure(graph, drivers_graph, horizon=horizon)
+
         self.value = 0  # final value of the problem
         self.running_time = 0  # running time
-        self.opt_solution = {}  # On wich path are each driver
         self.timeout = timeout  # After this time we stop the algorithms
-
+        self.solving_type = solving_type
         self.status = options.NOT_RUN  # status
+        self.horizon = horizon
+
+        self.opt_solution = {}  # On wich path are each driver
+        self.opt_simulator = None
+        """
+        Given a driver, if an edge is not in the associated set, the driver will never use it in the optimal solution
+        """
+        self.unreachable_edges_for_driver = defaultdict(set)
 
     def get_status(self):
         return self.status
+
+    def set_status(self, status):
+        self.status = status
 
     def solve_with_solver(self):
         """
@@ -49,14 +71,19 @@ class Problem(object):
         log.error(message)
         raise NotImplementedError(message)
 
-    def solve(self, heuristic=False):
+    def solve(self):
         """
-        Solve the current problem
+        Solve the current problem.
+        The optimal solution has to be set during the solving
         """
-        if heuristic:
+        if self.solving_type == SolvinType.HEURISTIC:
             self.solve_with_heuristic()
-        else:
+        elif self.solving_type == SolvinType.SOLVER:
             self.solve_with_solver()
+        self.opt_simulator = FromEdgeDescriptionSimulator(
+            self.get_graph(), self.get_drivers_graph(), self.opt_solution)
+        self.opt_simulator.simulate()
+        self.value = self.get_optimal_value()
 
     def set_optimal_solution(self):
         """
@@ -65,6 +92,15 @@ class Problem(object):
         message = "Not implemented yet"
         log.error(message)
         raise NotImplementedError(message)
+
+    def get_optimal_driver_path(self, driver):
+        """
+        Return the optimal path set to driver
+
+        :param driver: Driver object
+        :return: tuple of nodes
+        """
+        return self.opt_solution.get(driver, ())
 
     def set_optimal_path_to_driver(self, driver, path):
         """
@@ -80,6 +116,20 @@ class Problem(object):
             raise TypeError(message)
         self.opt_solution[driver] = path
 
+    def get_edges_for_driver(self, driver):
+        """
+        return the set of edges on which the driver can drive
+        """
+        if self.drivers_structure is not None:
+            return self.drivers_structure.get_possible_edges_for_driver(driver)
+
+    def get_time_interval(self, driver, edge):
+        if self.drivers_structure is not None:
+            start, end = self.drivers_structure.get_safety_interval(driver, edge)
+            return start if start is not None else 0, end if end is not None else 0
+        else:
+            return 0, self.drivers_structure.horizon
+
     def iter_optimal_solution(self):
         """ yield for each driver his assigned path
         """
@@ -90,16 +140,43 @@ class Problem(object):
         """
         return the graph (GPSGraph instance)
         """
-        log.error("Not implemented yet")
-        raise NotImplementedError("Not implemented yet")
+        return self.graph
+
+    def get_drivers_graph(self):
+        """
+        return the drivers' graph (DriversGraph instance)
+        """
+        return self.drivers_graph
+
+    def get_drivers_structure(self):
+        return self.drivers_structure
 
     def get_optimal_value(self):
         """
         Using the self.optimal_solution, we simulate with FromEdgeDescriptionSimulator the optimal value.
         """
-        simulator = FromEdgeDescriptionSimulator(self.get_graph(), self.opt_solution)
+        return self.opt_simulator.get_value()
+
+    def get_partial_optimal_value(self, drivers=()):
+        """
+        Compute the optimal value only for the given set of drivers
+
+        :param drivers: set of drivers
+        :return:
+        """
+        simulator = FromEdgeDescriptionSimulator(
+            self.get_graph(),
+            self.get_drivers_graph(),
+            {driver: path for driver, path in self.opt_solution.iteritems() if driver in drivers}
+        )
         simulator.simulate()
         return simulator.get_value()
+
+    def set_optimal_value(self):
+        """
+        After solving, we set self.value using a simulator
+        """
+        self.value = self.get_optimal_value()
 
     def get_value(self):
         """
@@ -112,18 +189,29 @@ class Problem(object):
     def get_running_time(self):
         return self.running_time
 
+    def get_driver_driving_time(self, driver):
+        """
+        Return the driving time of driver considering the optimal solution
+
+        :param driver: Driver object
+        :return: Integer
+        """
+        value = 0
+        waiting_times = {driver: self.opt_simulator.get_driver_waiting_times(driver)
+                         for driver in self.get_drivers_graph().get_all_drivers()}
+        for edge in self.get_graph().iter_edges_in_path(self.get_optimal_driver_path(driver)):
+            value += waiting_times[driver][edge]
+        return value
+
+    def is_edge_reachable_for_driver(self, driver, edge):
+        return edge not in self.unreachable_edges_for_driver.get(driver, set())
+
 
 class SimulatorProblem(Problem):
     """ Initialize algorithm which use a simulator.
     The attribute simulator  should be instantiate in each subclass.
     The simulator should inherits from the super class Simulator
     """
-    def __init__(self, timeout=sys.maxint):
-        super(SimulatorProblem, self).__init__(timeout=timeout)
-
-    def get_graph(self):
-        return self.simulator.graph
-
     def set_optimal_solution(self):
         self.opt_solution = {}
         for driver, path in self.simulator.iter_edge_description():
@@ -140,16 +228,16 @@ class SimulatorProblem(Problem):
         self.simulate()
 
         self.running_time = time.time() - ct
-        self.value = self.get_optimal_value()
 
 
 class Model(Problem):
     """ Initialize the models' classes
     """
-    def __init__(self, graph, timeout=sys.maxint, **params):
-        super(Model, self).__init__(timeout=timeout)
+    def __init__(self, graph, drivers_graph, drivers_structure=None, timeout=sys.maxint, horizon=sys.maxint,
+                 solving_type=SolvinType.SOLVER, **params):
+        super(Model, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure, horizon=horizon,
+                                    timeout=timeout, solving_type=solving_type)
         self.model = gb.Model()
-        self.graph = graph
         params['TimeLimit'] = timeout
         params['LogToConsole'] = 0
         self.set_parameters(**params)
@@ -170,7 +258,8 @@ class Model(Problem):
         Set Gurobi parameters
         """
         for key, value in kwargs.iteritems():
-            self.model.setParam(key, value)
+            if key != "horizon":
+                self.model.setParam(key, value)
 
     def build_constants(self):
         """
@@ -228,10 +317,13 @@ class Model(Problem):
         self.optimize()
         self.running_time = time.time() - t
         self.set_optimal_solution()
-        self.value = self.get_optimal_value()
+        self.set_status(options.SUCCESS)
 
     def get_graph(self):
         return self.graph
+
+    def get_drivers_graph(self):
+        return self.drivers_graph
 
     def get_objectif(self):
         try:

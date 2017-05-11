@@ -31,7 +31,7 @@ ALGO = namedtuple('algo', ['algo', 'args', 'kwargs'])
 PACKAGE_PATH = os.path.dirname(os.path.realpath(__file__))
 
 if _import() is True:
-    KNOWN_PROBLEMS = ["BestPathTrafficModel", "FixedWaitingTimeModel"]
+    KNOWN_PROBLEMS = ["BestPathTrafficModel", "FixedWaitingTimeModel", "TEGLinearCongestionModel"]
     KNOWN_HEURISTICS = ["ShortestPathHeuristic", "ShortestPathTrafficFree", "RealGPS"]
 else:
     KNOWN_PROBLEMS = []

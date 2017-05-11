@@ -15,11 +15,12 @@ log = logging.getLogger(__name__)
 
 
 class GPSGraph(Graph):
-    """ This class contains every instances and methods describing a Graph for our problem
-        It inherits from Graph, and contains the drivers
+    """
+    This class allows to add drivers on the graph
+    It inherits from :class:``Graph <optimizedGPS.Graph>``, and contains the drivers
 
-        drivers are stored as a tuple (starting node, ending node, starting time) to which we associate a number
-        which represents how many drivers for these informations we have
+    drivers are stored as a tuple (starting node, ending node, starting time) to which we associate a number
+    which represents how many drivers we have
     """
     PROPERTIES = Graph.PROPERTIES
     PROPERTIES['edges'].update({
@@ -29,7 +30,9 @@ class GPSGraph(Graph):
 
     def __init__(self, name='graph', data=None, **attr):
         super(GPSGraph, self).__init__(name=name, data=data, **attr)
-        # drivers
+        """
+        set of drivers
+        """
         self.__drivers = defaultdict(lambda: defaultdict())
 
     # ----------------------------------------------------------------------------------------
@@ -38,20 +41,38 @@ class GPSGraph(Graph):
 
     def add_edge(self, u, v, distance=None, lanes=None, traffic_limit=None, max_speed=None, attr_dict=None,
                  **attr):
+        """
+        Call the super-method :func:``add_node <Graph.add_node>`` with some more parameters.
+
+        :param u: source node
+        :param v: target node
+
+        * options:
+
+            * ``distance=None``: distance of the added edge. If None, we add the default value.
+            * ``lanes=None``: number of lanes of the added edge. If None, we add the default value.
+            * ``traffic_limit=None``: maximal traffic before the beginning of a congestion.
+                                      If None, we add the default value.
+            * ``max_speed=None``: max speed allowed. If None, we add the default value.
+            * ``attr_dict=None``: Other attributes to add.
+            * ``**attr``: Other attributes to add.
+        """
         props = {
-            labels.TRAFFIC_LIMIT: self.compute_traffic_limit(u, v),
+            # labels.TRAFFIC_LIMIT: self.compute_traffic_limit(u, v),
+            labels.TRAFFIC_LIMIT: self.PROPERTIES['edges'][labels.TRAFFIC_LIMIT],
             labels.MAX_SPEED: self.PROPERTIES['edges'][labels.MAX_SPEED]
         }
         if attr_dict is not None:
             props.update(attr_dict)
         props[labels.TRAFFIC_LIMIT] = traffic_limit if traffic_limit is not None else props[labels.TRAFFIC_LIMIT]
         props[labels.MAX_SPEED] = max_speed if max_speed is not None else props[labels.MAX_SPEED]
-        super(Graph, self).add_edge(u, v, distance=distance, lanes=lanes, attr_dict=props, **attr)
+        super(GPSGraph, self).add_edge(u, v, distance=distance, lanes=lanes, attr_dict=props, **attr)
 
     def compute_traffic_limit(self, source, target, **data):
         """
-        Considering the the length of the edge (see Graph.get_edge_length) and the number of lanes
-        we return the limit traffic which represents a limit before a congestion traffic appears on it
+        Considering the length of the edge (see :func:``get_edge_length <Graph.get_edge_length>``) and
+        the number of lanes we return the limit traffic which represents a limit before a congestion traffic
+        appears on it.
 
         :param source: node source
         :param target: node target
@@ -62,90 +83,68 @@ class GPSGraph(Graph):
         return float(length) / constants[labels.CAR_LENGTH] * data.get(constants[labels.LANES], 1)
 
     def get_congestion_function(self, source, target):
+        """
+        return the congestion function concerning the edge (`source`, `target`).
+        See also :func:``congestion_function <utils.tools.congestion_function>``
+
+        :param source: source node
+        :param target: target node
+
+        :return: func
+        """
         if self.has_edge(source, target):
-            return congestion_function(**self.get_edge_data(source, target))
+            congestion = self.get_edge_property(source, target, labels.CONGESTION_FUNC)
+            return congestion or congestion_function(**self.get_edge_data(source, target))
 
     def get_minimum_waiting_time(self, source, target):
+        """
+        Computes and returns the time needed to cross the edge without traffic.
+
+        :param source: source node
+        :param target: target node
+
+        :return: integer
+        """
         if self.has_edge(source, target):
             return congestion_function(**self.get_edge_data(source, target))(0)
 
     def get_traffic_limit(self, source, target):
+        """
+        Computes and returns the traffic limit: the traffic after which we observe a congestion.
+
+        :param source: source node
+        :param target: target node
+
+        :return: int
+        """
         return self.get_edge_property(source, target, labels.TRAFFIC_LIMIT)
 
     # ----------------------------------------------------------------------------------------
     # ---------------------------------- DRIVERS ---------------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def has_driver(self, driver):
-        """ return True if graph contains at least one driver from start to end
+    def get_shortest_path_through_edge(self, driver, edge, edge_property=labels.DISTANCE):
         """
-        return driver in self.__drivers
+        compute the shortest path for driver containing edge.
+        If edge is unreachable for driver, we return None.
 
-    def add_driver(self, driver, force=False):
-        """ add nb drivers with the given properties
+        :param driver:
+        :param edge:
+        :param edge_property: value on edge to consider for computing the shortest path
+        :return: path (tuple of nodes)
         """
-        if force or self.has_node(driver.start) and self.has_node(driver.end):
-            self.__drivers[driver] = {}
-            return True
-        log.warning("Node %s or %s doesn't exist in graph %s", driver.start, driver.end, self.name)
-        return False
-
-    def set_drivers_property(self, driver, prop, value):
-        """ set properties to the given drivers and returns True if driver exists
-            else return False
-
-            if starting_time == None, add a property to every drivers from start to end
-        """
-        if self.has_driver(driver):
-            self.__drivers[driver][prop] = value
-            return True
-        log.warning('Driver %s doesn\'t exist in graph %s', driver, self.name)
-        return False
-
-    def get_drivers(self, start, end, starting_time=None):
-        """ return the drivers from start to end, and with the given starting_time if not None
-        """
-        for driver in self.__drivers:
-            if driver.start == start and driver.end == end and (starting_time is None or driver.time == starting_time):
-                yield driver
-
-    def get_drivers_property(self, driver, prop):
-        if self.has_driver(driver):
-            return self.__drivers[driver].get(prop)
-        log.warning('Driver %s doesn\'t exist in graph %s', driver, self.name)
-        return None
-
-    def get_all_drivers(self):
-        for driver in self.__drivers:
-            yield driver
-
-    def get_all_drivers_from_starting_node(self, start):
-        for driver in self.__drivers:
-            if driver.start == start:
-                yield driver
-
-    def get_all_drivers_to_ending_node(self, end):
-        for driver in self.__drivers:
-            if driver.end == end:
-                yield driver
-
-    def remove_driver(self, driver):
-        if self.has_driver(driver):
-            del self.__drivers[driver]
-            return True
-        log.warning('Driver %s doesn\'t exist in graph %s', driver, self.name)
-        return False
-
-    def number_of_drivers(self):
-        return len(self.__drivers)
-
-    def get_time_ordered_drivers(self):
-        """
-        Return a list of drivers sorted by starting time
-
-        :return: list
-        """
-        return sorted(self.get_all_drivers(), key=lambda d: d.time)
+        try:
+            if edge[0] == driver.start:
+                path = (edge[0],)
+            else:
+                path = self.get_shortest_path(driver.start, edge[0], edge_property=edge_property)
+            if edge[1] == driver.end:
+                path += (edge[1],)
+            else:
+                path += self.get_shortest_path(edge[1], driver.end, edge_property=edge_property)
+            return path
+        except StopIteration:  # Not path reaching edge
+            return None
 
     # ----------------------------------------------------------------------------------------
     # ------------------------------------ OTHERS --------------------------------------------

@@ -41,10 +41,10 @@ class DataTest(unittest.TestCase):
         graph = generate_grid_data(length=length, width=width, graph_name='test-graph')
 
         nb_drivers, av_drivers = random.randint(5, 20), random.randint(1, 5)
-        generate_random_drivers(graph, total_drivers=nb_drivers, av_drivers=av_drivers)
+        drivers_graph = generate_random_drivers(graph, total_drivers=nb_drivers, av_drivers=av_drivers)
 
         # exactly nb_drivers drivers in graph
-        self.assertEqual(nb_drivers, graph.number_of_drivers())
+        self.assertEqual(nb_drivers, drivers_graph.number_of_drivers())
 
     def testOSMAPI(self):
         min_lon, min_lat, max_lon, max_lat = -1.55, 47.21, -1.549, 47.211

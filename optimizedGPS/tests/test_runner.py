@@ -8,8 +8,10 @@ testmodules = [
     'DataTest',
     'StructureTest',
     'SimulatorTest',
+    'PreSolverTest',
     'GurobiTest',
-    'ProblemsTest'
+    'ProblemsTest',
+    'PreSolverTest'
 ]
 
 suite = unittest.TestSuite()

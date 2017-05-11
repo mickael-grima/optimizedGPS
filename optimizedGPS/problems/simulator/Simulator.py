@@ -31,9 +31,11 @@ class Simulator(object):
     EXIT = '@@EXIT@@'
     Time = namedtuple('Time', ['object', 'time'])
 
-    def __init__(self, graph, timeout=sys.maxint):
-        """graph instance, containing drivers"""
+    def __init__(self, graph, drivers_graph, timeout=sys.maxint):
+        """graph instance"""
         self.graph = graph
+        """drivers graph instance, containing drivers"""
+        self.drivers_graph = drivers_graph
         """Maximum time allowed for simulating"""
         self.timeout = timeout
         """Status"""
@@ -42,7 +44,10 @@ class Simulator(object):
         self.events = defaultdict(lambda: SortedListWithKey(key=lambda c: c.time))
         """Sorted list of tuple (driver, clock)"""
         self.clocks = SortedListWithKey(key=lambda c: c.time)
-        for driver in graph.get_all_drivers():
+        self.initialize_clocks()
+
+    def initialize_clocks(self):
+        for driver in self.drivers_graph.get_all_drivers():
             self.add_clock(driver, driver.time)
 
     def add_clock(self, driver, time):
@@ -163,23 +168,54 @@ class Simulator(object):
                 return
         self.status = options.SUCCESS
 
-    def get_maximum_driving_time(self):
+    def get_maximum_driving_time(self, drivers=None):
         """
         Return the worst driving time
+        If drivers is not None, we just consider the drivers inside drivers
         """
-        return max(self.events.itervalues(), key=lambda e: e[-1].time if len(e) > 0 else 0)[-1].time
+        if drivers is None:
+            return max(self.events.itervalues(), key=lambda e: e[-1].time if len(e) > 0 else 0)[-1].time
+        else:
+            return max(
+                map(lambda d: self.events[d], filter(lambda d: d in drivers, self.events.iterkeys())),
+                key=lambda e: e[-1].time if len(e) > 0 else 0
+            )[-1].time
 
-    def get_sum_driving_time(self):
+    def get_sum_driving_time(self, drivers=None):
         """
         Return the sum of every driving time
         """
-        return sum(map(lambda e: e[-1].time - e[0].time, self.events.itervalues()))
+        if drivers is None:
+            return sum(map(lambda e: e[-1].time - e[0].time, self.events.itervalues()))
+        else:
+            return sum(map(
+                lambda d: self.events[d][-1].time - self.events[d][0].time,
+                filter(lambda d: d in drivers, self.events.iterkeys())
+            ))
 
-    def get_sum_ending_time(self):
+    def get_maximum_ending_time(self, drivers=None):
+        """
+        Return the max of ending times
+        """
+        if drivers is None:
+            return max(map(lambda e: e[-1].time, self.events.itervalues()))
+        else:
+            return max(map(
+                lambda d: self.events[d][-1].time,
+                filter(lambda d: d in drivers, self.events.iterkeys())
+            ))
+
+    def get_sum_ending_time(self, drivers=None):
         """
         Return the sum of ending times
         """
-        return sum(map(lambda e: e[-1].time, self.events.itervalues()))
+        if drivers is None:
+            return sum(map(lambda e: e[-1].time, self.events.itervalues()))
+        else:
+            return sum(map(
+                lambda d: self.events[d][-1].time,
+                filter(lambda d: d in drivers, self.events.iterkeys())
+            ))
 
     def get_value(self):
         """
@@ -201,6 +237,11 @@ class Simulator(object):
         for driver, path_clocks in self.events.iteritems():
             yield driver, tuple(map(lambda e: e.object[0], path_clocks))
 
+    def iter_edge_in_driver_path(self, driver):
+        path = [edge for d, edge in self.iter_edge_description() if d == driver][0]
+        for e in self.graph.iter_edges_in_path(path):
+            yield e
+
     def get_starting_times(self, driver):
         """
         Return the dictionary of starting times on each visited edge by drivers
@@ -212,6 +253,37 @@ class Simulator(object):
             log.error(message)
             raise KeyError(message)
         return {p.object: p.time for p in self.events[driver]}
+
+    def get_ending_time(self, driver):
+        """
+        Return the time at which the driver reach @@EXIT@@
+
+        :param driver: driver object
+        :return:
+        """
+        for p in self.events[driver]:
+            if p.object[-1] == self.EXIT:
+                return p.time
+
+    def get_driver_waiting_times(self, driver):
+        """
+        For each edge, compute the associated waiting time of driver
+
+        :param driver: Driver object
+        :return: dict
+        """
+        previous_edge = None
+        waiting_times = {}
+        starting_times = self.get_starting_times(driver)
+        for edge in self.iter_edge_in_driver_path(driver):
+            starting_time = starting_times[edge]
+            waiting_times[edge] = starting_time
+            if previous_edge is not None:
+                waiting_times[previous_edge] = starting_time - waiting_times[previous_edge]
+            previous_edge = edge
+        if previous_edge in waiting_times:
+            waiting_times[previous_edge] = self.get_ending_time(driver) - waiting_times[previous_edge]
+        return waiting_times
 
     def get_traffic(self, edge, time):
         """
@@ -235,10 +307,14 @@ class FromEdgeDescriptionSimulator(Simulator):
     """
     This Simulator simulate the edge-description and starting times from an edge_description
     """
-    def __init__(self, graph, edge_description, timeout=sys.maxint):
-        super(FromEdgeDescriptionSimulator, self).__init__(graph, timeout=timeout)
+    def __init__(self, graph, drivers_graph, edge_description, timeout=sys.maxint):
         """For each driver, the path he has to follow"""
         self.edge_description = edge_description
+        super(FromEdgeDescriptionSimulator, self).__init__(graph, drivers_graph, timeout=timeout)
+
+    def initialize_clocks(self):
+        for driver in self.edge_description.iterkeys():
+            self.add_clock(driver, driver.time)
 
     def get_next_edge(self, driver):
         if driver not in self.edge_description:
@@ -264,4 +340,3 @@ class FromEdgeDescriptionSimulator(Simulator):
                           % (str(driver), str(current_edge))
                 log.error(message)
                 raise StopIteration(message)
-

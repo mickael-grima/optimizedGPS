@@ -66,9 +66,134 @@ class TimeExpandedGraph(object):
                         graph.get_edge_data(source, target)
                     )
 
-        # add drivers
-        if isinstance(graph, GPSGraph):
-            for start, end, time, nb in graph.get_all_drivers():
-                TEG.add_driver(start, end, time, nb=nb, force=True)
-
         return TEG
+
+
+class ReducedTimeExpandedGraph(object):
+    """
+    This class represents a time expanded graph: given a graph, we provide methods to iterate the existing edges
+    in the TEG given an edge.
+    The main goal is to never build the TEG, this class only describe the TEG building what need when we call a
+    specific method.
+    """
+    SEPARATOR = ":::"
+    NODE_NAME_FORMAT = "%s" + SEPARATOR + "%s"
+
+    def __init__(self, graph, horizon):
+        """
+        :param graph: Graph instance
+        :param horizon: integer representing the number of layers
+        """
+        self.graph = graph
+        self.horizon = horizon
+
+    def number_of_layers(self):
+        return self.horizon
+
+    def build_node(self, node, layer):
+        """
+        build a node in the TEG from the orignal node belonging to the given layer.
+
+        :param node: node from the original graph
+        :param layer:
+        :return:
+        """
+        return self.NODE_NAME_FORMAT % (str(node), layer)
+
+    def get_node_layer(self, node):
+        return int(node.split(self.SEPARATOR)[-1])
+
+    def get_original_node(self, node):
+        """
+        Return the node from original graph from which we built the input node
+
+        :param node: node in TEG
+        :return: node in orignal Graph
+        """
+        return self.SEPARATOR.join(node.split(self.SEPARATOR)[:-1])
+
+    def iter_nodes_from_node(self, node, layer=0):
+        """
+        Iterate every nodes in TEG built from node, starting at layer
+
+        :param node: node from original graph
+        :param layer: layer of built node
+        """
+        for i in xrange(layer, self.horizon + 1):
+            yield self.build_node(node, i)
+
+    def nodes_iter(self):
+        """
+        Iterate every nodes in TEG
+        """
+        for node in self.graph.nodes_iter():
+            for n in self.iter_nodes_from_node(node):
+                yield n
+
+    def build_edge(self, edge, layer_source, layer_target):
+        """
+        Build an edge in the TEG.
+
+        :param edge: edge in the original graph
+        :param layer_source: layer for the source node
+        :param layer_target: layer for the target node
+        :return: tuple
+        """
+        return self.build_node(edge[0], layer_source), self.build_node(edge[1], layer_target)
+
+    def get_original_edge(self, edge):
+        """
+        Return the edge in original graph from which we built the input edge
+
+        :param edge: edge from TEG
+        :return: tuple
+        """
+        return self.get_original_node(edge[0]), self.get_original_node(edge[1])
+
+    def iter_edges_from_edge(self, source, target, layer=0):
+        """
+        Iterate the edges built from edge.
+        We start from the given layer.
+        """
+        for s in self.iter_nodes_from_node(source, layer=layer):
+            for t in self.iter_nodes_from_node(target, layer=self.get_node_layer(s) + 1):
+                yield s, t
+
+    def edges_iter(self):
+        """
+        Iterate the edges in the TEG.
+        """
+        for edge in self.graph.edges_iter():
+            for e in self.iter_edges_from_edge(*edge):
+                yield e
+
+    def iter_original_edges(self):
+        """
+        Iterate edges in the original graph
+        """
+        for edge in self.graph.edges_iter():
+            yield edge
+
+    def predecessors_iter(self, node):
+        """
+        Iterate the predecessors of edge in the TEG
+
+        :param node: Node in TEG
+        """
+        original_node = self.get_original_node(node)
+        node_layer = self.get_node_layer(node)
+        for n in self.graph.predecessors_iter(original_node):
+            for l in xrange(0, node_layer):
+                yield self.build_node(n, l)
+
+    def successors_iter(self, node):
+        """
+        Iterate the successors of edge in the TEG
+
+        :param node: Node in TEG
+        """
+        original_node = self.get_original_node(node)
+        node_layer = self.get_node_layer(node)
+        for n in self.graph.successors_iter(original_node):
+            for l in xrange(node_layer + 1, self.horizon + 1):
+                yield self.build_node(n, l)

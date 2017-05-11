@@ -1,26 +1,19 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
-import logging
-
-from optimizedGPS.logger import configure
-
-configure()
-log = logging.getLogger(__name__)
-
 import unittest
+
 from networkx import NetworkXError
 from optimizedGPS.structure import Graph
 from optimizedGPS.structure import GPSGraph
-from optimizedGPS.structure import TimeExpandedGraph
+from optimizedGPS.structure import TimeExpandedGraph, ReducedTimeExpandedGraph
 from optimizedGPS.data.data_generator import generate_graph_from_file
 from optimizedGPS.structure import Driver
+from optimizedGPS.structure import DriversGraph
+from optimizedGPS.structure import DriversStructure
 
 
 class StructureTest(unittest.TestCase):
-    def setUp(self):
-        log.info("STARTING tests")
-
     def testStructure(self):
         graph = Graph(name='graph')
 
@@ -63,6 +56,7 @@ class StructureTest(unittest.TestCase):
 
     def testDrivers(self):
         graph = GPSGraph(name='graph')
+        drivers_graph = DriversGraph()
 
         graph.add_node('node0')
         graph.add_node('node1')
@@ -73,30 +67,27 @@ class StructureTest(unittest.TestCase):
         driver2 = Driver('node0', 'node2', 2)
 
         # add drivers
-        self.assertTrue(graph.add_driver(driver0))
-        self.assertFalse(graph.add_driver(driver1))
-        self.assertTrue(graph.add_driver(driver2, force=True))
+        drivers_graph.add_driver(driver0)
+        drivers_graph.add_driver(driver2)
+        self.assertRaises(TypeError, drivers_graph.add_driver, '4')
 
         # "has" assertions
-        self.assertTrue(graph.has_driver(driver0))
-        self.assertFalse(graph.has_driver(driver1))
-        self.assertTrue(graph.has_driver(driver2))
+        self.assertTrue(drivers_graph.has_driver(driver0))
+        self.assertFalse(drivers_graph.has_driver(driver1))
+        self.assertTrue(drivers_graph.has_driver(driver2))
 
         # "getAll" functions
-        self.assertEqual({driver0, driver2}, set(graph.get_all_drivers()))
-        self.assertEqual({driver0, driver2}, set(graph.get_all_drivers_from_starting_node('node0')))
-        self.assertEqual(driver0, graph.get_all_drivers_to_ending_node('node1').next())
+        self.assertEqual({driver0, driver2}, set(drivers_graph.get_all_drivers()))
+        self.assertEqual({driver0, driver2}, set(drivers_graph.get_all_drivers_from_starting_node('node0')))
+        self.assertEqual(driver0, drivers_graph.get_all_drivers_to_ending_node('node1').next())
 
         # properties
-        self.assertTrue(graph.set_drivers_property(driver0, 'names', {'first': 'first', 'last': 'last'}))
-        self.assertIsNone(graph.get_drivers_property(driver1, 'names'))
-        self.assertEqual({'first': 'first', 'last': 'last'}, graph.get_drivers_property(driver0, 'names'))
+        drivers_graph.add_driver(driver1, names=dict(first='first', last='last'))
+        self.assertEqual({'first': 'first', 'last': 'last'}, drivers_graph.get_driver_property(driver1, 'names'))
 
         # remove
-        self.assertTrue(graph.remove_driver(driver0))
-        self.assertTrue(graph.has_driver(driver2))
-        self.assertFalse(graph.has_driver(driver0))
-        self.assertFalse(graph.remove_driver(driver0))
+        drivers_graph.remove_driver(driver0)
+        self.assertFalse(drivers_graph.has_driver(driver0))
 
     def testParser(self):
         graph = generate_graph_from_file('static/graph-test-0.graphml')
@@ -159,6 +150,62 @@ class StructureTest(unittest.TestCase):
         TEG = TimeExpandedGraph.create_time_expanded_graph_from_linear_congestion(graph, 3)
         self.assertEqual(TEG.nodes(), ['1:0', '1:1', '1:2', '2:2', '2:1', '2:0'])
         self.assertEqual(TEG.edges(), [('1:0', '2:2'), ('1:0', '2:1'), ('1:1', '2:2')])
+
+    def testReducedTimeExpandedGraph(self):
+        graph = Graph()
+        graph.add_edge(1, 2)
+        TEG = ReducedTimeExpandedGraph(graph, 2)
+        self.assertEqual(set(TEG.nodes_iter()), {'1:::0', '1:::1', '1:::2', '2:::2', '2:::1', '2:::0'})
+        self.assertEqual(set(TEG.edges_iter()), {('1:::0', '2:::2'), ('1:::0', '2:::1'), ('1:::1', '2:::2')})
+
+    def testDriversStructure(self):
+        graph = Graph()
+        graph.add_edge(1, 2)
+        graph.add_edge(1, 3)
+        graph.add_edge(2, 3)
+
+        drivers_graph = DriversGraph()
+        driver1 = Driver(1, 2, 0)
+        driver2 = Driver(1, 3, 0)
+        drivers_graph.add_driver(driver1)
+        drivers_graph.add_driver(driver2)
+
+        drivers_structure = DriversStructure(graph, drivers_graph, horizon=10)
+        # driver1
+        drivers_structure.set_safety_interval_to_driver(driver1, (1, 2), (0, 5))
+        drivers_structure.set_presence_interval_to_driver(driver1, (1, 2), (2, 3))
+        drivers_structure.set_safety_interval_to_driver(driver1, (2, 3), (4, 7))
+        drivers_structure.set_presence_interval_to_driver(driver1, (2, 3), (5, 7))
+        drivers_structure.set_unreachable_edge_to_driver(driver1, (1, 3))
+        # driver2
+        drivers_structure.set_safety_interval_to_driver(driver2, (1, 2), (0, 3))
+        drivers_structure.set_presence_interval_to_driver(driver2, (1, 2), (1, 3))
+        drivers_structure.set_safety_interval_to_driver(driver2, (2, 3), (4, 17))
+        drivers_structure.set_presence_interval_to_driver(driver2, (2, 3), (4, 7))
+        drivers_structure.set_safety_interval_to_driver(driver2, (1, 3), (0, 5))
+        drivers_structure.set_presence_interval_to_driver(driver2, (1, 3), (2, 3))
+
+        # Set intervals
+        self.assertRaises(Exception, drivers_structure.set_safety_interval_to_driver, driver1, (2, 3), (None, 3))
+        self.assertRaises(Exception, drivers_structure.set_presence_interval_to_driver, driver2, (2, 3), (1, "rt"))
+
+        # Reachable edges
+        self.assertTrue(drivers_structure.is_edge_reachable_by_driver(driver1, (1, 2)))
+        self.assertTrue(drivers_structure.is_edge_reachable_by_driver(driver2, (2, 3)))
+        self.assertFalse(drivers_structure.is_edge_reachable_by_driver(driver1, (1, 3)))
+
+        # get intervals
+        self.assertEqual((0, 5), drivers_structure.get_safety_interval(driver2, (1, 3)))
+        self.assertEqual((4, 10), drivers_structure.get_safety_interval(driver2, (2, 3)))
+        self.assertEqual((0, 10), drivers_structure.get_largest_safety_interval_before_end(driver2))
+        self.assertEqual((0, 5), drivers_structure.get_largest_safety_interval_after_start(driver2))
+
+        # edges
+        self.assertTrue(drivers_structure.are_edges_time_connected_for_driver(driver1, (1, 2), (2, 3)))
+        self.assertFalse(drivers_structure.are_edges_time_connected_for_driver(driver2, (1, 2), (2, 3)))
+        self.assertEqual(((1, 2), (1, 3)), tuple(drivers_structure.get_possible_edges_for_driver(driver2)))
+        self.assertEqual(((1, 2), (2, 3)), tuple(drivers_structure.get_possible_edges_for_driver(driver1)))
+        self.assertTrue(drivers_structure.are_drivers_dependent(driver1, driver2))
 
 
 if __name__ == '__main__':
