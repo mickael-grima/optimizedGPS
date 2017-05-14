@@ -97,7 +97,7 @@ class DriverPreSolver(ShortestPathPreSolver):
             path += self.graph.get_shortest_path(edge[1], driver.end) if edge[1] != driver.end else (edge[1],)
         except StopIteration:  # Not path reaching edge
             return False
-        d_time = sum(map(lambda e: self.graph.get_congestion_function(*e)(0), self.graph.iter_edges_in_path(path)))
+        d_time = sum(map(lambda e: self.graph.get_minimum_waiting_time(*e), self.graph.iter_edges_in_path(path)))
         return d_time <= self.heuristic.get_driver_driving_time(driver)
 
 
@@ -116,7 +116,7 @@ class GlobalPreSolver(ShortestPathPreSolver):
         :return: Boolean
         """
         path = self.graph.get_shortest_path_through_edge(driver, edge)
-        d_time = sum(map(lambda e: self.graph.get_congestion_function(*e)(0), self.graph.iter_edges_in_path(path)))
+        d_time = sum(map(lambda e: self.graph.get_minimum_waiting_time(*e), self.graph.iter_edges_in_path(path)))
 
         other_drivers = [d for d in self.drivers_graph.get_all_drivers() if d != driver]
         partial = self.heuristic.get_partial_optimal_value(other_drivers)
@@ -131,14 +131,23 @@ class GlobalPreSolver(ShortestPathPreSolver):
         :param driver: Driver instance
         :return:
         """
-        other_drivers = [d for d in self.drivers_graph.get_all_drivers() if d != driver]
-        partial = self.heuristic.get_partial_optimal_value(other_drivers)
+        partial = self.heuristic.get_partial_optimal_value(
+            [d for d in self.drivers_graph.get_all_drivers() if d != driver])
+        opt_value = self.heuristic.get_optimal_value()
         for edge in self.graph.edges_iter():
-            path = self.graph.get_shortest_path_through_edge(driver, edge)
+            path = self.graph.get_shortest_path_through_edge(
+                driver, edge, key=self.graph.get_minimum_waiting_time)
             if path is not None:
-                d_time = sum(map(lambda e: self.graph.get_congestion_function(*e)(0), self.graph.iter_edges_in_path(path)))
-                if partial + d_time + driver.time <= self.heuristic.get_optimal_value():
+                d_time = sum(map(
+                    lambda e: self.graph.get_minimum_waiting_time(*e),
+                    self.graph.iter_edges_in_path(path)
+                ))
+                if partial + d_time + driver.time <= opt_value:
                     yield edge
+                # else:
+                #     print "Edge: %s\nDriver: %s, %s, %s\nPartial: %s\nOpt: %s\n\n" \
+                #           % (edge, driver.to_tuple(), d_time, self.heuristic.get_driver_driving_time(driver), partial,
+                #              opt_value)
 
 
 class DrivingTimeIntervalPresolver(PreSolver):
@@ -277,24 +286,26 @@ class DrivingTimeIntervalPresolver(PreSolver):
                         self.compute_minimum_starting_time(driver, edge),
                         self.drivers_structure.horizon
                     )
-                    if min_starting_time > self.drivers_structure.get_safety_interval(driver, edge).lower:
-                        self.drivers_structure.set_safety_interval_to_driver(
-                            driver, edge,
-                            (min_starting_time, self.drivers_structure.get_safety_interval(driver, edge).upper)
-                        )
-                        edge_update = True
+                    if min_starting_time is not None:
+                        if min_starting_time > self.drivers_structure.get_safety_interval(driver, edge).lower:
+                            self.drivers_structure.set_safety_interval_to_driver(
+                                driver, edge,
+                                (min_starting_time, self.drivers_structure.get_safety_interval(driver, edge).upper)
+                            )
+                            edge_update = True
 
                     # Presence interval
                     max_starting_time = min(
                         self.compute_maximum_starting_time(driver, edge),
                         self.drivers_structure.horizon
                     )
-                    if max_starting_time < self.drivers_structure.get_presence_interval(driver, edge).lower:
-                        self.drivers_structure.set_presence_interval_to_driver(
-                            driver, edge,
-                            (max_starting_time, self.drivers_structure.get_presence_interval(driver, edge).upper)
-                        )
-                        edge_update = True
+                    if max_starting_time is not None:
+                        if max_starting_time < self.drivers_structure.get_presence_interval(driver, edge).lower:
+                            self.drivers_structure.set_presence_interval_to_driver(
+                                driver, edge,
+                                (max_starting_time, self.drivers_structure.get_presence_interval(driver, edge).upper)
+                            )
+                            edge_update = True
 
                     if min_starting_time is None or max_starting_time is None:
                         self.set_unreachable_edge_to_driver(driver, edge)
@@ -318,9 +329,9 @@ class DrivingTimeIntervalPresolver(PreSolver):
         return has_new_value
 
     def solve(self):
-        print "Solving %s" % self.__class__.__name__
+        # print "Solving %s" % self.__class__.__name__
         has_next_step, n = True, 0
         while (self.niter < 0 or n <= self.niter) and has_next_step:
             has_next_step = self.next()
             n += 1
-        print "Solved after %s iteration(s)" % n
+        # print "Solved after %s iteration(s)" % n

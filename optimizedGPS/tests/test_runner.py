@@ -11,7 +11,7 @@ testmodules = [
     'PreSolverTest',
     'GurobiTest',
     'ProblemsTest',
-    'PreSolverTest'
+    # 'ComparatorsTest'
 ]
 
 suite = unittest.TestSuite()

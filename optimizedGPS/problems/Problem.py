@@ -83,7 +83,7 @@ class Problem(object):
         self.opt_simulator = FromEdgeDescriptionSimulator(
             self.get_graph(), self.get_drivers_graph(), self.opt_solution)
         self.opt_simulator.simulate()
-        self.value = self.get_optimal_value()
+        self.set_optimal_value()
 
     def set_optimal_solution(self):
         """
@@ -136,6 +136,15 @@ class Problem(object):
         for driver, path in self.opt_solution.iteritems():
             yield driver, path
 
+    def iter_complete_optimal_solution(self):
+        """
+        return for each driver his optimal path and the starting time on each edge
+        """
+        for driver in self.get_drivers_graph().get_all_drivers():
+            optimal_path = self.opt_solution[driver]
+            starting_times = self.opt_simulator.get_starting_times(driver)
+            yield driver, ((edge, starting_times[edge]) for edge in self.graph.iter_edges_in_path(optimal_path))
+
     def get_graph(self):
         """
         return the graph (GPSGraph instance)
@@ -155,7 +164,7 @@ class Problem(object):
         """
         Using the self.optimal_solution, we simulate with FromEdgeDescriptionSimulator the optimal value.
         """
-        return self.opt_simulator.get_value()
+        return self.value
 
     def get_partial_optimal_value(self, drivers=()):
         """
@@ -164,10 +173,12 @@ class Problem(object):
         :param drivers: set of drivers
         :return:
         """
+        if len(drivers) == 0:
+            return 0
         simulator = FromEdgeDescriptionSimulator(
             self.get_graph(),
             self.get_drivers_graph(),
-            {driver: path for driver, path in self.opt_solution.iteritems() if driver in drivers}
+            {driver: self.opt_solution[driver] for driver in drivers}
         )
         simulator.simulate()
         return simulator.get_value()
@@ -176,7 +187,7 @@ class Problem(object):
         """
         After solving, we set self.value using a simulator
         """
-        self.value = self.get_optimal_value()
+        self.value = self.opt_simulator.get_value()
 
     def get_value(self):
         """
@@ -245,7 +256,6 @@ class Model(Problem):
         self.count = {}
 
         self.initialize(**params)
-        self.build_model()
 
     def initialize(self, *args, **kwargs):
         """

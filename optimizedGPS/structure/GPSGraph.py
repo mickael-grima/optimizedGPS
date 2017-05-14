@@ -128,7 +128,7 @@ class GPSGraph(Graph):
         :return: integer
         """
         if self.has_edge(source, target):
-            return congestion_function(**self.get_edge_data(source, target))(0)
+            return self.get_congestion_function(source, target)(0)
 
     def get_traffic_limit(self, source, target):
         """
@@ -145,7 +145,7 @@ class GPSGraph(Graph):
     # ---------------------------------- DRIVERS ---------------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def get_shortest_path_through_edge(self, driver, edge, edge_property=labels.DISTANCE):
+    def get_shortest_path_through_edge(self, driver, edge, edge_property=labels.DISTANCE, key=None):
         """
         compute the shortest path for driver containing edge.
         If edge is unreachable for driver, we return None.
@@ -153,17 +153,18 @@ class GPSGraph(Graph):
         :param driver:
         :param edge:
         :param edge_property: value on edge to consider for computing the shortest path
+        :param key:
         :return: path (tuple of nodes)
         """
         try:
             if edge[0] == driver.start:
                 path = (edge[0],)
             else:
-                path = self.get_shortest_path(driver.start, edge[0], edge_property=edge_property)
+                path = self.get_shortest_path(driver.start, edge[0], edge_property=edge_property, key=key)
             if edge[1] == driver.end:
                 path += (edge[1],)
             else:
-                path += self.get_shortest_path(edge[1], driver.end, edge_property=edge_property)
+                path += self.get_shortest_path(edge[1], driver.end, edge_property=edge_property, key=key)
             return path
         except StopIteration:  # Not path reaching edge
             return None
@@ -222,14 +223,12 @@ class GPSGraph(Graph):
                 del next_nodes[t]
                 del times[0]
 
+            # Check if already visited
+            if current in visited:
+                continue
+            visited.add(current)
+
             for n in self.successors(current):
-                # if visited, skip
-                if n in visited:
-                    continue
-
-                # else add t in visited
-                visited.add(n)
-
                 # get traffic at t
                 current_traffic = 0
                 for i in sorted(traffic_history.get((current, n), {}).keys()):

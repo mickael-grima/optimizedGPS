@@ -47,7 +47,7 @@ class DataTest(unittest.TestCase):
         self.assertEqual(nb_drivers, drivers_graph.number_of_drivers())
 
     def testOSMAPI(self):
-        min_lon, min_lat, max_lon, max_lat = -1.55, 47.21, -1.549, 47.211
+        min_lat, min_lon, max_lat, max_lon = -1.55, 47.21, -1.549, 47.211
         rmapper = RoadMapper()
         graph = rmapper.get_graph(min_lon, min_lat, max_lon, max_lat)
         stats = graph.get_stats()

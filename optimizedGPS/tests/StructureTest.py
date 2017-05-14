@@ -207,6 +207,29 @@ class StructureTest(unittest.TestCase):
         self.assertEqual(((1, 2), (2, 3)), tuple(drivers_structure.get_possible_edges_for_driver(driver1)))
         self.assertTrue(drivers_structure.are_drivers_dependent(driver1, driver2))
 
+    def test_shortest_path_with_traffic(self):
+        graph = GPSGraph()
+        graph.add_edge(0, 1, congestion_func=lambda x: 3 * x + 3)
+        graph.add_edge(0, 2, congestion_func=lambda x: 4)
+        graph.add_edge(1, 3, congestion_func=lambda x: 1)
+        graph.add_edge(2, 3, congestion_func=lambda x: 4)
+        graph.add_edge(3, 1, congestion_func=lambda x: 13)
+
+        driver1 = Driver(0, 3, 0)
+        driver2 = Driver(0, 3, 1)
+        driver3 = Driver(0, 1, 2)
+        drivers_graph = DriversGraph()
+        drivers_graph.add_driver(driver1)
+        drivers_graph.add_driver(driver2)
+        drivers_graph.add_driver(driver3)
+
+        path1 = graph.get_shortest_path_with_traffic(0, 3, 0, {})
+        self.assertEqual(path1, ((0, 0), (1, 3), (3, 4)))
+        traffic_history = {(0, 1): {0: 1, 3: 0}, (1, 3): {3: 1, 4: 0}}
+
+        path2 = graph.get_shortest_path_with_traffic(0, 3, 1, traffic_history)
+        self.assertEqual(path2, ((0, 1), (1, 7), (3, 8)))
+
 
 if __name__ == '__main__':
     unittest.main()

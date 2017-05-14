@@ -4,6 +4,7 @@
 # In this file we generate all kind of data: real one, random one, ...
 
 import random
+import math
 
 from optimizedGPS.structure import GPSGraph
 from optimizedGPS.structure import GraphMLParser
@@ -81,7 +82,8 @@ def generate_random_drivers(graph, total_drivers=10, av_drivers=3, seed=None):
         nb = max(random.gauss(av_drivers, 1.), 0.0)
         nb = int(min(nb, total))
         for n in range(nb):
-            drivers_graph.add_driver(Driver(start, end, 0))
+            starting_time = random.randint(0, int(math.log(nb)) + 1)
+            drivers_graph.add_driver(Driver(start, end, starting_time))
         total -= nb
     return drivers_graph
 

@@ -2,6 +2,7 @@
 # !/bin/env python
 
 import logging
+from collections import defaultdict
 
 try:
     from gurobipy import GRB, quicksum
@@ -248,7 +249,8 @@ class TEGModel(EdgeCharacterizationModel):
         return start if start is not None else 0, end + 1 if end is not None else 0
 
     def bigM(self):
-        return max([self.graph.get_congestion_function(*edge)(self.horizon + 1) for edge in self.graph.edges_iter()])
+        return max([self.graph.get_congestion_function(*edge)(self.drivers_graph.number_of_drivers())
+                    for edge in self.graph.edges_iter()])
 
     def number_of_variables(self):
         value = 0

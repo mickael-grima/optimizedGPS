@@ -25,7 +25,10 @@ class ShortestPathHeuristic(SimulatorProblem):
         edges_description = {}  # for each driver we assign him a path
         for driver in drivers_graph.get_all_drivers():
             try:
-                path = graph.get_shortest_path(driver.start, driver.end)
+                path = graph.get_shortest_path(
+                    driver.start, driver.end,
+                    key=self.graph.get_minimum_waiting_time
+                )
             except StopIteration:
                 message = "Imposible to find shortest path from node %s to node %s in graph %s"\
                           % (driver.start, driver.end, graph.name)
@@ -94,9 +97,10 @@ class RealGPS(Problem):
             path = ()
             for i in range(len(driver_history) - 1):
                 node, t = driver_history[i]
-                nxt = driver_history[i + 1][0]
+                nxt, t_nxt = driver_history[i + 1]
                 path += (node,)
                 traffic[node, nxt][t] += 1
+                traffic[node, nxt][t_nxt] = max(traffic[node, nxt][t_nxt] - 1, 0)
             path += (driver_history[-1][0],)
             self.set_optimal_path_to_driver(driver, path)
         self.set_status(options.SUCCESS)
