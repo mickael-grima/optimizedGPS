@@ -262,3 +262,29 @@ class GPSGraph(Graph):
                         paths[n].add(path + ((n, new_time),))
 
         return min(paths[end], key=lambda p: p[-1][1])
+
+    def get_lowest_driving_time(self, driver):
+        """
+        Compute the minimum driving time on graph for driver
+        """
+        def key(e): self.get_congestion_function(*e)(0)
+        path = self.get_shortest_path(driver.start, driver.end, key=key)
+        return sum(map(lambda e: key(e), self.iter_edges_in_path(path)))
+
+    def get_lowest_driving_time_with_traffic(self, driver, traffic):
+        """
+        Compute the minimum driving time on graph for driver with traffic
+        """
+        driver_history = self.get_shortest_path_with_traffic(driver.start, driver.end, driver.time, traffic)
+        return driver_history[-1][1] - driver_history[0][1]
+
+    @classmethod
+    def enrich_traffic_with_driver_history(cls, traffic, driver_history):
+        """
+        Add the driver's history into the traffic
+        """
+        for i in range(len(driver_history) - 1):
+            node, t = driver_history[i]
+            nxt, t_nxt = driver_history[i + 1]
+            traffic[node, nxt][t] += 1
+            traffic[node, nxt][t_nxt] = max(traffic[node, nxt][t_nxt] - 1, 0)

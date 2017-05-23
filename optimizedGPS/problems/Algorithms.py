@@ -1,8 +1,10 @@
 import time
 from collections import defaultdict
 
-from Models import FixedWaitingTimeModel
+from Models import FixedWaitingTimeModel, TEGModel
 from Problem import Problem, SolvinType
+from optimizedGPS.structure.DriversGraph import DriversGraph
+from optimizedGPS.structure.DriversStructure import DriversStructure
 
 
 class ConstantModelAlgorithm(Problem):
@@ -342,3 +344,63 @@ class DrivingTimeIntervalAlgorithm(Problem):
             line += "\n"
             to_print += line
         return to_print
+
+
+class TEGColumnGenerationAlgorithm(Problem):
+    def initialize(self):
+        """
+        1. Find the driver whith the minimum ending time
+        2. create a drivers graph containing only this driver
+        3. Set every edges not on shortest path as unreachable
+        4. Set presence interval for every reachable edges
+        5. create the model with appropriate horizon
+        """
+        driver = min(
+            self.drivers_graph.get_all_drivers(),
+            key=lambda d: d.time + self.graph.get_lowest_driving_time(d)
+        )
+        path = self.graph.get_shortest_path(
+            driver.start, driver.end, key=lambda e: self.graph.get_congestion_function(*e)(0))
+        sub_drivers_graph = DriversGraph()
+        sub_drivers_graph.add_driver(driver)
+
+        sub_drivers_structure = DriversStructure(self.graph, sub_drivers_graph)
+        edges = set(self.graph.iter_edges_in_path(path))
+        for edge in self.graph.edges_iter():
+            if edge not in edges:
+                sub_drivers_structure.set_unreachable_edge_to_driver(driver, edge)
+        # start = driver.time
+        # for edge in self.graph.iter_edges_in_path(path):
+        #     sub_drivers_structure.set_presence_interval_to_driver(
+        #         driver, edge, (start, start + self.graph.get_congestion_function(*edge)(0)))
+        #     start += self.graph.get_congestion_function(*edge)(0)
+
+        self.model = TEGModel(self.graph, sub_drivers_graph, sub_drivers_structure, horizon=self.horizon)
+
+    def solve_with_solver(self):
+        """
+        Solve the model and compare the values:
+           - if we don't improve the value, add a new driver into the model, and compute his best path
+           - else add a new path for the worst driver
+        """
+        self.model.solve()
+        if self.value == self.model.value:  # Optimality reached for this set of drivers: add 1 driver
+            traffic = self.get_traffic()
+            other_drivers = set(self.model.drivers_graph.get_all_drivers())
+            try:
+                driver = min(
+                    [driver for driver in self.drivers_graph if driver not in other_drivers],
+                    key=lambda d: d.time + self.graph.get_lowest_driving_time_with_traffic(d, traffic)
+                )
+            except ValueError:  # Every drivers have already been added. Global optimality reached
+                return
+            path = map(
+                lambda e: e[0],
+                self.graph.get_shortest_path_with_traffic(driver.start, driver.end, driver.time, traffic)
+            )
+            self.model.add_driver(driver, set(self.graph.iter_edges_in_path(path)))
+        else:  # Find a bad driver and generate variables
+            driver = self.get_worst_driver()
+            path = self.get_best_possible_path_for_driver(driver)
+            self.model.add_edges_for_driver(driver, self.graph.iter_edges_in_path(path))
+        self.value = self.model.value

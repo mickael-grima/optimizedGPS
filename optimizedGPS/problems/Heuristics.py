@@ -94,13 +94,7 @@ class RealGPS(Problem):
         traffic = defaultdict(lambda: defaultdict(lambda: 0))
         for driver in drivers:
             driver_history = self.graph.get_shortest_path_with_traffic(driver.start, driver.end, driver.time, traffic)
-            path = ()
-            for i in range(len(driver_history) - 1):
-                node, t = driver_history[i]
-                nxt, t_nxt = driver_history[i + 1]
-                path += (node,)
-                traffic[node, nxt][t] += 1
-                traffic[node, nxt][t_nxt] = max(traffic[node, nxt][t_nxt] - 1, 0)
-            path += (driver_history[-1][0],)
+            self.graph.enrich_traffic_with_driver_history(traffic, driver_history)
+            path = tuple(map(lambda e: e[0], driver_history))
             self.set_optimal_path_to_driver(driver, path)
         self.set_status(options.SUCCESS)

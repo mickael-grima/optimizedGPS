@@ -214,6 +214,15 @@ class Problem(object):
             value += waiting_times[driver][edge]
         return value
 
+    def get_traffic(self):
+        """
+        Return the traffic corresponding to the optimal solution
+        """
+        traffic = defaultdict(lambda: defaultdict(lambda: 0))
+        for _, driver_history in self.iter_complete_optimal_solution():
+            self.graph.enrich_traffic_with_driver_history(traffic, driver_history)
+        return traffic
+
     def is_edge_reachable_for_driver(self, driver, edge):
         return edge not in self.unreachable_edges_for_driver.get(driver, set())
 
