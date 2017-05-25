@@ -27,6 +27,9 @@ class DriversStructure(object):
         if driver in self.presence_intervals and edge in self.presence_intervals[driver]:
             del self.presence_intervals[driver][edge]
 
+    def set_reachable_edge_to_driver(self, driver, edge):
+        self.unreachable_edges[driver][edge] = 0
+
     def set_safety_interval_to_driver(self, driver, edge, interval):
         """
         Add a safety interval to driver for edge.

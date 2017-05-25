@@ -9,10 +9,10 @@ from optimizedGPS.structure.DriversStructure import DriversStructure
 
 
 class PreSolver(object):
-    def __init__(self, graph, drivers_graph, horizon=sys.maxint):
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint):
         self.graph = graph
         self.drivers_graph = drivers_graph
-        self.drivers_structure = DriversStructure(graph, drivers_graph, horizon=horizon)
+        self.drivers_structure = drivers_structure or DriversStructure(graph, drivers_graph, horizon=horizon)
 
     def get_graph(self):
         return self.graph
@@ -47,8 +47,9 @@ class PreSolver(object):
 
 
 class ShortestPathPreSolver(PreSolver):
-    def __init__(self, graph, drivers_graph, horizon=sys.maxint, heuristic=None):
-        super(ShortestPathPreSolver, self).__init__(graph, drivers_graph, horizon=horizon)
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint, heuristic=None):
+        super(ShortestPathPreSolver, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
+                                                    horizon=horizon)
         from optimizedGPS.problems.Heuristics import RealGPS
         self.heuristic = heuristic(graph, drivers_graph) if heuristic is not None else RealGPS(graph, drivers_graph)
 
@@ -159,12 +160,20 @@ class DrivingTimeIntervalPresolver(PreSolver):
     At each step we compute theoretical maximal and minimal traffics on each edge for each driver, and from these
     traffics we ae able to compute the intervals into the next steps.
     """
-    def __init__(self, graph, drivers_graph, horizon=sys.maxint, niter=-1):
-        super(DrivingTimeIntervalPresolver, self).__init__(graph, drivers_graph, horizon=horizon)
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint, niter=-1):
+        super(DrivingTimeIntervalPresolver, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
+                                                           horizon=horizon)
         self.niter = niter
         # Traffics for each driver on each edge
         self.min_traffics = defaultdict(lambda: defaultdict(lambda: 0))
         self.max_traffics = defaultdict(lambda: defaultdict(lambda: self.drivers_graph.number_of_drivers() - 1))
+        self.update_traffics()
+
+    def update_traffics(self):
+        for driver in self.drivers_graph.get_all_drivers():
+            for edge in self.drivers_structure.get_possible_edges_for_driver(driver):
+                self.set_minimum_traffic(driver, edge, self.compute_minimum_traffic(driver, edge))
+                self.set_maximum_traffic(driver, edge, self.compute_maximal_traffic(driver, edge))
 
     def get_minimum_traffic(self, driver, edge):
         if self.is_edge_reachable_by_driver(driver, edge):
@@ -320,18 +329,11 @@ class DrivingTimeIntervalPresolver(PreSolver):
                         )
                     has_new_value = has_new_value or edge_update
 
-        for edge in self.get_graph().edges_iter():
-            for driver in self.get_drivers_graph().get_all_drivers():
-                if self.is_edge_reachable_by_driver(driver, edge):
-                    self.set_minimum_traffic(driver, edge, self.compute_minimum_traffic(driver, edge))
-                    self.set_maximum_traffic(driver, edge, self.compute_maximal_traffic(driver, edge))
-
+        self.update_traffics()
         return has_new_value
 
     def solve(self):
-        # print "Solving %s" % self.__class__.__name__
         has_next_step, n = True, 0
         while (self.niter < 0 or n <= self.niter) and has_next_step:
             has_next_step = self.next()
             n += 1
-        # print "Solved after %s iteration(s)" % n

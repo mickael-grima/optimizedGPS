@@ -36,3 +36,5 @@ if _import() is True:
 else:
     KNOWN_PROBLEMS = []
     KNOWN_HEURISTICS = ["ShortestPathHeuristic", "ShortestPathTrafficFree", "RealGPS"]
+
+HORIZON = 1000

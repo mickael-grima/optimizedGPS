@@ -2,6 +2,7 @@
 # !/bin/env python
 
 import logging
+from collections import defaultdict
 
 try:
     from gurobipy import GRB, quicksum
@@ -277,62 +278,46 @@ class TEGModel(EdgeCharacterizationModel):
                     value += 1
         return value
 
-    def add_driver(self, driver, edges):
-        self.drivers_graph.add_driver(driver)
-        for edge in self.graph.edges_iter():
-            if edge in edges:
-                start, end = 0, self.horizon
-                self.generate_variables(driver, edge, start, end, update=True)
-                self.generate_constraints(driver, edge, start, end)
-            else:
-                self.drivers_structure.set_unreachable_edge_to_driver(driver, edge)
-
-    def add_edges_for_driver(self, driver, edges):
-        for edge in edges:
-            self.drivers_structure.set_reachable_edge_for_driver(driver, edge)
-            start, end = 0, self.horizon
-            self.generate_variables(driver, edge, start, end, update=True)
-            self.generate_constraints(driver, edge, start, end)
-
-    def generate_variables(self, driver, edge, start, end, update=False):
+    def generate_variables(self, driver, edge, start, end):
+        new_index = set()
         for i in xrange(start, end):
             for j in xrange(i + 1, end + 1):
                 _edge = self.TEGgraph.build_edge(edge, i, j)
-                self.x[_edge, driver] = \
-                    self.model.addVar(0.0, name='x[%s,%s]' % (str(_edge), str(driver)), vtype=self.vtype)
-        if update:
-            self.model.update()
+                if self.x.get((_edge, driver)) is None:
+                    self.x[_edge, driver] = \
+                        self.model.addVar(0.0, name='x[%s,%s]' % (str(_edge), str(driver)), vtype=self.vtype)
+                    new_index.add((i, j))
+        return new_index
 
-    def generate_constraints(self, driver, edge, start, end):
-        for i in xrange(start, end):
-            for j in xrange(i + 1, end + 1):
-                self.add_constraint(
-                    self.x[self.TEGgraph.build_edge(edge, i, j), driver] * (j - i) <=
-                    self.graph.get_congestion_function(*edge)(
-                        quicksum(self.x.get((self.TEGgraph.build_edge(edge, ii, jj), d), 0)
-                                 for ii in xrange(0, i) for jj in xrange(i + 1, self.horizon + 1)
-                                 for d in self.drivers)
-                    ),
-                    name="%s:%s:%s" % (
-                        labels.LOWER_WAITING_TIME,
-                        str(self.TEGgraph.build_edge(edge, i, j)),
-                        str(driver)
-                    )
+    def generate_constraints(self, driver, edge, new_index):
+        for (i, j) in new_index:
+            self.add_constraint(
+                self.x[self.TEGgraph.build_edge(edge, i, j), driver] * (j - i) <=
+                self.graph.get_congestion_function(*edge)(
+                    quicksum(self.x.get((self.TEGgraph.build_edge(edge, ii, jj), d), 0)
+                             for ii in xrange(0, i) for jj in xrange(i + 1, self.horizon + 1)
+                             for d in self.drivers)
+                ),
+                name="%s:%s:%s" % (
+                    labels.LOWER_WAITING_TIME,
+                    str(self.TEGgraph.build_edge(edge, i, j)),
+                    str(driver)
                 )
-                self.add_constraint(
-                    self.x[self.TEGgraph.build_edge(edge, i, j), driver] * (j - i) +
-                    self.bigM() * (1 - self.x[self.TEGgraph.build_edge(edge, i, j), driver]) >=
-                    self.graph.get_congestion_function(*edge)(
-                        quicksum(self.x.get((self.TEGgraph.build_edge(edge, ii, jj), d), 0)
-                                 for ii in xrange(0, i) for jj in xrange(i + 1, self.horizon + 1)
-                                 for d in self.drivers)
-                    ),
-                    name="%s:%s:%s" % (
-                        labels.UPPER_WAITING_TIME,
-                        str(self.TEGgraph.build_edge(edge, i, j)),
-                        str(driver)
-                    )
+            )
+            self.add_constraint(
+                self.x[self.TEGgraph.build_edge(edge, i, j), driver] * (j - i) +
+                self.bigM() * (1 - self.x[self.TEGgraph.build_edge(edge, i, j), driver]) >=
+                self.graph.get_congestion_function(*edge)(
+                    quicksum(self.x.get((self.TEGgraph.build_edge(edge, ii, jj), d), 0)
+                             for ii in xrange(0, i) for jj in xrange(i + 1, self.horizon + 1)
+                             for d in self.drivers)
+                ),
+                name="%s:%s:%s" % (
+                    labels.UPPER_WAITING_TIME,
+                    str(self.TEGgraph.build_edge(edge, i, j)),
+                    str(driver)
                 )
+            )
         self.add_constraint(
             quicksum(
                 self.x.get(((s, self.TEGgraph.build_node(driver.end, time)), driver), 0)
@@ -355,6 +340,19 @@ class TEGModel(EdgeCharacterizationModel):
                     res,
                     name="%s:%s:%s" % (labels.TRANSFERT, str(driver), str(node))
                 )
+
+    def update_variables(self):
+        new_variale_keys = defaultdict(set)
+        for driver in self.drivers_graph.get_all_drivers():
+            for edge in self.get_edges_for_driver(driver):
+                start, end = self.get_time_interval(driver, edge)
+                new_variale_keys[driver, edge] = self.generate_variables(driver, edge ,start, end)
+        return new_variale_keys
+
+    def update_constraints(self, new_keys):
+        for driver in self.drivers_graph.get_all_drivers():
+            for edge in self.get_edges_for_driver(driver):
+                self.generate_constraints(driver, edge, new_keys[driver, edge])
 
     def build_variables(self):
         self.x = {}

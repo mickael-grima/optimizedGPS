@@ -44,16 +44,19 @@ class Problem(object):
 
         self.opt_solution = {}  # On wich path are each driver
         self.opt_simulator = None
-        """
-        Given a driver, if an edge is not in the associated set, the driver will never use it in the optimal solution
-        """
-        self.unreachable_edges_for_driver = defaultdict(set)
 
     def get_status(self):
         return self.status
 
     def set_status(self, status):
         self.status = status
+
+    def set_horizon(self, horizon):
+        self.horizon = horizon
+        self.drivers_structure.horizon = horizon
+
+    def update(self):
+        pass
 
     def solve_with_solver(self):
         """
@@ -214,7 +217,7 @@ class Problem(object):
             value += waiting_times[driver][edge]
         return value
 
-    def get_traffic(self):
+    def get_optimal_traffic(self):
         """
         Return the traffic corresponding to the optimal solution
         """
@@ -223,8 +226,35 @@ class Problem(object):
             self.graph.enrich_traffic_with_driver_history(traffic, driver_history)
         return traffic
 
-    def is_edge_reachable_for_driver(self, driver, edge):
-        return edge not in self.unreachable_edges_for_driver.get(driver, set())
+    def add_driver(self, driver, unreachable_edges=()):
+        """
+        Add driver to every data structures
+        """
+        if not self.drivers_graph.has_driver(driver):
+            self.drivers_graph.add_driver(driver)
+        if not self.drivers_structure.drivers_graph.has_driver(driver):
+            self.drivers_structure.drivers_graph.add_driver(driver)
+        for edge in unreachable_edges:
+            self.drivers_structure.set_unreachable_edge_to_driver(driver, edge)
+
+    def add_edges_for_driver(self, driver, edges):
+        """
+        Add edges to this driver, and update the problem
+        """
+        for edge in edges:
+            self.drivers_structure.set_reachable_edge_to_driver(driver, edge)
+
+    def compute_difference_driving_time(self, driver):
+        """
+        Considering the driver's optimal path, compute his driving time and compare it to the driving time
+        on the same path without traffic. Return the difference.
+        """
+        opt_driving_time = self.get_driver_driving_time(driver)
+        no_traffic_driving_time = sum(map(
+            lambda e: self.graph.get_congestion_function(*e)(0),
+            self.graph.iter_edges_in_path(self.get_optimal_driver_path(driver))
+        ))
+        return opt_driving_time - no_traffic_driving_time
 
 
 class SimulatorProblem(Problem):
@@ -263,6 +293,7 @@ class Model(Problem):
         self.set_parameters(**params)
 
         self.count = {}
+        self.built = False  # True if the model has already been built
 
         self.initialize(**params)
 
@@ -320,13 +351,35 @@ class Model(Problem):
         pass
 
     def build_model(self):
-        log.info("** Model building STARTED **")
-        self.build_constants()
-        self.build_variables()
-        self.model.update()
-        self.build_constraints()
-        self.set_objective()
-        log.info("** Model building FINISHED **")
+        if self.built is False:
+            log.info("** Model building STARTED **")
+            self.build_constants()
+            self.build_variables()
+            self.model.update()
+            self.build_constraints()
+            self.set_objective()
+            self.built = True
+            log.info("** Model building FINISHED **")
+        else:
+            log.info("** Model has already been BUILT **")
+
+    def update_variables(self):
+        """
+        Check if new drivers and new edges have been added
+        """
+        raise NotImplementedError("not implemented yet")
+
+    def update_constraints(self, new_keys):
+        """
+        new_keys corresponds to the new added variables' keys
+        """
+        raise NotImplementedError("not implemented yet")
+
+    def update(self):
+        if self.built is True:
+            new_keys = self.update_variables()
+            self.model.update()
+            self.update_constraints(new_keys)
 
     def optimize(self):
         self.model.optimize()

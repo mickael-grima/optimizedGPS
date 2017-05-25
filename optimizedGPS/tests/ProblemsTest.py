@@ -51,6 +51,28 @@ class ProblemsTest(unittest.TestCase):
         self.assertEqual(model.opt_solution[driver3], ('0', '1', '2'))
         self.assertEqual(model.value, 8)
 
+    def test_TEG_model_on_congestioned_graph(self):
+        graph = GPSGraph()
+        graph.add_node("source1")
+        graph.add_node("source2")
+        graph.add_node("middle")
+        graph.add_node("target")
+        graph.add_edge("source1", "middle", congestion_func=lambda x: x + 3)
+        graph.add_edge("source2", "middle", congestion_func=lambda x: x + 3)
+        graph.add_edge("source1", "target", congestion_func=lambda x: 5 * x + 7)
+        graph.add_edge("source2", "target", congestion_func=lambda x: 5 * x + 7)
+        graph.add_edge("middle", "target", congestion_func=lambda x: 2 * x + 3)
+
+        drivers_graph = DriversGraph()
+        for i in xrange(10):
+            drivers_graph.add_driver(Driver("source1", "target", i))
+        for i in xrange(10):
+            drivers_graph.add_driver(Driver("source2", "target", i))
+
+        model = TEGModel(graph, drivers_graph, horizon=57)
+        model.build_model()
+        model.solve()
+
     def test_real_GPS(self):
         graph = GPSGraph()
         graph.add_edge(0, 1, congestion_func=lambda x: 3 * x + 3)
