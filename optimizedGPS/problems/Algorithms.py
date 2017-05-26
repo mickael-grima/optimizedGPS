@@ -41,7 +41,8 @@ class TEGColumnGenerationAlgorithm(Problem):
         super(TEGColumnGenerationAlgorithm, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
                                                            **kwargs)
         sub_drivers_graph, sub_drivers_structure = self.get_initial_structures()
-        self.solver = Solver(self.graph, sub_drivers_graph, TEGModel, drivers_structure=sub_drivers_structure)
+        self.solver = Solver(self.graph, sub_drivers_graph, TEGModel, drivers_structure=sub_drivers_structure,
+                             presolvers={'LowerUpperBoundsPresolver'})
 
     def get_initial_structures(self):
         """
@@ -56,7 +57,7 @@ class TEGColumnGenerationAlgorithm(Problem):
             key=lambda d: d.time + self.graph.get_lowest_driving_time(d)
         )
         path = self.graph.get_shortest_path(
-            driver.start, driver.end, key=lambda e: self.graph.get_congestion_function(*e)(0))
+            driver.start, driver.end, key=self.graph.get_minimum_waiting_time)
 
         sub_drivers_graph = DriversGraph()
         sub_drivers_graph.add_driver(driver)
@@ -75,9 +76,9 @@ class TEGColumnGenerationAlgorithm(Problem):
         """
         driver = max(
             self.solver.drivers_graph.get_all_drivers(),
-            key=self.compute_difference_driving_time
+            key=self.solver.compute_difference_driving_time
         )
-        traffic = self.get_optimal_traffic()
+        traffic = self.solver.get_optimal_traffic()
         path = self.graph.get_shortest_path_with_traffic(driver.start, driver.end, driver.time, traffic)
         yield driver, self.graph.iter_edges_in_path(path)
 
@@ -89,7 +90,7 @@ class TEGColumnGenerationAlgorithm(Problem):
         """
         self.solver.solve()
         if self.value == self.solver.value:  # Optimality reached for this set of drivers: add 1 driver
-            traffic = self.get_optimal_traffic()
+            traffic = self.solver.get_optimal_traffic()
             try:
                 driver = min(
                     [driver for driver in self.drivers_graph
@@ -108,4 +109,5 @@ class TEGColumnGenerationAlgorithm(Problem):
         else:  # Find a bad driver and generate variables
             for driver, edges in self.iter_next_edges_for_generation():
                 self.solver.add_edges_for_driver(driver, edges)
+                break
         self.value = self.solver.value

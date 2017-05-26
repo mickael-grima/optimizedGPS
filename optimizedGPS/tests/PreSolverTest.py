@@ -1,7 +1,8 @@
 import unittest
 
 from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers
-from optimizedGPS.problems.PreSolver import GlobalPreSolver, DrivingTimeIntervalPresolver
+from optimizedGPS.problems.PreSolver import GlobalPreSolver, DrivingTimeIntervalPresolver, LowerUpperBoundsPresolver
+from optimizedGPS.problems.simulator.Simulator import FromEdgeDescriptionSimulator
 from optimizedGPS.structure.Driver import Driver
 from optimizedGPS.structure.DriversGraph import DriversGraph
 from optimizedGPS.structure.GPSGraph import GPSGraph
@@ -100,6 +101,55 @@ class PreSolverTest(unittest.TestCase):
         self.assertEqual(presolver.get_minimum_traffic(driver3, (2, 3)), 1)
         self.assertEqual(presolver.get_maximum_traffic(driver1, (2, 3)), 0)
         self.assertEqual(presolver.get_maximum_traffic(driver3, (2, 3)), 1)
+
+    def test_drivers_interval_presolver_feasibility(self):
+        """
+        Check if the shortest paths gives a feasible solution
+        """
+        graph = generate_grid_data(10, 10)
+        for _ in range(5):
+            drivers_graph = generate_random_drivers(graph)
+            presolver = DrivingTimeIntervalPresolver(graph, drivers_graph)
+            presolver.solve()
+
+            solution = {}
+            for driver in drivers_graph.get_all_drivers():
+                solution[driver] = graph.get_shortest_path(
+                    driver.start, driver.end, key=lambda u, v: graph.get_congestion_function(u, v)(0))
+
+            simulator = FromEdgeDescriptionSimulator(graph, drivers_graph, solution)
+            simulator.simulate()
+
+            for driver in drivers_graph.get_all_drivers():
+                starting_times = simulator.get_starting_times(driver)
+                edges = list(graph.iter_edges_in_path(solution[driver]))
+                i = 0
+                while i < len(edges) - 1:
+                    edge = edges[i]
+                    start, end = presolver.drivers_structure.get_presence_interval(driver, edge)
+                    s, e = starting_times[edge], starting_times[edges[i + 1]]
+                    print "%s:%s: %s <= %s <= %s <= %s" % (driver, edge, start, s, e, end)
+                    self.assertLessEqual(start, s)
+                    self.assertGreaterEqual(end, e)
+                    i += 1
+
+
+    def test_lower_upper_bound_presolver(self):
+        graph = generate_grid_data(10, 10)
+        graph.set_global_congestion_function(lambda x: 3 * x + 4)
+
+        drivers_graph = generate_random_drivers(graph, 10)
+
+        presolver = LowerUpperBoundsPresolver(graph, drivers_graph)
+        presolver.solve()
+
+        for driver in drivers_graph.get_all_drivers():
+            possible_edges = set(presolver.drivers_structure.get_possible_edges_for_driver(driver))
+            for edge in graph.iter_edges_in_path(presolver.lower_bound.get_optimal_driver_path(driver)):
+                self.assertIn(edge, possible_edges)
+            for edge in graph.iter_edges_in_path(presolver.upper_bound.get_optimal_driver_path(driver)):
+                self.assertIn(edge, possible_edges)
+
 
 
 if __name__ == "__main__":

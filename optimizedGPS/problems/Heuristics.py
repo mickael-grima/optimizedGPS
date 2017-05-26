@@ -60,7 +60,7 @@ class ShortestPathTrafficFree(Problem):
     def get_optimal_value(self):
         return self.get_value()
 
-    def solve(self):
+    def solve_with_heuristic(self):
         ct = time.time()
         status = None
 
@@ -71,6 +71,7 @@ class ShortestPathTrafficFree(Problem):
                 self.value += self.graph.get_minimum_waiting_time(*edge)
             if time.time() - ct > self.timeout:
                 status = options.TIMEOUT
+            self.set_optimal_path_to_driver(driver, path)
 
         self.status = status if status is not None else options.SUCCESS
         self.running_time = time.time() - ct

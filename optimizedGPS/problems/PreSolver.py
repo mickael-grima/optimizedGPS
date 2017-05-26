@@ -337,3 +337,52 @@ class DrivingTimeIntervalPresolver(PreSolver):
         while (self.niter < 0 or n <= self.niter) and has_next_step:
             has_next_step = self.next()
             n += 1
+
+
+class LowerUpperBoundsPresolver(PreSolver):
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint,
+                 lower_bound=None, upper_bound=None):
+        super(LowerUpperBoundsPresolver, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
+                                                        horizon=horizon)
+
+        if lower_bound is None:
+            from optimizedGPS.problems.Heuristics import ShortestPathTrafficFree
+            self.lower_bound = ShortestPathTrafficFree(graph, drivers_graph, drivers_structure=drivers_structure,
+                                                       horizon=horizon)
+        else:
+            self.lower_bound = lower_bound(graph, drivers_graph, drivers_structure=drivers_structure, horizon=horizon)
+
+        if upper_bound is None:
+            from optimizedGPS.problems.Heuristics import RealGPS
+            self.upper_bound = RealGPS(graph, drivers_graph, drivers_structure=drivers_structure, horizon=horizon)
+        else:
+            self.upper_bound = upper_bound(graph, drivers_graph, drivers_structure=drivers_structure, horizon=horizon)
+
+    def solve(self):
+        self.lower_bound.solve()
+        self.upper_bound.solve()
+
+        def get_starting_times(algo):
+            res = {}
+            for driver, times in algo.iter_complete_optimal_solution():
+                res[driver], i = {}, 0
+                while i < len(times) - 1:
+                    res[driver][times[i][0]] = (times[i][1], times[i + 1][1])
+                    i += 1
+                res[driver][times[i][0]] = (times[i][1], algo.get_driver_driving_time(driver) + driver.time)
+
+            return res
+
+        lower_interval, upper_interval = map(get_starting_times, [self.lower_bound, self.upper_bound])
+
+        for driver in self.drivers_graph.get_all_drivers():
+            for edge in self.graph.edges_iter():
+                start = lower_interval[driver].get(edge, (0, 0))[0]
+                end = upper_interval[driver].get(edge, (sys.maxint, sys.maxint))[1]
+                self.drivers_structure.set_presence_interval_to_driver(driver, edge, (start, end))
+
+    def get_horizon(self):
+        """
+        return the value of the heuristic (max ending time)
+        """
+        return self.upper_bound.opt_simulator.get_maximum_ending_time()

@@ -267,9 +267,8 @@ class GPSGraph(Graph):
         """
         Compute the minimum driving time on graph for driver
         """
-        def key(e): self.get_congestion_function(*e)(0)
-        path = self.get_shortest_path(driver.start, driver.end, key=key)
-        return sum(map(lambda e: key(e), self.iter_edges_in_path(path)))
+        path = self.get_shortest_path(driver.start, driver.end, key=self.get_minimum_waiting_time)
+        return sum(map(lambda e: self.get_minimum_waiting_time(*e), self.iter_edges_in_path(path)))
 
     def get_lowest_driving_time_with_traffic(self, driver, traffic):
         """

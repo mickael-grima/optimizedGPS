@@ -6,6 +6,7 @@ import unittest
 from optimizedGPS import labels
 from optimizedGPS.problems.Heuristics import RealGPS
 from optimizedGPS.problems.Models import TEGModel
+from optimizedGPS.problems.Algorithms import TEGColumnGenerationAlgorithm
 from optimizedGPS.structure import Driver, DriversGraph, GPSGraph
 from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers
 
@@ -51,28 +52,6 @@ class ProblemsTest(unittest.TestCase):
         self.assertEqual(model.opt_solution[driver3], ('0', '1', '2'))
         self.assertEqual(model.value, 8)
 
-    def test_TEG_model_on_congestioned_graph(self):
-        graph = GPSGraph()
-        graph.add_node("source1")
-        graph.add_node("source2")
-        graph.add_node("middle")
-        graph.add_node("target")
-        graph.add_edge("source1", "middle", congestion_func=lambda x: x + 3)
-        graph.add_edge("source2", "middle", congestion_func=lambda x: x + 3)
-        graph.add_edge("source1", "target", congestion_func=lambda x: 5 * x + 7)
-        graph.add_edge("source2", "target", congestion_func=lambda x: 5 * x + 7)
-        graph.add_edge("middle", "target", congestion_func=lambda x: 2 * x + 3)
-
-        drivers_graph = DriversGraph()
-        for i in xrange(10):
-            drivers_graph.add_driver(Driver("source1", "target", i))
-        for i in xrange(10):
-            drivers_graph.add_driver(Driver("source2", "target", i))
-
-        model = TEGModel(graph, drivers_graph, horizon=57)
-        model.build_model()
-        model.solve()
-
     def test_real_GPS(self):
         graph = GPSGraph()
         graph.add_edge(0, 1, congestion_func=lambda x: 3 * x + 3)
@@ -108,6 +87,37 @@ class ProblemsTest(unittest.TestCase):
                 self.assertEqual(path[0], driver.start)
                 self.assertEqual(path[-1], driver.end)
 
+    def test_teg_column_generation(self):
+        graph = GPSGraph()
+        graph.add_edge("0", "2", congestion_func=lambda x: 1)
+        graph.add_edge("1", "2", congestion_func=lambda x: 1)
+        graph.add_edge("2", "4", congestion_func=lambda x: 10 * x + 2)
+        graph.add_edge("1", "3", congestion_func=lambda x: 4)
+        graph.add_edge("3", "4", congestion_func=lambda x: 3)
 
+        drivers_graph = DriversGraph()
+        driver1 = Driver("0", "4", 0)
+        driver2 = Driver("1", "4", 0)
+        driver3 = Driver("0", "4", 1)
+        drivers_graph.add_driver(driver1)
+        drivers_graph.add_driver(driver2)
+        drivers_graph.add_driver(driver3)
+
+        algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
+
+        # Test the initialization
+        driver = algo.solver.drivers_graph.get_all_drivers().next()
+        self.assertIn(driver, {driver1, driver2})
+        edges = {("2", "4")}
+        if driver.start == "0":
+            edges.add(("0", "2"))
+        else:
+            edges.add(("1", "2"))
+        self.assertEqual(
+            set(algo.solver.drivers_structure.get_possible_edges_for_driver(driver)), edges)
+
+        algo.solver.solve()
+
+7
 if __name__ == '__main__':
     unittest.main()
