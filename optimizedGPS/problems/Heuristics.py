@@ -25,7 +25,10 @@ class ShortestPathHeuristic(SimulatorProblem):
         edges_description = {}  # for each driver we assign him a path
         for driver in drivers_graph.get_all_drivers():
             try:
-                path = graph.get_shortest_path(driver.start, driver.end)
+                path = graph.get_shortest_path(
+                    driver.start, driver.end,
+                    key=self.graph.get_minimum_waiting_time
+                )
             except StopIteration:
                 message = "Imposible to find shortest path from node %s to node %s in graph %s"\
                           % (driver.start, driver.end, graph.name)
@@ -57,7 +60,7 @@ class ShortestPathTrafficFree(Problem):
     def get_optimal_value(self):
         return self.get_value()
 
-    def solve(self):
+    def solve_with_heuristic(self):
         ct = time.time()
         status = None
 
@@ -68,6 +71,7 @@ class ShortestPathTrafficFree(Problem):
                 self.value += self.graph.get_minimum_waiting_time(*edge)
             if time.time() - ct > self.timeout:
                 status = options.TIMEOUT
+            self.set_optimal_path_to_driver(driver, path)
 
         self.status = status if status is not None else options.SUCCESS
         self.running_time = time.time() - ct
@@ -91,12 +95,7 @@ class RealGPS(Problem):
         traffic = defaultdict(lambda: defaultdict(lambda: 0))
         for driver in drivers:
             driver_history = self.graph.get_shortest_path_with_traffic(driver.start, driver.end, driver.time, traffic)
-            path = ()
-            for i in range(len(driver_history) - 1):
-                node, t = driver_history[i]
-                nxt = driver_history[i + 1][0]
-                path += (node,)
-                traffic[node, nxt][t] += 1
-            path += (driver_history[-1][0],)
+            self.graph.enrich_traffic_with_driver_history(traffic, driver_history)
+            path = tuple(map(lambda e: e[0], driver_history))
             self.set_optimal_path_to_driver(driver, path)
         self.set_status(options.SUCCESS)

@@ -44,16 +44,19 @@ class Problem(object):
 
         self.opt_solution = {}  # On wich path are each driver
         self.opt_simulator = None
-        """
-        Given a driver, if an edge is not in the associated set, the driver will never use it in the optimal solution
-        """
-        self.unreachable_edges_for_driver = defaultdict(set)
 
     def get_status(self):
         return self.status
 
     def set_status(self, status):
         self.status = status
+
+    def set_horizon(self, horizon):
+        self.horizon = horizon
+        self.drivers_structure.horizon = horizon
+
+    def update(self):
+        pass
 
     def solve_with_solver(self):
         """
@@ -83,7 +86,7 @@ class Problem(object):
         self.opt_simulator = FromEdgeDescriptionSimulator(
             self.get_graph(), self.get_drivers_graph(), self.opt_solution)
         self.opt_simulator.simulate()
-        self.value = self.get_optimal_value()
+        self.set_optimal_value()
 
     def set_optimal_solution(self):
         """
@@ -136,6 +139,15 @@ class Problem(object):
         for driver, path in self.opt_solution.iteritems():
             yield driver, path
 
+    def iter_complete_optimal_solution(self):
+        """
+        return for each driver his optimal path and the starting time on each edge
+        """
+        for driver in self.get_drivers_graph().get_all_drivers():
+            optimal_path = self.opt_solution[driver]
+            starting_times = self.opt_simulator.get_starting_times(driver)
+            yield driver, ((edge, starting_times[edge]) for edge in self.graph.iter_edges_in_path(optimal_path))
+
     def get_graph(self):
         """
         return the graph (GPSGraph instance)
@@ -155,7 +167,7 @@ class Problem(object):
         """
         Using the self.optimal_solution, we simulate with FromEdgeDescriptionSimulator the optimal value.
         """
-        return self.opt_simulator.get_value()
+        return self.value
 
     def get_partial_optimal_value(self, drivers=()):
         """
@@ -164,10 +176,12 @@ class Problem(object):
         :param drivers: set of drivers
         :return:
         """
+        if len(drivers) == 0:
+            return 0
         simulator = FromEdgeDescriptionSimulator(
             self.get_graph(),
             self.get_drivers_graph(),
-            {driver: path for driver, path in self.opt_solution.iteritems() if driver in drivers}
+            {driver: self.opt_solution[driver] for driver in drivers}
         )
         simulator.simulate()
         return simulator.get_value()
@@ -176,7 +190,7 @@ class Problem(object):
         """
         After solving, we set self.value using a simulator
         """
-        self.value = self.get_optimal_value()
+        self.value = self.opt_simulator.get_value()
 
     def get_value(self):
         """
@@ -203,8 +217,44 @@ class Problem(object):
             value += waiting_times[driver][edge]
         return value
 
-    def is_edge_reachable_for_driver(self, driver, edge):
-        return edge not in self.unreachable_edges_for_driver.get(driver, set())
+    def get_optimal_traffic(self):
+        """
+        Return the traffic corresponding to the optimal solution
+        """
+        traffic = defaultdict(lambda: defaultdict(lambda: 0))
+        for _, driver_history in self.iter_complete_optimal_solution():
+            self.graph.enrich_traffic_with_driver_history(traffic, driver_history)
+        return traffic
+
+    def add_driver(self, driver, unreachable_edges=()):
+        """
+        Add driver to every data structures
+        """
+        if not self.drivers_graph.has_driver(driver):
+            self.drivers_graph.add_driver(driver)
+        if not self.drivers_structure.drivers_graph.has_driver(driver):
+            self.drivers_structure.drivers_graph.add_driver(driver)
+        for edge in unreachable_edges:
+            self.drivers_structure.set_unreachable_edge_to_driver(driver, edge)
+
+    def add_edges_for_driver(self, driver, edges):
+        """
+        Add edges to this driver, and update the problem
+        """
+        for edge in edges:
+            self.drivers_structure.set_reachable_edge_to_driver(driver, edge)
+
+    def compute_difference_driving_time(self, driver):
+        """
+        Considering the driver's optimal path, compute his driving time and compare it to the driving time
+        on the same path without traffic. Return the difference.
+        """
+        opt_driving_time = self.get_driver_driving_time(driver)
+        no_traffic_driving_time = sum(map(
+            lambda e: self.graph.get_congestion_function(*e)(0),
+            self.graph.iter_edges_in_path(self.get_optimal_driver_path(driver))
+        ))
+        return opt_driving_time - no_traffic_driving_time
 
 
 class SimulatorProblem(Problem):
@@ -243,9 +293,9 @@ class Model(Problem):
         self.set_parameters(**params)
 
         self.count = {}
+        self.built = False  # True if the model has already been built
 
         self.initialize(**params)
-        self.build_model()
 
     def initialize(self, *args, **kwargs):
         """
@@ -301,13 +351,35 @@ class Model(Problem):
         pass
 
     def build_model(self):
-        log.info("** Model building STARTED **")
-        self.build_constants()
-        self.build_variables()
-        self.model.update()
-        self.build_constraints()
-        self.set_objective()
-        log.info("** Model building FINISHED **")
+        if self.built is False:
+            log.info("** Model building STARTED **")
+            self.build_constants()
+            self.build_variables()
+            self.model.update()
+            self.build_constraints()
+            self.set_objective()
+            self.built = True
+            log.info("** Model building FINISHED **")
+        else:
+            log.info("** Model has already been BUILT **")
+
+    def update_variables(self):
+        """
+        Check if new drivers and new edges have been added
+        """
+        raise NotImplementedError("not implemented yet")
+
+    def update_constraints(self, new_keys):
+        """
+        new_keys corresponds to the new added variables' keys
+        """
+        raise NotImplementedError("not implemented yet")
+
+    def update(self):
+        if self.built is True:
+            new_keys = self.update_variables()
+            self.model.update()
+            self.update_constraints(new_keys)
 
     def optimize(self):
         self.model.optimize()

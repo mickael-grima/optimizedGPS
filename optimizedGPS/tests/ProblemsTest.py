@@ -3,93 +3,15 @@
 
 import unittest
 
-from optimizedGPS import options, labels
-from optimizedGPS.data.data_generator import (
-    generate_graph_from_file,
-    generate_grid_data,
-    generate_random_drivers
-)
-from optimizedGPS.problems.Comparator import BoundsHandler, MultipleGraphComparator, ResultsHandler
-from optimizedGPS.problems.Heuristics import ShortestPathHeuristic, ShortestPathTrafficFree, RealGPS
-from optimizedGPS.problems.Models import BestPathTrafficModel, FixedWaitingTimeModel, TEGModel
+from optimizedGPS import labels
+from optimizedGPS.problems.Heuristics import RealGPS
+from optimizedGPS.problems.Models import TEGModel
+from optimizedGPS.problems.Algorithms import TEGColumnGenerationAlgorithm
 from optimizedGPS.structure import Driver, DriversGraph, GPSGraph
+from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers
 
 
 class ProblemsTest(unittest.TestCase):
-    def setUp(self):
-        self.graph0 = generate_graph_from_file('static/grid-graph-2-3-test.graphml', distance_default=1.0)
-        self.drivers_graph0 = DriversGraph()
-        self.drivers_graph0.add_driver(Driver('1', '6', 0))
-        self.drivers_graph0.add_driver(Driver('1', '6', 1))
-        self.drivers_graph0.add_driver(Driver('1', '6', 1))
-        self.drivers_graph0.add_driver(Driver('2', '6', 0))
-        self.drivers_graph0.add_driver(Driver('2', '6', 2))
-        self.drivers_graph0.add_driver(Driver('3', '6', 0))
-        self.drivers_graph0.add_driver(Driver('3', '6', 1))
-        self.drivers_graph0.add_driver(Driver('3', '6', 2))
-
-        self.graph1 = generate_grid_data(length=3, width=5, graph_name='grid-graph-3-5-test')
-        self.drivers_graph1 = DriversGraph()
-        self.drivers_graph1.add_driver(Driver('n_0_0', 'n_2_4', 0))
-        self.drivers_graph1.add_driver(Driver('n_0_0', 'n_2_4', 1))
-        self.drivers_graph1.add_driver(Driver('n_0_0', 'n_2_4', 1))
-        self.drivers_graph1.add_driver(Driver('n_0_1', 'n_2_4', 0))
-        self.drivers_graph1.add_driver(Driver('n_0_1', 'n_2_4', 2))
-        self.drivers_graph1.add_driver(Driver('n_1_0', 'n_2_4', 0))
-        self.drivers_graph1.add_driver(Driver('n_1_0', 'n_2_4', 1))
-        self.drivers_graph1.add_driver(Driver('n_1_0', 'n_2_4', 2))
-
-    def testMultipleGraphComparator(self):
-        comparator = MultipleGraphComparator()
-        comparator.append_graphs((self.graph0, self.drivers_graph0), (self.graph1, self.drivers_graph1))
-        comparator.append_algorithm(ShortestPathHeuristic, timeout=2)
-        comparator.append_algorithm(BestPathTrafficModel, timeout=2)
-        comparator.append_algorithm(ShortestPathTrafficFree, timeout=2)
-
-        results = comparator.compare()
-        self.assertEqual(len(results), len(comparator.graphs))
-        for i in range(len(results)):
-            graph, res = comparator.graphs[i], results[i]
-            for algo, rs in res.iteritems():
-                self.assertIn(rs[2], ['SUCCESS', 'TIMEOUT'], 'FAILED for algo %s on graph %s' % (algo, graph))
-
-    def testBoundHandler(self):
-        graph = generate_grid_data()
-        drivers_graph = generate_random_drivers(graph)
-        handler = BoundsHandler()
-        handler.set_graphs(graph, drivers_graph)
-
-        # add bounds
-        handler.append_lower_bound(ShortestPathTrafficFree)
-        handler.append_upper_bound(ShortestPathHeuristic)
-
-        # bompute bounds
-        handler.compute_bounds()
-
-        self.assertGreaterEqual(handler.get_upper_bound(), handler.get_lower_bound())
-
-    def testResultsHandler(self):
-        handler = ResultsHandler()
-        handler.append_graphs((self.graph0, self.drivers_graph0), (self.graph1, self.drivers_graph1))
-
-        handler.append_lower_bound(ShortestPathTrafficFree)
-        handler.append_upper_bound(ShortestPathHeuristic)
-
-        handler.append_algorithm(BestPathTrafficModel, timeout=2)
-        handler.append_algorithm(FixedWaitingTimeModel, timeout=2)
-        handler.append_algorithm(RealGPS, timeout=2)
-        # handler.append_algorithm(TEGLinearCongestionModel, timeout=2)
-
-        results = handler.compare()
-
-        for i in range(len(results)):
-            graph, res = handler.graphs[i].graph, results[i]
-            self.assertGreaterEqual(res[options.LOWER_BOUND_LABEL], 0)
-            self.assertGreaterEqual(res[options.UPPER_BOUND_LABEL], res[options.LOWER_BOUND_LABEL])
-            for algo, rs in res.iteritems():
-                if algo not in [options.LOWER_BOUND_LABEL, options.UPPER_BOUND_LABEL]:
-                    self.assertIn(rs[2], ['SUCCESS', 'TIMEOUT'], 'FAILED for algo %s on graph %s' % (algo, graph))
-
     def testTEGModel(self):
         # 1 driver
         graph = GPSGraph()
@@ -102,6 +24,7 @@ class ProblemsTest(unittest.TestCase):
         drivers_graph.add_driver(driver)
 
         model = TEGModel(graph, drivers_graph, horizon=2)
+        model.build_model()
 
         self.assertEqual(len(model.x), 9)  # number of variables
 
@@ -117,6 +40,7 @@ class ProblemsTest(unittest.TestCase):
         drivers_graph.add_driver(driver3)
 
         model = TEGModel(graph, drivers_graph, horizon=4)
+        model.build_model()
 
         self.assertEqual(len(model.x), 90)
 
@@ -128,6 +52,72 @@ class ProblemsTest(unittest.TestCase):
         self.assertEqual(model.opt_solution[driver3], ('0', '1', '2'))
         self.assertEqual(model.value, 8)
 
+    def test_real_GPS(self):
+        graph = GPSGraph()
+        graph.add_edge(0, 1, congestion_func=lambda x: 3 * x + 3)
+        graph.add_edge(0, 2, congestion_func=lambda x: 4)
+        graph.add_edge(1, 3, congestion_func=lambda x: 1)
+        graph.add_edge(2, 3, congestion_func=lambda x: 4)
+        graph.add_edge(3, 1, congestion_func=lambda x: 13)
 
+        driver1 = Driver(0, 3, 0)
+        driver2 = Driver(0, 3, 1)
+        driver3 = Driver(0, 1, 2)
+        drivers_graph = DriversGraph()
+        drivers_graph.add_driver(driver1)
+        drivers_graph.add_driver(driver2)
+        drivers_graph.add_driver(driver3)
+
+        heuristic = RealGPS(graph, drivers_graph)
+        heuristic.solve()
+
+        self.assertEqual(heuristic.get_optimal_driver_path(driver1), (0, 1, 3))
+        self.assertEqual(heuristic.get_optimal_driver_path(driver2), (0, 1, 3))
+        self.assertEqual(heuristic.get_optimal_driver_path(driver3), (0, 1))
+        self.assertEqual(heuristic.get_optimal_value(), 23)
+
+    def test_opt_solution_for_real_GPS(self):
+        graph = generate_grid_data(10, 10)
+        graph.set_global_congestion_function(lambda x: 3 * x + 4)
+        for _ in xrange(10):
+            drivers_graph = generate_random_drivers(graph, 10)
+            heuristic = RealGPS(graph, drivers_graph)
+            heuristic.solve()
+            for driver, path in heuristic.opt_solution.iteritems():
+                self.assertEqual(path[0], driver.start)
+                self.assertEqual(path[-1], driver.end)
+
+    def test_teg_column_generation(self):
+        graph = GPSGraph()
+        graph.add_edge("0", "2", congestion_func=lambda x: 1)
+        graph.add_edge("1", "2", congestion_func=lambda x: 1)
+        graph.add_edge("2", "4", congestion_func=lambda x: 10 * x + 2)
+        graph.add_edge("1", "3", congestion_func=lambda x: 4)
+        graph.add_edge("3", "4", congestion_func=lambda x: 3)
+
+        drivers_graph = DriversGraph()
+        driver1 = Driver("0", "4", 0)
+        driver2 = Driver("1", "4", 0)
+        driver3 = Driver("0", "4", 1)
+        drivers_graph.add_driver(driver1)
+        drivers_graph.add_driver(driver2)
+        drivers_graph.add_driver(driver3)
+
+        algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
+
+        # Test the initialization
+        driver = algo.solver.drivers_graph.get_all_drivers().next()
+        self.assertIn(driver, {driver1, driver2})
+        edges = {("2", "4")}
+        if driver.start == "0":
+            edges.add(("0", "2"))
+        else:
+            edges.add(("1", "2"))
+        self.assertEqual(
+            set(algo.solver.drivers_structure.get_possible_edges_for_driver(driver)), edges)
+
+        algo.solver.solve()
+
+7
 if __name__ == '__main__':
     unittest.main()

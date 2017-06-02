@@ -96,6 +96,28 @@ class GPSGraph(Graph):
             congestion = self.get_edge_property(source, target, labels.CONGESTION_FUNC)
             return congestion or congestion_function(**self.get_edge_data(source, target))
 
+    def set_congestion_function(self, source, target, congestion_func):
+        """
+        Set given congestion function to edge
+
+        :param source: source node
+        :param target: target node
+        :param congestion_func: function taking traffic as argument
+        :return:
+        """
+        if self.has_edge(source, target):
+            self.set_edge_property(source, target, labels.CONGESTION_FUNC, congestion_func)
+
+    def set_global_congestion_function(self, congestion_func):
+        """
+        Set the given congestion function to every edges
+
+        :param congestion_func: function taking traffic as argument
+        :return:
+        """
+        for source, target in self.edges_iter():
+            self.set_congestion_function(source, target, congestion_func)
+
     def get_minimum_waiting_time(self, source, target):
         """
         Computes and returns the time needed to cross the edge without traffic.
@@ -106,7 +128,7 @@ class GPSGraph(Graph):
         :return: integer
         """
         if self.has_edge(source, target):
-            return congestion_function(**self.get_edge_data(source, target))(0)
+            return self.get_congestion_function(source, target)(0)
 
     def get_traffic_limit(self, source, target):
         """
@@ -123,7 +145,7 @@ class GPSGraph(Graph):
     # ---------------------------------- DRIVERS ---------------------------------------------
     # ----------------------------------------------------------------------------------------
 
-    def get_shortest_path_through_edge(self, driver, edge, edge_property=labels.DISTANCE):
+    def get_shortest_path_through_edge(self, driver, edge, edge_property=labels.DISTANCE, key=None):
         """
         compute the shortest path for driver containing edge.
         If edge is unreachable for driver, we return None.
@@ -131,17 +153,18 @@ class GPSGraph(Graph):
         :param driver:
         :param edge:
         :param edge_property: value on edge to consider for computing the shortest path
+        :param key:
         :return: path (tuple of nodes)
         """
         try:
             if edge[0] == driver.start:
                 path = (edge[0],)
             else:
-                path = self.get_shortest_path(driver.start, edge[0], edge_property=edge_property)
+                path = self.get_shortest_path(driver.start, edge[0], edge_property=edge_property, key=key)
             if edge[1] == driver.end:
                 path += (edge[1],)
             else:
-                path += self.get_shortest_path(edge[1], driver.end, edge_property=edge_property)
+                path += self.get_shortest_path(edge[1], driver.end, edge_property=edge_property, key=key)
             return path
         except StopIteration:  # Not path reaching edge
             return None
@@ -200,14 +223,12 @@ class GPSGraph(Graph):
                 del next_nodes[t]
                 del times[0]
 
+            # Check if already visited
+            if current in visited:
+                continue
+            visited.add(current)
+
             for n in self.successors(current):
-                # if visited, skip
-                if n in visited:
-                    continue
-
-                # else add t in visited
-                visited.add(n)
-
                 # get traffic at t
                 current_traffic = 0
                 for i in sorted(traffic_history.get((current, n), {}).keys()):
@@ -241,3 +262,28 @@ class GPSGraph(Graph):
                         paths[n].add(path + ((n, new_time),))
 
         return min(paths[end], key=lambda p: p[-1][1])
+
+    def get_lowest_driving_time(self, driver):
+        """
+        Compute the minimum driving time on graph for driver
+        """
+        path = self.get_shortest_path(driver.start, driver.end, key=self.get_minimum_waiting_time)
+        return sum(map(lambda e: self.get_minimum_waiting_time(*e), self.iter_edges_in_path(path)))
+
+    def get_lowest_driving_time_with_traffic(self, driver, traffic):
+        """
+        Compute the minimum driving time on graph for driver with traffic
+        """
+        driver_history = self.get_shortest_path_with_traffic(driver.start, driver.end, driver.time, traffic)
+        return driver_history[-1][1] - driver_history[0][1]
+
+    @classmethod
+    def enrich_traffic_with_driver_history(cls, traffic, driver_history):
+        """
+        Add the driver's history into the traffic
+        """
+        for i in range(len(driver_history) - 1):
+            node, t = driver_history[i]
+            nxt, t_nxt = driver_history[i + 1]
+            traffic[node, nxt][t] += 1
+            traffic[node, nxt][t_nxt] = max(traffic[node, nxt][t_nxt] - 1, 0)
