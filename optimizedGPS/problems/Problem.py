@@ -148,7 +148,7 @@ class Problem(object):
         for driver in self.get_drivers_graph().get_all_drivers():
             optimal_path = self.opt_solution[driver]
             starting_times = self.opt_simulator.get_starting_times(driver)
-            yield driver, ((edge, starting_times[edge]) for edge in self.graph.iter_edges_in_path(optimal_path))
+            yield driver, tuple([(edge, starting_times[edge]) for edge in self.graph.iter_edges_in_path(optimal_path)])
 
     def get_graph(self):
         """

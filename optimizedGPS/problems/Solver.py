@@ -6,7 +6,7 @@ We merge here every steps of the solving procedure:
 """
 import sys
 
-from optimizedGPS.problems.PreSolver import GlobalPreSolver, DrivingTimeIntervalPresolver, LowerUpperBoundsPresolver
+from optimizedGPS.problems.PreSolver import GlobalPreSolver, LowerUpperBoundsPresolver
 from optimizedGPS.problems.Problem import Problem
 from optimizedGPS import options
 
@@ -47,12 +47,6 @@ class Solver(Problem):
                                                   horizon=self.horizon)
             presolver.solve()
             self.set_horizon(min(presolver.get_horizon(), self.horizon))
-
-        if DrivingTimeIntervalPresolver.__name__ in self.presolvers:
-            # Build presence intervals on every edges for every drivers
-            presolver = DrivingTimeIntervalPresolver(
-                self.graph, self.drivers_graph, drivers_structure=self.drivers_structure, horizon=self.horizon)
-            presolver.solve()
 
         self.algorithm.drivers_structure = self.drivers_structure
         self.algorithm.set_horizon(self.horizon)
