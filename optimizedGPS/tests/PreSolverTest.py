@@ -1,11 +1,9 @@
 import unittest
 
 from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers
-from optimizedGPS.problems.PreSolver import GlobalPreSolver, DrivingTimeIntervalPresolver, LowerUpperBoundsPresolver
-from optimizedGPS.problems.simulator.Simulator import FromEdgeDescriptionSimulator
+from optimizedGPS.problems.PreSolver import GlobalPreSolver, LowerUpperBoundsPresolver
 from optimizedGPS.structure.Driver import Driver
 from optimizedGPS.structure.DriversGraph import DriversGraph
-from optimizedGPS.structure.GPSGraph import GPSGraph
 
 
 class PreSolverTest(unittest.TestCase):
@@ -51,87 +49,6 @@ class PreSolverTest(unittest.TestCase):
                         msg="Driver: %s\nEdge: %s\nReachable edges: %s"
                             % (driver.to_tuple(), edge, driver_reachable_edges)
                     )
-
-    def test_drivers_interval_presolver(self):
-        graph = GPSGraph()
-        graph.add_edge(1, 2, congestion_func=lambda x: x + 1)
-        graph.add_edge(1, 3, congestion_func=lambda x: 2 * x + 2)
-        graph.add_edge(2, 3, congestion_func=lambda x: x + 1)
-
-        drivers_graph = DriversGraph()
-        driver1 = Driver(1, 3, 0)
-        driver2 = Driver(1, 3, 1)
-        driver3 = Driver(1, 3, 2)
-        drivers_graph.add_driver(driver1)
-        drivers_graph.add_driver(driver2)
-        drivers_graph.add_driver(driver3)
-
-        presolver = DrivingTimeIntervalPresolver(graph, drivers_graph, horizon=100)
-
-        # initial state
-        self.assertEqual(presolver.max_traffics[1, 3][driver1], 2)
-        self.assertEqual(presolver.min_traffics[2, 3][driver3], 0)
-
-        # 1st step
-        presolver.next()
-        self.assertEqual(presolver.drivers_structure.get_safety_interval(driver1, (1, 3)), (0, 6))
-        self.assertEqual(presolver.drivers_structure.get_presence_interval(driver1, (2, 3)), (3, 2))
-        self.assertEqual(presolver.drivers_structure.get_safety_interval(driver3, (1, 3)), (2, 8))
-        self.assertEqual(presolver.drivers_structure.get_safety_interval(driver2, (2, 3)), (2, 7))
-        self.assertEqual(presolver.get_minimum_traffic(driver1, (1, 3)), 0)
-        self.assertEqual(presolver.get_minimum_traffic(driver3, (1, 3)), 2)
-        self.assertEqual(presolver.get_maximum_traffic(driver1, (1, 3)), 0)
-        self.assertEqual(presolver.get_maximum_traffic(driver3, (1, 3)), 2)
-        self.assertEqual(presolver.get_minimum_traffic(driver1, (2, 3)), 0)
-        self.assertEqual(presolver.get_minimum_traffic(driver3, (2, 3)), 1)
-        self.assertEqual(presolver.get_maximum_traffic(driver1, (2, 3)), 1)
-        self.assertEqual(presolver.get_maximum_traffic(driver3, (2, 3)), 2)
-
-        # final
-        presolver.solve()
-        self.assertEqual(presolver.drivers_structure.get_safety_interval(driver1, (1, 3)), (0, 6))
-        self.assertEqual(presolver.drivers_structure.get_presence_interval(driver1, (2, 3)), (1, 2))
-        self.assertEqual(presolver.drivers_structure.get_safety_interval(driver3, (1, 3)), (2, 8))
-        self.assertEqual(presolver.drivers_structure.get_safety_interval(driver2, (2, 3)), (3, 6))
-        self.assertEqual(presolver.get_minimum_traffic(driver1, (1, 3)), 0)
-        self.assertEqual(presolver.get_minimum_traffic(driver3, (1, 3)), 2)
-        self.assertEqual(presolver.get_maximum_traffic(driver1, (1, 3)), 0)
-        self.assertEqual(presolver.get_maximum_traffic(driver3, (1, 3)), 2)
-        self.assertEqual(presolver.get_minimum_traffic(driver1, (2, 3)), 0)
-        self.assertEqual(presolver.get_minimum_traffic(driver3, (2, 3)), 1)
-        self.assertEqual(presolver.get_maximum_traffic(driver1, (2, 3)), 0)
-        self.assertEqual(presolver.get_maximum_traffic(driver3, (2, 3)), 1)
-
-    def test_drivers_interval_presolver_feasibility(self):
-        """
-        Check if the shortest paths gives a feasible solution
-        """
-        graph = generate_grid_data(10, 10)
-        for _ in range(5):
-            drivers_graph = generate_random_drivers(graph)
-            presolver = DrivingTimeIntervalPresolver(graph, drivers_graph)
-            presolver.solve()
-
-            solution = {}
-            for driver in drivers_graph.get_all_drivers():
-                solution[driver] = graph.get_shortest_path(
-                    driver.start, driver.end, key=lambda u, v: graph.get_congestion_function(u, v)(0))
-
-            simulator = FromEdgeDescriptionSimulator(graph, drivers_graph, solution)
-            simulator.simulate()
-
-            for driver in drivers_graph.get_all_drivers():
-                starting_times = simulator.get_starting_times(driver)
-                edges = list(graph.iter_edges_in_path(solution[driver]))
-                i = 0
-                while i < len(edges) - 1:
-                    edge = edges[i]
-                    start, end = presolver.drivers_structure.get_presence_interval(driver, edge)
-                    s, e = starting_times[edge], starting_times[edges[i + 1]]
-                    print "%s:%s: %s <= %s <= %s <= %s" % (driver, edge, start, s, e, end)
-                    self.assertLessEqual(start, s)
-                    self.assertGreaterEqual(end, e)
-                    i += 1
 
 
     def test_lower_upper_bound_presolver(self):
