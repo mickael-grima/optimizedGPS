@@ -55,9 +55,6 @@ class Problem(object):
         self.horizon = horizon
         self.drivers_structure.horizon = horizon
 
-    def update(self):
-        pass
-
     def solve_with_solver(self):
         """
         Implement this method when using Gurobi
@@ -364,24 +361,6 @@ class Model(Problem):
             log.info("** Model building FINISHED **")
         else:
             log.info("** Model has already been BUILT **")
-
-    def update_variables(self):
-        """
-        Check if new drivers and new edges have been added
-        """
-        raise NotImplementedError("not implemented yet")
-
-    def update_constraints(self, new_keys):
-        """
-        new_keys corresponds to the new added variables' keys
-        """
-        raise NotImplementedError("not implemented yet")
-
-    def update(self):
-        if self.built is True:
-            new_keys = self.update_variables()
-            self.model.update()
-            self.update_constraints(new_keys)
 
     def optimize(self):
         self.model.optimize()

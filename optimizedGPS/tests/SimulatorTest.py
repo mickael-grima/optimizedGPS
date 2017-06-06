@@ -7,6 +7,7 @@ import random
 from optimizedGPS.problems.simulator import FromEdgeDescriptionSimulator
 from optimizedGPS.structure import GPSGraph, Driver, DriversGraph
 from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers
+from optimizedGPS import options
 
 
 class SimulatorTest(unittest.TestCase):
@@ -42,7 +43,7 @@ class SimulatorTest(unittest.TestCase):
         self.assertEqual(simulator.get_traffic((2, 3), 2), 2)
         self.assertEqual(
             simulator.get_starting_times(driver0),
-            {(1, 2): 0, (2, 3): 2, (3, simulator.EXIT): 6}
+            {(1, 2): 0, (2, 3): 2, (3, options.EXIT): 6}
         )
         self.assertEqual(simulator.get_sum_driving_time(), 16)
         self.assertEqual(simulator.get_maximum_driving_time(), 7)

@@ -38,3 +38,4 @@ else:
     KNOWN_HEURISTICS = ["ShortestPathHeuristic", "ShortestPathTrafficFree", "RealGPS"]
 
 HORIZON = 1000
+EXIT = "@@EXIT@@"

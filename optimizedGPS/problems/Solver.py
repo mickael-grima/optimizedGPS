@@ -36,7 +36,6 @@ class Solver(Problem):
             self.set_horizon(min(presolver.get_horizon(), self.horizon))
 
         self.algorithm.set_horizon(self.horizon)
-        self.algorithm.update()
 
     def solve_with_solver(self):
         self.presolve()

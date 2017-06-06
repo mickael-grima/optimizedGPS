@@ -27,8 +27,6 @@ class Simulator(object):
     This method moves the next driver to the next edge.
     How to obtain the next edge should be implemented in the subclass as well.
     """
-
-    EXIT = '@@EXIT@@'
     Time = namedtuple('Time', ['object', 'time'])
 
     def __init__(self, graph, drivers_graph, timeout=sys.maxint):
@@ -125,9 +123,9 @@ class Simulator(object):
             if current_edge is None:
                 message = "Driver %s has no current edge and no next edge. He should be deleted from data" % str(driver)
                 log.warning(message)
-                self.add_event(driver, (driver.start, self.EXIT), current_time)
+                self.add_event(driver, (driver.start, options.EXIT), current_time)
             else:
-                self.add_event(driver, (current_edge[1], self.EXIT), current_time)
+                self.add_event(driver, (current_edge[1], options.EXIT), current_time)
         else:
             if current_edge is not None and current_edge[1] != next_edge[0]:
                 raise Exception("current edge %s and next edge %s are not connected"
@@ -262,7 +260,7 @@ class Simulator(object):
         :return:
         """
         for p in self.events[driver]:
-            if p.object[-1] == self.EXIT:
+            if p.object[-1] == options.EXIT:
                 return p.time
 
     def get_driver_waiting_times(self, driver):

@@ -2,6 +2,7 @@
 # !/bin/env python
 
 import unittest
+from collections import defaultdict
 
 from optimizedGPS import labels
 from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers
@@ -45,7 +46,43 @@ class ProblemsTest(unittest.TestCase):
 
         model.solve()
 
-        # self.assertEqual(filter(lambda v: v.X == 1, model.x.itervalues()), 2)
+        # test big M: is big M greater than the greatest waiting time ?
+        for i in range(4):
+            max_traffic = max(
+                graph.get_congestion_function(*edge)(
+                    sum(
+                        sum(
+                            model.x[model.TEGgraph.build_edge(edge, i, j), d].X
+                            for j in model.drivers_structure.iter_ending_times(driver, edge, starting_time=i)
+                            if (model.TEGgraph.build_edge(edge, i, j), d) in model.x
+                        )
+                        for d in drivers_graph.get_all_drivers()
+                    )
+                )
+                for edge in graph.edges_iter())
+            self.assertGreaterEqual(model.bigM(), max_traffic)
+
+        # Check feasibility
+        x = defaultdict(lambda: 0)
+        x[model.TEGgraph.build_edge(("0", "1"), 1, 3), driver3] = 1
+        x[model.TEGgraph.build_edge(("1", "2"), 3, 4), driver3] = 1
+        x[model.TEGgraph.build_edge(("0", "2"), 0, 2), driver] = 1
+        x[model.TEGgraph.build_edge(("0", "2"), 0, 2), driver2] = 1
+        self.assertTrue(model.check_feasibility(x))
+        self.assertEqual(model.get_objective_from_solution(x), 8)
+
+        x[model.TEGgraph.build_edge(("0", "2"), 0, 2), driver] = 1
+        x[model.TEGgraph.build_edge(("0", "2"), 0, 2), driver2] = 1
+        x[model.TEGgraph.build_edge(("0", "2"), 1, 7), driver3] = 1
+        self.assertTrue(model.check_feasibility(x))
+        self.assertEqual(model.get_objective_from_solution(x), 11)
+
+        x = defaultdict(lambda: 0)
+        for key, var in model.x.iteritems():
+            x[key] = var.X
+        self.assertTrue(model.check_feasibility(x))
+
+        # Check optimality
         self.assertEqual(model.opt_solution[driver], ('0', '2'))
         self.assertEqual(model.opt_solution[driver2], ('0', '2'))
         self.assertEqual(model.opt_solution[driver3], ('0', '1', '2'))

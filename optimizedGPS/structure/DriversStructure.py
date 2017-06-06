@@ -59,18 +59,30 @@ class DriversStructure(object):
         for starting_time in times:
             yield starting_time
 
-    def iter_ending_times(self, driver, edge):
+    def iter_ending_times(self, driver, edge, starting_time=-1):
         times = self.ending_times[driver][edge]
         times = times if times is not None else xrange(self.horizon + 1)
-        for starting_time in times:
-            yield starting_time
+        for ending_time in times:
+            if ending_time > starting_time:
+                yield ending_time
 
     def get_possible_ending_times_on_node(self, driver, node):
-        times = set()
-        for edge in self.graph.predecessors(node):
-            for ending_time in self.iter_ending_times(driver, edge):
+        times, has_predecessors = set(), False
+        for pred in self.graph.predecessors_iter(node):
+            has_predecessors = True
+            for ending_time in self.iter_ending_times(driver, (pred, node)):
                 times.add(ending_time)
-        return times
+        return times if has_predecessors is True else None
+
+    def iter_possible_time_on_node(self, driver, node):
+        """
+        Iterate every time which are possible for ending on node and for starting on node
+        """
+        times = self.get_possible_ending_times_on_node(driver, node)
+        for succ in self.graph.successors_iter(node):
+            for starting_time in self.iter_starting_times(driver, (node, succ)):
+                if times is None or starting_time in times:
+                    yield starting_time
 
     def get_possible_edges_for_driver(self, driver):
         """
