@@ -18,7 +18,7 @@ class DriversStructure(object):
 
         self.unreachable_edges = defaultdict(lambda: defaultdict(lambda: 0))
         self.safety_intervals = defaultdict(lambda: defaultdict(lambda: Interval(0, horizon)))
-        self.presence_intervals = defaultdict(lambda: defaultdict(lambda: Interval(horizon, horizon)))
+        self.presence_intervals = defaultdict(lambda: defaultdict(lambda: Interval(horizon, 0)))
 
     def set_unreachable_edge_to_driver(self, driver, edge):
         self.unreachable_edges[driver][edge] = 1
@@ -54,22 +54,10 @@ class DriversStructure(object):
         return self.unreachable_edges[driver][edge] != 1
 
     def get_safety_interval(self, driver, edge):
-        start, end = self.safety_intervals[driver][edge]
-        if start >= self.horizon:
-            return Interval(self.horizon, self.horizon)
-        elif end >= self.horizon:
-            return Interval(start, self.horizon)
-        else:
-            return Interval(start, end)
+        return self.safety_intervals[driver][edge]
 
     def get_presence_interval(self, driver, edge):
-        start, end = self.presence_intervals[driver][edge]
-        if start >= self.horizon:
-            return Interval(self.horizon, self.horizon)
-        elif end >= self.horizon:
-            return Interval(start, self.horizon)
-        else:
-            return Interval(start, end)
+        return self.presence_intervals[driver][edge]
 
     def get_largest_safety_interval_before_end(self, driver):
         """
@@ -133,6 +121,12 @@ class DriversStructure(object):
                     continue
                 if self.are_edges_time_connected_for_driver(driver, edge, next_edge):
                     nexts.add(next_edge)
+
+    def is_edge_mandatory_for_driver(self, driver, edge):
+        """
+        True if driver has no other choices than going through this edge
+        """
+        return False
 
     def are_drivers_dependent(self, driver1, driver2):
         """

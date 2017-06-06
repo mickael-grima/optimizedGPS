@@ -6,10 +6,11 @@ from collections import defaultdict
 import sys
 
 from optimizedGPS.structure.DriversStructure import DriversStructure
+from optimizedGPS import options
 
 
 class PreSolver(object):
-    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint):
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=options.HORIZON):
         self.graph = graph
         self.drivers_graph = drivers_graph
         self.drivers_structure = drivers_structure or DriversStructure(graph, drivers_graph, horizon=horizon)
@@ -47,7 +48,7 @@ class PreSolver(object):
 
 
 class ShortestPathPreSolver(PreSolver):
-    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint, heuristic=None):
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=options.HORIZON, heuristic=None):
         super(ShortestPathPreSolver, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
                                                     horizon=horizon)
         from optimizedGPS.problems.Heuristics import RealGPS
@@ -145,10 +146,6 @@ class GlobalPreSolver(ShortestPathPreSolver):
                 ))
                 if partial + d_time + driver.time <= opt_value:
                     yield edge
-                # else:
-                #     print "Edge: %s\nDriver: %s, %s, %s\nPartial: %s\nOpt: %s\n\n" \
-                #           % (edge, driver.to_tuple(), d_time, self.heuristic.get_driver_driving_time(driver), partial,
-                #              opt_value)
 
 
 class DrivingTimeIntervalPresolver(PreSolver):
@@ -160,7 +157,7 @@ class DrivingTimeIntervalPresolver(PreSolver):
     At each step we compute theoretical maximal and minimal traffics on each edge for each driver, and from these
     traffics we ae able to compute the intervals into the next steps.
     """
-    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint, niter=-1):
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=options.HORIZON, niter=-1):
         super(DrivingTimeIntervalPresolver, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
                                                            horizon=horizon)
         self.niter = niter
@@ -220,7 +217,7 @@ class DrivingTimeIntervalPresolver(PreSolver):
             path = self.get_graph().get_shortest_path(
                 driver.start,
                 edge[0],
-                key=lambda u, v: 1 / float(congestion(u, v)(self.get_maximum_traffic(driver, (u, v))))
+                key=lambda u, v: - congestion(u, v)(self.get_maximum_traffic(driver, (u, v)))
             ) if edge[0] != driver.start else ()
             return driver.time + sum(map(
                 lambda (u, v): congestion(u, v)(self.get_maximum_traffic(driver, (u, v))),
@@ -255,14 +252,18 @@ class DrivingTimeIntervalPresolver(PreSolver):
         """
         Considering the starting and ending times, get the minimal possible traffic for driver on edge
         """
-        traffic = 0
-        for d in self.get_drivers_graph().get_all_drivers():
-            if d != driver:
-                presence_interval = self.drivers_structure.get_presence_interval(d, edge)
-                min_starting_time = self.drivers_structure.get_safety_interval(driver, edge).lower
-                max_starting_time = self.drivers_structure.get_presence_interval(driver, edge).lower
-                if min_starting_time <= presence_interval.upper and max_starting_time > presence_interval.lower:
-                    traffic += 1
+        traffic = self.drivers_graph.number_of_drivers()
+        min_starting_time = self.drivers_structure.get_safety_interval(driver, edge).lower
+        max_starting_time, min_ending_time = self.drivers_structure.get_presence_interval(driver, edge)
+        minimum_waiting_time = min_ending_time - min_starting_time
+        for s in xrange(min_starting_time, max_starting_time + 1):
+            s_traffic = 0
+            for d in self.get_drivers_graph().get_all_drivers():
+                if d != driver and self.drivers_structure.is_edge_mandatory_for_driver(d, edge):
+                    presence_interval = self.drivers_structure.get_presence_interval(d, edge)
+                    if s <= presence_interval.upper and s + minimum_waiting_time > presence_interval.lower:
+                        s_traffic += 1
+            traffic = min(s_traffic, traffic)
         return traffic
 
     def compute_maximal_traffic(self, driver, edge):
@@ -270,13 +271,17 @@ class DrivingTimeIntervalPresolver(PreSolver):
         Considering the starting and ending times, get the maximal possible traffic for driver on edge
         """
         traffic = 0
-        for d in self.get_drivers_graph().get_all_drivers():
-            if d != driver:
-                safety_interval = self.drivers_structure.get_safety_interval(d, edge)
-                min_starting_time = self.drivers_structure.get_safety_interval(driver, edge).lower
-                max_starting_time = self.drivers_structure.get_presence_interval(driver, edge).lower
-                if min_starting_time <= safety_interval.upper and max_starting_time > safety_interval.lower:
-                    traffic += 1
+        min_starting_time = self.drivers_structure.get_safety_interval(driver, edge).lower
+        max_starting_time, min_ending_time = self.drivers_structure.get_presence_interval(driver, edge)
+        minimum_waiting_time = min_ending_time - min_starting_time
+        for s in xrange(min_starting_time, max_starting_time + 1):
+            s_traffic = 0
+            for d in self.get_drivers_graph().get_all_drivers():
+                if d != driver:
+                    safety_interval = self.drivers_structure.get_safety_interval(d, edge)
+                    if s <= safety_interval.upper and s + minimum_waiting_time > safety_interval.lower:
+                        s_traffic += 1
+            traffic = max(s_traffic, traffic)
         return traffic
 
     def next(self):
@@ -340,7 +345,7 @@ class DrivingTimeIntervalPresolver(PreSolver):
 
 
 class LowerUpperBoundsPresolver(PreSolver):
-    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint,
+    def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=options.HORIZON,
                  lower_bound=None, upper_bound=None):
         super(LowerUpperBoundsPresolver, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
                                                         horizon=horizon)
