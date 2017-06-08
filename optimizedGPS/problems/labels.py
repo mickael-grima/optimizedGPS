@@ -17,6 +17,7 @@ ONE_DRIVER_PER_EDGE = "one-driver-per-edge"
 TIME_TRANSFERT = "time-transfert"
 LOWER_WAITING_TIME = "lower-waiting-time"
 UPPER_WAITING_TIME = "upper-waiting-time"
+EDGE_TIME_UNICITY = "edge_time_unicity"
 FUTURE_AFTER_PAST = "future-after-past"
 NO_INTERSECTION = "no_intersection"
 

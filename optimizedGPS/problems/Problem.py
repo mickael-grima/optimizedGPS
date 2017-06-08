@@ -55,9 +55,6 @@ class Problem(object):
         self.horizon = horizon
         self.drivers_structure.horizon = horizon
 
-    def update(self):
-        pass
-
     def solve_with_solver(self):
         """
         Implement this method when using Gurobi
@@ -126,12 +123,14 @@ class Problem(object):
         if self.drivers_structure is not None:
             return self.drivers_structure.get_possible_edges_for_driver(driver)
 
-    def get_time_interval(self, driver, edge):
-        if self.drivers_structure is not None:
-            start, end = self.drivers_structure.get_safety_interval(driver, edge)
-            return start if start is not None else 0, end if end is not None else 0
-        else:
-            return 0, self.drivers_structure.horizon
+    def iter_start_end_times_for_driver(self, driver, edge):
+        """
+        Iterate every possible couple of start ,end for driver on edge considering drivers_structure
+        """
+        for starting_time in self.drivers_structure.iter_starting_times(driver, edge):
+            for ending_time in self.drivers_structure.iter_ending_times(driver, edge):
+                if ending_time > starting_time:
+                    yield starting_time, ending_time
 
     def iter_optimal_solution(self):
         """ yield for each driver his assigned path
@@ -146,7 +145,7 @@ class Problem(object):
         for driver in self.get_drivers_graph().get_all_drivers():
             optimal_path = self.opt_solution[driver]
             starting_times = self.opt_simulator.get_starting_times(driver)
-            yield driver, ((edge, starting_times[edge]) for edge in self.graph.iter_edges_in_path(optimal_path))
+            yield driver, tuple([(edge, starting_times[edge]) for edge in self.graph.iter_edges_in_path(optimal_path)])
 
     def get_graph(self):
         """
@@ -362,24 +361,6 @@ class Model(Problem):
             log.info("** Model building FINISHED **")
         else:
             log.info("** Model has already been BUILT **")
-
-    def update_variables(self):
-        """
-        Check if new drivers and new edges have been added
-        """
-        raise NotImplementedError("not implemented yet")
-
-    def update_constraints(self, new_keys):
-        """
-        new_keys corresponds to the new added variables' keys
-        """
-        raise NotImplementedError("not implemented yet")
-
-    def update(self):
-        if self.built is True:
-            new_keys = self.update_variables()
-            self.model.update()
-            self.update_constraints(new_keys)
 
     def optimize(self):
         self.model.optimize()

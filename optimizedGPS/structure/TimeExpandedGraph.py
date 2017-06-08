@@ -197,3 +197,10 @@ class ReducedTimeExpandedGraph(object):
         for n in self.graph.successors_iter(original_node):
             for l in xrange(node_layer + 1, self.horizon + 1):
                 yield self.build_node(n, l)
+
+    def number_of_nodes(self):
+        value = 0
+        for node in self.graph.nodes_iter():
+            for n in self.iter_nodes_from_node(node):
+                value += 1
+        return value
