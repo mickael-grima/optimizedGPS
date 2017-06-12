@@ -232,7 +232,7 @@ class GPSGraph(Graph):
                 # get traffic at t
                 current_traffic = 0
                 for i in sorted(traffic_history.get((current, n), {}).keys()):
-                    if i > t:
+                    if i >= t:
                         break
                     current_traffic = traffic_history[current, n][i]
 
