@@ -318,6 +318,48 @@ class TEGModel(EdgeCharacterizationModel):
                         return False
         return True
 
+    def get_reduced_cost(self, driver, edge, start, end):
+        """
+        If the problem has already been solved, and it is a continuous model, then return the reduced cost associated
+        to the given variable index.
+        """
+        lambda_plus = {
+            (d, i): self.get_dual_variable_from_constraint(
+                "%s:%s:%s:%s" % (labels.UPPER_WAITING_TIME, repr(d), str(edge), i)) or 0
+            for d in self.drivers_graph.get_all_drivers()
+            for i in self.drivers_structure.get_starting_times(d, edge)
+        }
+        lambda_moins = {
+            (d, i): self.get_dual_variable_from_constraint(
+                "%s:%s:%s:%s" % (labels.LOWER_WAITING_TIME, repr(d), str(edge), i)) or 0
+            for d in self.drivers_graph.get_all_drivers()
+            for i in self.drivers_structure.get_starting_times(d, edge)
+        }
+
+        mu = self.get_dual_variable_from_constraint(
+            "%s:%s:%s" % (labels.EDGE_TIME_UNICITY, repr(driver), str(edge))) or 0
+        tau_start = self.get_dual_variable_from_constraint(
+            "%s:%s:%s:%s" % (labels.TRANSFERT, repr(driver), str(edge[0]), start)) or 0
+        tau_end = self.get_dual_variable_from_constraint(
+            "%s:%s:%s:%s" % (labels.TRANSFERT, repr(driver), str(edge[1]), start)) or 0
+        omega = self.get_dual_variable_from_constraint("%s:%s" % (labels.ENDING_TIME, repr(driver))) or 0
+
+        alpha = self.graph.get_congestion_function(*edge)(1) - self.graph.get_congestion_function(*edge)(0)
+        beta = self.graph.get_congestion_function(*edge)(0)
+
+        reduced_cost = (end - start) * (lambda_plus.get((driver, start), 0) - lambda_moins.get((driver, start), 0)) - \
+            self.bigM() * lambda_plus + \
+            alpha * sum(lambda_plus.get((d, i), 0) - lambda_moins.get((d, i), 0)
+                        for d in self.drivers_graph.get_all_drivers()
+                        for i in self.drivers_structure.get_starting_times(d, edge)) + \
+            mu + 1 * (driver.end != edge[1]) * tau_end - 1 * (driver.end != edge[0]) * tau_start - \
+            1 * (driver.end == edge[1]) * omega - \
+            start * sum(1 * ((pred_, self.TEGgraph.build_node(driver.end, start)) ==
+                             self.TEGgraph.build_edge(edge, start, end))
+                        for pred_ in self.TEGgraph.predecessors_iter(self.TEGgraph.build_node(driver.end, start)))
+
+        return reduced_cost
+
     def build_variables(self):
         self.x = defaultdict(lambda: 0)
         for driver in self.drivers_graph.get_all_drivers():

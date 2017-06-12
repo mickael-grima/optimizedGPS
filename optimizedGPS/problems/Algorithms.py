@@ -1,5 +1,5 @@
-from Models import FixedWaitingTimeModel, TEGModel, ReducedTEGModel
-from Heuristics import RealGPS
+from Models import FixedWaitingTimeModel, TEGModel
+from Heuristics import RealGPS, ReducedTEGModel
 from Problem import Problem, SolvinType
 from Solver import Solver
 from optimizedGPS.structure.DriversStructure import DriversStructure
@@ -98,7 +98,7 @@ class TEGColumnGenerationAlgorithm(Problem):
             self.reducer.solve()
             next_column = self.get_next_column()
             if next_column is None:
-                break
+                break  # Optimality reached
             else:
                 self.add_column_to_master()
-            self.set_optimal_solution()
+        self.set_optimal_solution()

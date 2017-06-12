@@ -385,7 +385,7 @@ class Model(Problem):
             log.warning("problem has not been solved yet")
             return sys.maxint
 
-    def dual_variable_from_constraint(self, constr_name):
+    def get_dual_variable_from_constraint(self, constr_name):
         """
         Return the dual variable linked to the constraint
 

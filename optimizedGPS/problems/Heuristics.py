@@ -10,6 +10,7 @@ from Problem import SimulatorProblem, Problem
 from Problem import SolvinType
 from simulator import FromEdgeDescriptionSimulator
 from optimizedGPS import options
+from optimizedGPS.structure import DriversStructure
 
 __all__ = ["ShortestPathHeuristic", "ShortestPathTrafficFree", "RealGPS"]
 
@@ -99,3 +100,23 @@ class RealGPS(Problem):
             path = tuple(map(lambda e: e[0], driver_history))
             self.set_optimal_path_to_driver(driver, path)
         self.set_status(options.SUCCESS)
+
+
+class ReducedTEGModel(object):
+    """
+    Reduced model from TEGModel: doesn't inherit from Problem since it doesn't describe the same problem.
+    Dual variable from the Master TEGModel are input, and we solve the reduced cost problem considering special paths
+    for every drivers.
+    """
+    def __init__(self, graph, drivers_graph, dual_variables, drivers_structure=None):
+        self.graph = graph
+        self.drivers_graph = drivers_graph
+        self.drivers_structure = drivers_structure or DriversStructure(graph, drivers_graph)
+        self.dual_variables = dual_variables
+
+    def objective_function(self, x):
+        """
+        :param x: variable associated to the problem
+        return the objective function associated to the problem
+        """
+        pass
