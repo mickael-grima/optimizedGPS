@@ -192,6 +192,27 @@ class ProblemsTest(unittest.TestCase):
 
         self.assertEqual(heuristic.value - algorithm.value, annex_road_congestion + 2)
 
+    def test_TEGModel_reduced_cost(self):
+        """
+        We solve the TEGModel on a simple instance, as a continuous model, then we compute the reduce cost for some
+        variables
+        """
+        graph, drivers_graph = generate_bad_heuristic_graphs()
+        algorithm = TEGModel(graph, drivers_graph, horizon=12, binary=False)
+        algorithm.build_model()
+        algorithm.solve()
+
+        # Check that the relaxed model has a better value than the integer one
+        self.assertLessEqual(algorithm.value, 11)
+
+        reduced_costs = []
+        for edge_, driver in algorithm.x.iterkeys():
+            edge = algorithm.TEGgraph.get_original_edge(edge_)
+            start = algorithm.TEGgraph.get_node_layer(edge_[0])
+            end = algorithm.TEGgraph.get_node_layer(edge_[1])
+            reduced_costs.append(algorithm.get_reduced_cost(driver, edge, start, end))
+        self.assertTrue(max(reduced_costs) > 0)
+
 
 if __name__ == '__main__':
     unittest.main()

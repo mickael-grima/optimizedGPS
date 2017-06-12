@@ -283,7 +283,7 @@ class Model(Problem):
     """ Initialize the models' classes
     """
     def __init__(self, graph, drivers_graph, drivers_structure=None, timeout=sys.maxint, horizon=sys.maxint,
-                 solving_type=SolvinType.SOLVER, **params):
+                 solving_type=SolvinType.SOLVER, binary=True, **params):
         super(Model, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure, horizon=horizon,
                                     timeout=timeout, solving_type=solving_type)
         self.model = gb.Model()
@@ -293,6 +293,7 @@ class Model(Problem):
 
         self.count = {}
         self.built = False  # True if the model has already been built
+        self.binary = binary
 
         self.initialize(**params)
 
@@ -369,8 +370,16 @@ class Model(Problem):
         t = time.time()
         self.optimize()
         self.running_time = time.time() - t
-        self.set_optimal_solution()
+        if self.binary is True:
+            self.set_optimal_solution()
         self.set_status(options.SUCCESS)
+
+    def solve(self):
+        if self.binary is True:
+            super(Model, self).solve()
+        else:
+            self.solve_with_solver()
+            self.value = self.model.objVal
 
     def get_graph(self):
         return self.graph
@@ -391,4 +400,7 @@ class Model(Problem):
 
         :param constr_name: name of the constraint
         """
-        return self.model.getConstrByName(constr_name).Pi
+        try:
+            return self.model.getConstrByName(constr_name).Pi
+        except (AttributeError, GurobiError):
+            return 0

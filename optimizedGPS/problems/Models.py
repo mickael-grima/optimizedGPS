@@ -21,8 +21,7 @@ log = logging.getLogger(__name__)
 
 class EdgeCharacterizationModel(Model):
     def initialize(self, **kwards):
-        binary = kwards.get("binary", True)
-        self.vtype = GRB.BINARY if binary else GRB.CONTINUOUS
+        self.vtype = GRB.BINARY if self.binary else GRB.CONTINUOUS
 
     def build_variables(self):
         self.x = defaultdict(lambda: 0)
@@ -345,10 +344,9 @@ class TEGModel(EdgeCharacterizationModel):
         omega = self.get_dual_variable_from_constraint("%s:%s" % (labels.ENDING_TIME, repr(driver))) or 0
 
         alpha = self.graph.get_congestion_function(*edge)(1) - self.graph.get_congestion_function(*edge)(0)
-        beta = self.graph.get_congestion_function(*edge)(0)
 
         reduced_cost = (end - start) * (lambda_plus.get((driver, start), 0) - lambda_moins.get((driver, start), 0)) - \
-            self.bigM() * lambda_plus + \
+            self.bigM() * lambda_plus.get((driver, start), 0) + \
             alpha * sum(lambda_plus.get((d, i), 0) - lambda_moins.get((d, i), 0)
                         for d in self.drivers_graph.get_all_drivers()
                         for i in self.drivers_structure.get_starting_times(d, edge)) + \
