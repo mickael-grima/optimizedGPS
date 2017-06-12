@@ -179,6 +179,19 @@ class ProblemsTest(unittest.TestCase):
 
         self.assertEqual(2 * traffic_influence + 7, simulator.get_sum_ending_time())
 
+    def test_TEGModel_vs_RealGPS(self):
+        traffic_influence, annex_road_congestion = 2, 10
+        graph, drivers_graph = generate_bad_heuristic_graphs(traffic_influence, annex_road_congestion)
+
+        heuristic = RealGPS(graph, drivers_graph)
+        heuristic.solve()
+
+        algorithm = TEGModel(graph, drivers_graph, horizon=11)
+        algorithm.build_model()
+        algorithm.solve()
+
+        self.assertEqual(heuristic.value - algorithm.value, annex_road_congestion + 2)
+
 
 if __name__ == '__main__':
     unittest.main()
