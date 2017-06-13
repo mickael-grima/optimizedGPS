@@ -264,6 +264,72 @@ class TEGModel(EdgeCharacterizationModel):
                     self.model.addVar(0.0, name='x[%s,%s]' % (str(_edge), repr(driver)), vtype=self.vtype)
         self.model.update()
 
+    def generate_constraints(self, driver, edge, times):
+        for i, _ in times:
+            constr_name = "%s:%s:%s:%s" % (labels.UPPER_WAITING_TIME, repr(driver), str(edge), i)
+            if not self.has_constraint(constr_name):
+                self.add_constraint(
+                    quicksum(self.x[self.TEGgraph.build_edge(edge, i, j), driver] * (j - i)
+                             for j in self.drivers_structure.iter_ending_times(driver, edge, starting_time=i)) <=
+                    self.graph.get_congestion_function(*edge)(
+                        quicksum(
+                            quicksum(self.x[self.TEGgraph.build_edge(edge, ii, jj), d]
+                                     for ii, jj in self.iter_start_end_times_for_driver(d, edge) if ii < i <= jj)
+                            for d in self.drivers_graph.get_all_drivers()
+                        )
+                    ),
+                    name=constr_name
+                )
+            constr_name = "%s:%s:%s:%s" % (labels.LOWER_WAITING_TIME, repr(driver), str(edge), i)
+            if not self.has_constraint(constr_name):
+                self.add_constraint(
+                    quicksum(self.x[self.TEGgraph.build_edge(edge, i, j), driver] * (j - i)
+                             for j in self.drivers_structure.iter_ending_times(driver, edge, starting_time=i)) +
+                    self.bigM() * (1 - quicksum(
+                        self.x[self.TEGgraph.build_edge(edge, i, j), driver]
+                        for j in self.drivers_structure.iter_ending_times(driver, edge, starting_time=i))) >=
+                    self.graph.get_congestion_function(*edge)(
+                        quicksum(
+                            quicksum(self.x[self.TEGgraph.build_edge(edge, ii, jj), d]
+                                     for ii, jj in self.iter_start_end_times_for_driver(d, edge) if ii < i <= jj)
+                            for d in self.drivers_graph.get_all_drivers()
+                        )
+                    ),
+                    name=constr_name
+                )
+            constr_name = "%s:%s:%s" % (labels.EDGE_TIME_UNICITY, repr(driver), str(edge))
+            if not self.has_constraint(constr_name):
+                self.add_constraint(
+                    quicksum(self.x[self.TEGgraph.build_edge(edge, i, j), driver]
+                             for i, j in self.iter_start_end_times_for_driver(driver, edge)) <= 1,
+                    name=constr_name
+                )
+            for node in self.graph.nodes_iter():
+                if node != driver.end:
+                    constr_name = "%s:%s:%s:%s" % (labels.TRANSFERT, repr(driver), str(node), i)
+                    if not self.has_constraint(constr_name):
+                        node_ = self.TEGgraph.build_node(node, i)
+                        self.add_constraint(
+                            quicksum(
+                                self.x[(node_, succ), driver] for succ in self.TEGgraph.successors_iter(node_)) -
+                            quicksum(
+                                self.x[(pred, node_), driver] for pred in self.TEGgraph.predecessors_iter(node_)) ==
+                            1 * (node == driver.start and i == driver.time),
+                            name=constr_name
+                        )
+            constr_name = "%s:%s" % (labels.ENDING_TIME, repr(driver))
+            if not self.has_constraint(constr_name):
+                self.add_constraint(
+                    quicksum(
+                        quicksum(
+                            self.x[(s, self.TEGgraph.build_node(driver.end, time)), driver]
+                            for s in self.TEGgraph.predecessors_iter(self.TEGgraph.build_node(driver.end, time))
+                        )
+                        for time in self.drivers_structure.get_possible_ending_times_on_node(driver, driver.end)
+                    ) == 1,
+                    name=constr_name
+                )
+
     def check_feasibility(self, x):
         for driver in self.drivers_graph.get_all_drivers():
             res = sum(

@@ -8,6 +8,7 @@ from optimizedGPS import labels
 from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers, generate_bad_heuristic_graphs
 from optimizedGPS.problems.Heuristics import RealGPS
 from optimizedGPS.problems.Models import TEGModel
+from optimizedGPS.problems.Algorithms import TEGColumnGenerationAlgorithm
 from optimizedGPS.problems.simulator import FromEdgeDescriptionSimulator
 from optimizedGPS.structure import Driver, DriversGraph, GPSGraph
 
@@ -212,6 +213,16 @@ class ProblemsTest(unittest.TestCase):
             end = algorithm.TEGgraph.get_node_layer(edge_[1])
             reduced_costs.append(algorithm.get_reduced_cost(driver, edge, start, end))
         self.assertTrue(max(reduced_costs) > 0)
+
+    def test_column_generation_algorithm(self):
+        graph, drivers_graph = generate_bad_heuristic_graphs()
+        graph.set_global_congestion_function(lambda x: 3 * x + 4)
+
+        algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
+        algo.master.solve()
+        columns = algo.get_next_columns()
+
+        self.assertTrue(columns, None)
 
 
 if __name__ == '__main__':

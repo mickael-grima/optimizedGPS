@@ -216,13 +216,14 @@ class Problem(object):
             value += waiting_times[driver][edge]
         return value
 
-    def get_optimal_traffic(self):
+    def get_optimal_traffic(self, excluded_drivers=()):
         """
         Return the traffic corresponding to the optimal solution
         """
         traffic = defaultdict(lambda: defaultdict(lambda: 0))
-        for _, driver_history in self.iter_complete_optimal_solution():
-            self.graph.enrich_traffic_with_driver_history(traffic, driver_history)
+        for driver, driver_history in self.iter_complete_optimal_solution():
+            if driver not in excluded_drivers:
+                self.graph.enrich_traffic_with_driver_history(traffic, driver_history)
         return traffic
 
     def add_driver(self, driver, unreachable_edges=()):
@@ -393,6 +394,9 @@ class Model(Problem):
         except GurobiError:
             log.warning("problem has not been solved yet")
             return sys.maxint
+
+    def has_constraint(self, constr_name):
+        return self.model.getConstrByName(constr_name) is not None
 
     def get_dual_variable_from_constraint(self, constr_name):
         """

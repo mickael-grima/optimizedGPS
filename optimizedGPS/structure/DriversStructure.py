@@ -36,12 +36,12 @@ class DriversStructure(object):
     def add_starting_times(self, driver, edge, *starting_times):
         if self.starting_times[driver][edge] is None:
             self.starting_times[driver][edge] = SortedList()
-        self.starting_times.update(starting_times)
+        self.starting_times[driver][edge].update(starting_times)
 
     def add_ending_times(self, driver, edge, *ending_times):
         if self.ending_times[driver][edge] is None:
             self.ending_times[driver][edge] = SortedList()
-        self.ending_times.update(ending_times)
+        self.ending_times[driver][edge].update(ending_times)
 
     def get_starting_times(self, driver, edge):
         if self.starting_times[driver][edge] is None:
