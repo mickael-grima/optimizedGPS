@@ -8,6 +8,7 @@ from Graph import Graph
 from constants import constants
 from optimizedGPS import labels
 from utils.tools import congestion_function
+from  optimizedGPS import options
 
 __all__ = ["GPSGraph"]
 
@@ -130,6 +131,19 @@ class GPSGraph(Graph):
         if self.has_edge(source, target):
             return self.get_congestion_function(source, target)(0)
 
+    def iter_possible_waiting_time(self, edge, min_waiting_time=0, max_waiting_time=options.HORIZON):
+        """
+        Iterate every possible waiting time on edge up to max_waiting_time
+        """
+        i, func = 0, self.get_congestion_function(*edge)
+        while True:
+            if func(i) > max_waiting_time:
+                break
+            if func(i) < min_waiting_time:
+                continue
+            yield func(i)
+            i += 1
+
     def get_traffic_limit(self, source, target):
         """
         Computes and returns the traffic limit: the traffic after which we observe a congestion.
@@ -188,14 +202,16 @@ class GPSGraph(Graph):
             return True
         return False
 
-    def get_shortest_path_with_traffic(self, start, end, time, traffic_history):
+    def get_sorted_paths_with_traffic(self, start, end, time, traffic_history, delta=0):
         """
-        Then considering the traffic_history we compute the fastest path from start to end starting at time
+        Then considering the traffic_history we compute the fastest paths from start to end starting at time,
+        Only the paths which have a length up to the shortest path + delta are yielded.
 
         :param start: starting node
         :param end: ending node
         :param time: starting time
         :param traffic_history: for each edge, we associate a dictionnary of time, traffic.
+        :param delta: number
         :return: the traffic history of this shortest path, as if a driver would have driven on it
         """
         if not self.has_node(start):
@@ -208,12 +224,9 @@ class GPSGraph(Graph):
         # Set the time for the start node to zero
         next_nodes = {time: {start}}
         times = [time]
+        shortest_length = None
 
-        # Unvisited nodes
-        visited = set()
-        current = None
-
-        while len(times) > 0 and current != end:
+        while len(times) > 0:
             # Pops a vertex with the smallest distance
             t = times[0]
             current = next_nodes[t].pop()
@@ -222,11 +235,6 @@ class GPSGraph(Graph):
             if len(next_nodes[t]) == 0:
                 del next_nodes[t]
                 del times[0]
-
-            # Check if already visited
-            if current in visited:
-                continue
-            visited.add(current)
 
             for n in self.successors(current):
                 # get traffic at t
@@ -238,6 +246,10 @@ class GPSGraph(Graph):
 
                 # compute new time
                 new_time = t + self.get_congestion_function(current, n)(current_traffic)
+
+                # If we doscovered a path which is too long, we ignore it
+                if shortest_length is not None and new_time > shortest_length + delta:
+                    continue
 
                 # add new node in next_nodes
                 next_nodes.setdefault(new_time, set())
@@ -261,7 +273,23 @@ class GPSGraph(Graph):
                     if path[-1][1] == t:
                         paths[n].add(path + ((n, new_time),))
 
-        return min(paths[end], key=lambda p: p[-1][1])
+                # If we discovered the shortest path, set the shortest length
+                if n == end and shortest_length is None:
+                    shortest_length = new_time
+
+        return sorted(paths[end], key=lambda p: p[-1][1])
+
+    def get_shortest_path_with_traffic(self, start, end, time, traffic_history):
+        """
+        Then considering the traffic_history we compute the fastest path from start to end starting at time
+
+        :param start: starting node
+        :param end: ending node
+        :param time: starting time
+        :param traffic_history: for each edge, we associate a dictionnary of time, traffic.
+        :return: the traffic history of this shortest path, as if a driver would have driven on it
+        """
+        return self.get_sorted_paths_with_traffic(start, end, time, traffic_history, delta=0)[0]
 
     def get_lowest_driving_time(self, driver):
         """

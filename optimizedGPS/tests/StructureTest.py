@@ -181,6 +181,19 @@ class StructureTest(unittest.TestCase):
         path2 = graph.get_shortest_path_with_traffic(0, 3, 1, traffic_history)
         self.assertEqual(path2, ((0, 1), (1, 7), (3, 8)))
 
+    def test_iter_time_paths_from_path(self):
+        graph = GPSGraph()
+        graph.add_edge("1", "2")
+        graph.add_edge("2", "3")
+        graph.set_global_congestion_function(lambda x: x + 1)
+
+        teg_graph = ReducedTimeExpandedGraph(graph, 3)
+        paths = set(teg_graph.iter_time_paths_from_path(("1", "2", "3")))
+        self.assertEqual(
+            paths,
+            {(("1", 0), ("2", 1), ("3", 2)), (("1", 0), ("2", 2), ("3", 3)), (("1", 0), ("2", 1), ("3", 3))}
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

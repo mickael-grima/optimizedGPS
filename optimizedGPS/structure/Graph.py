@@ -315,7 +315,8 @@ class Graph(DiGraph):
                     return True
         return False
 
-    def iter_edges_in_path(self, path):
+    @classmethod
+    def iter_edges_in_path(cls, path):
         """
         iterate the edges in path, without considering whether the edge exists in current graph
 

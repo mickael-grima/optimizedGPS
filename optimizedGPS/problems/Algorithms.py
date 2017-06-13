@@ -1,8 +1,11 @@
+import sys
+
+from Heuristics import RealGPS
 from Models import FixedWaitingTimeModel, TEGModel
-from Heuristics import RealGPS, ReducedTEGModel
 from Problem import Problem, SolvinType
 from Solver import Solver
 from optimizedGPS.structure.DriversStructure import DriversStructure
+from optimizedGPS.structure.Graph import Graph
 
 
 class ConstantModelAlgorithm(Problem):
@@ -43,7 +46,6 @@ class TEGColumnGenerationAlgorithm(Problem):
         self.heuristic = heuristic if heuristic is not None else RealGPS(graph, drivers_graph)
         sub_drivers_structure = self.get_initial_structures()
         self.master = Solver(self.graph, drivers_graph, TEGModel, drivers_structure=sub_drivers_structure)
-        self.reducer = Solver(self.graph, drivers_graph, ReducedTEGModel, drivers_structure=sub_drivers_structure)
 
     def get_initial_structures(self):
         """
@@ -71,17 +73,37 @@ class TEGColumnGenerationAlgorithm(Problem):
 
         return drivers_structure
 
+    def get_TEGgraph(self):
+        return self.master.algorithm.TEGgraph
+
     def set_optimal_solution(self):
         for driver, path in self.master.iter_optimal_solution():
             self.set_optimal_path_to_driver(driver, path)
 
-    def update_reducer(self):
-        raise NotImplementedError()
+    def get_next_columns(self):
+        """
+        We minimize the reduced cost (see master) over a specified set of paths for each driver.
+        """
+        best_driver, best_path, best_value = None, None, sys.maxint
+        teg = self.get_TEGgraph()
+        for driver in self.drivers_graph.get_all_drivers():
+            for path in self.graph.get_sorted_paths_with_traffic(delta=10):
+                for path_ in teg.iter_time_paths_from_path(path):
+                    value = 0
+                    for edge_ in Graph.iter_edges_in_path(path):
+                        edge = teg.get_original_edge(edge_)
+                        start = teg.get_node_layer(edge_[0])
+                        end = teg.get_node_layer(edge_[1])
+                        value += self.master.algorithm.get_reduced_cost(driver, edge, start, end)
+                    if value < best_value:
+                        best_driver, best_path = driver, path_
+                        best_value = value
+        return map(
+            lambda e_: (best_driver, teg.get_original_edge(e_), teg.get_node_layer(e_[0]), teg.get_node_layer(e_[1])),
+            teg.iter_edges_in_path(best_path)
+        )
 
-    def get_next_column(self):
-        raise NotImplementedError()
-
-    def add_column_to_master(self):
+    def add_column_to_master(self, column):
         raise NotImplementedError()
 
     def solve_with_solver(self):
@@ -94,11 +116,9 @@ class TEGColumnGenerationAlgorithm(Problem):
         """
         while True:
             self.master.solve()
-            self.update_reducer()
-            self.reducer.solve()
-            next_column = self.get_next_column()
-            if next_column is None:
+            next_columns = self.get_next_columns()
+            if not next_columns:
                 break  # Optimality reached
-            else:
-                self.add_column_to_master()
+            for column in next_columns:
+                self.add_column_to_master(column)
         self.set_optimal_solution()

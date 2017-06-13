@@ -204,3 +204,19 @@ class ReducedTimeExpandedGraph(object):
             for n in self.iter_nodes_from_node(node):
                 value += 1
         return value
+
+    def iter_time_paths_from_path(self, original_path, starting_time=0):
+        """
+        Given a tuple of original nodes, iterate every possible time nodes corresponding to a path in the TEG graph.
+        """
+        if len(original_path) == 2:
+            edge = original_path
+            for waiting_time in self.graph.iter_possible_waiting_time(
+                    edge, max_waiting_time=self.horizon - starting_time):
+                yield ((edge[0], starting_time), (edge[1], starting_time + waiting_time))
+        else:
+            edge = self.graph.iter_edges_in_path(original_path).next()
+            for wtime in self.graph.iter_possible_waiting_time(
+                    edge, max_waiting_time=self.horizon - starting_time):
+                for path in self.iter_time_paths_from_path(original_path[1:], starting_time=starting_time + wtime):
+                    yield ((edge[0], starting_time),) + path
