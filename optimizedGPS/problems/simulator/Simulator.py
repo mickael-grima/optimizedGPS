@@ -288,7 +288,7 @@ class Simulator(object):
         Return the traffic on edge at time
         """
         traffic = 0
-        for path_clocks in self.events.itervalues():
+        for driver, path_clocks in self.events.iteritems():
             i, visited = 0, False
             while i < len(path_clocks) - 1:
                 if path_clocks[i].object == edge and path_clocks[i].time < time <= path_clocks[i + 1].time:
@@ -297,7 +297,7 @@ class Simulator(object):
                 i += 1
             if path_clocks[i].object == edge and path_clocks[i].time < time:
                 visited = True
-            traffic += visited
+            traffic += visited * driver.traffic_weight
         return traffic
 
 

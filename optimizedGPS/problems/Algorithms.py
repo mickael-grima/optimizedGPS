@@ -88,12 +88,19 @@ class TEGColumnGenerationAlgorithm(Problem):
         best_driver, best_path, best_value = None, None, sys.maxint
         teg = self.get_TEGgraph()
         for driver in self.drivers_graph.get_all_drivers():
-            traffic = self.master.algorithm.get_optimal_traffic(excluded_drivers=[driver])
-            for path in self.graph.get_sorted_paths_with_traffic(
+            traffic = self.master.get_optimal_traffic()
+            n_org = 0
+            for extended_path in self.graph.get_sorted_paths_with_traffic(
                     driver.start, driver.end, driver.time, traffic, delta=10):
+                if n_org == self.graph.number_of_edges():
+                    break
+                path = tuple(map(lambda e: e[0], extended_path))
+                n = 0
                 for path_ in teg.iter_time_paths_from_path(path):
+                    if n == self.graph.number_of_edges():
+                        break
                     value = 0
-                    for edge_ in Graph.iter_edges_in_path(path):
+                    for edge_ in Graph.iter_edges_in_path(path_):
                         edge = teg.get_original_edge(edge_)
                         start = teg.get_node_layer(edge_[0])
                         end = teg.get_node_layer(edge_[1])
@@ -101,17 +108,20 @@ class TEGColumnGenerationAlgorithm(Problem):
                     if value < best_value:
                         best_driver, best_path = driver, path_
                         best_value = value
+                    n += 1
+                n_org += 1
         return map(
             lambda e_: (best_driver, teg.get_original_edge(e_), teg.get_node_layer(e_[0]), teg.get_node_layer(e_[1])),
-            teg.iter_edges_in_path(best_path)
+            Graph.iter_edges_in_path(best_path)
         )
 
     def add_column_to_master(self, column):
         driver, edge, start, end = column
         self.master.drivers_structure.add_starting_times(driver, edge, start)
         self.master.drivers_structure.add_ending_times(driver, edge, end)
-        self.master.algorithm.generate_variables(driver, edge, (start, end))
-        self.master.algorithm.generate_constraints(driver, edge, (start, end))
+        update = self.master.algorithm.generate_variables(driver, edge, [(start, end)])
+        self.master.algorithm.generate_constraints(driver, edge, [(start, end)])
+        return update
 
     def solve_master_as_integer(self):
         """
@@ -129,10 +139,14 @@ class TEGColumnGenerationAlgorithm(Problem):
         """
         while True:
             self.master.solve()
+            print self.master.algorithm.model.objVal
             next_columns = self.get_next_columns()
             if not next_columns:
                 break  # Optimality reached
+            update = False
             for column in next_columns:
-                self.add_column_to_master(column)
+                update = update or self.add_column_to_master(column)
+            if update is False:
+                break
         self.solve_master_as_integer()
         self.set_optimal_solution()

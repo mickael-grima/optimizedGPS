@@ -13,6 +13,7 @@ import labels
 from optimizedGPS import options
 from Problem import Model
 from optimizedGPS.structure import ReducedTimeExpandedGraph as TEG
+from optimizedGPS.structure import Graph, Driver
 
 __all__ = ["MainContinuousTimeModel", "BestPathTrafficModel", "FixedWaitingTimeModel", "TEGModel"]
 
@@ -409,7 +410,8 @@ class TEGModel(EdgeCharacterizationModel):
             "%s:%s:%s:%s" % (labels.TRANSFERT, repr(driver), str(edge[1]), start)) or 0
         omega = self.get_dual_variable_from_constraint("%s:%s" % (labels.ENDING_TIME, repr(driver))) or 0
 
-        alpha = self.graph.get_congestion_function(*edge)(1) - self.graph.get_congestion_function(*edge)(0)
+        func = self.graph.get_congestion_function(*edge)
+        alpha = func(1) - func(0)
 
         reduced_cost = (end - start) * (lambda_plus.get((driver, start), 0) - lambda_moins.get((driver, start), 0)) - \
             self.bigM() * lambda_plus.get((driver, start), 0) + \
@@ -518,9 +520,19 @@ class TEGModel(EdgeCharacterizationModel):
     def set_optimal_solution(self):
         paths = {}
         for (edge, driver), var in self.x.iteritems():
-            paths.setdefault(driver, [])
-            if isinstance(var, Var) and var.X == 1.0:
-                paths[driver].append(self.TEGgraph.get_original_edge(edge))
+            paths.setdefault(driver, {})
+            if isinstance(var, Var) and var.X > 0:
+                paths[driver][self.TEGgraph.get_original_edge(edge)] = var.X
+
+        # If the solution is continuous, we split the drivers into smaller drivers
+        if self.binary is False:
+            paths_ = {}
+            for driver in paths.iterkeys():
+                cont_paths = Graph.get_paths_from_continuous_edge_description(driver.start, driver.end, paths[driver])
+                for path, coeff in cont_paths.iteritems():
+                    paths_[Driver(driver.start, driver.end, driver.time, coeff)] = \
+                        list(self.graph.iter_edges_in_path(path))
+            paths = paths_
 
         for driver, edges in paths.iteritems():
             self.set_optimal_path_to_driver(

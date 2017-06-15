@@ -42,6 +42,8 @@ class Problem(object):
         self.status = options.NOT_RUN  # status
         self.horizon = horizon
 
+        self.simulator = FromEdgeDescriptionSimulator
+
         self.opt_solution = {}  # On wich path are each driver
         self.opt_simulator = None
 
@@ -80,7 +82,7 @@ class Problem(object):
             self.solve_with_heuristic()
         elif self.solving_type == SolvinType.SOLVER:
             self.solve_with_solver()
-        self.opt_simulator = FromEdgeDescriptionSimulator(
+        self.opt_simulator = self.simulator(
             self.get_graph(), self.get_drivers_graph(), self.opt_solution)
         self.opt_simulator.simulate()
         self.set_optimal_value()
@@ -142,8 +144,7 @@ class Problem(object):
         """
         return for each driver his optimal path and the starting time on each edge
         """
-        for driver in self.get_drivers_graph().get_all_drivers():
-            optimal_path = self.opt_solution[driver]
+        for driver, optimal_path in self.opt_solution.iteritems():
             starting_times = self.opt_simulator.get_starting_times(driver)
             yield driver, tuple([(edge, starting_times[edge]) for edge in self.graph.iter_edges_in_path(optimal_path)])
 
@@ -177,7 +178,7 @@ class Problem(object):
         """
         if len(drivers) == 0:
             return 0
-        simulator = FromEdgeDescriptionSimulator(
+        simulator = self.simulator(
             self.get_graph(),
             self.get_drivers_graph(),
             {driver: self.opt_solution[driver] for driver in drivers}
@@ -364,23 +365,13 @@ class Model(Problem):
         else:
             log.info("** Model has already been BUILT **")
 
-    def optimize(self):
-        self.model.optimize()
-
     def solve_with_solver(self):
         t = time.time()
-        self.optimize()
+        self.build_model()
+        self.model.optimize()
         self.running_time = time.time() - t
-        if self.binary is True:
-            self.set_optimal_solution()
+        self.set_optimal_solution()
         self.set_status(options.SUCCESS)
-
-    def solve(self):
-        if self.binary is True:
-            super(Model, self).solve()
-        else:
-            self.solve_with_solver()
-            self.value = self.model.objVal
 
     def get_graph(self):
         return self.graph

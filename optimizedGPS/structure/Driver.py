@@ -8,7 +8,7 @@ class Driver(object):
     """
     Represent a Driver
     """
-    def __init__(self, start, end, time):
+    def __init__(self, start, end, time, traffic_weight=1):
         """
         starting node
         """
@@ -21,6 +21,10 @@ class Driver(object):
         starting time
         """
         self.time = time
+        """
+        Importance in the traffic computation
+        """
+        self.traffic_weight = traffic_weight
 
     def to_tuple(self):
         """
@@ -28,7 +32,7 @@ class Driver(object):
 
         :return: tuple
         """
-        return self.start, self.end, self.time
+        return self.start, self.end, self.time, self.traffic_weight
 
     def __str__(self):
         return str(self.to_tuple())

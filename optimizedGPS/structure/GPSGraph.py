@@ -247,31 +247,34 @@ class GPSGraph(Graph):
                 # compute new time
                 new_time = t + self.get_congestion_function(current, n)(current_traffic)
 
-                # If we doscovered a path which is too long, we ignore it
+                # If we discovered a path which is too long, we ignore it
                 if shortest_length is not None and new_time > shortest_length + delta:
                     continue
 
-                # add new node in next_nodes
-                next_nodes.setdefault(new_time, set())
-                next_nodes[new_time].add(n)
-
-                # add new time in the sorted list times
-                i = 0
-                while i < len(times):
-                    if times[i] == new_time:
-                        i = -1
-                        break
-                    elif times[i] > new_time:
-                        break
-                    i += 1
-                if i >= 0:
-                    times.insert(i, new_time)
-
                 # update paths
+                update = False
                 paths.setdefault(n, set())
                 for path in paths[current]:
-                    if path[-1][1] == t:
+                    if path[-1][1] == t and n not in map(lambda e: e[0], path):
                         paths[n].add(path + ((n, new_time),))
+                        update = True
+
+                if update is True:
+                    # add new node in next_nodes
+                    next_nodes.setdefault(new_time, set())
+                    next_nodes[new_time].add(n)
+
+                    # add new time in the sorted list times
+                    i = 0
+                    while i < len(times):
+                        if times[i] == new_time:
+                            i = -1
+                            break
+                        elif times[i] > new_time:
+                            break
+                        i += 1
+                    if i >= 0:
+                        times.insert(i, new_time)
 
                 # If we discovered the shortest path, set the shortest length
                 if n == end and shortest_length is None:

@@ -4,6 +4,7 @@
 import logging
 import math
 import random
+from collections import defaultdict
 
 from networkx import DiGraph, number_connected_components
 
@@ -586,3 +587,36 @@ class Graph(DiGraph):
         :return: object
         """
         return self.graph.get(attr)
+
+    @classmethod
+    def get_paths_from_continuous_edge_description(cls, start, end, edge_description):
+        """
+        From thos edge description we build a set of paths and we associate to each path a coefficient representing
+        the quantity of flow driving on it.
+        We suppose that each path is without cycle
+
+        :param start: node
+        :param edge_description: dictionary containing edge as key and a coefficient in (0,1] as value
+        :return: dict
+        """
+        paths = defaultdict(lambda: defaultdict(lambda: 0))
+        paths[start][(start,)] = 1
+        next_nodes = {start}
+        while len(next_nodes) > 0:
+            node = next_nodes.pop()
+            edges = {e: c for e, c in edge_description.iteritems() if e[0] == node}
+            if len(edges) == 0:
+                continue
+            for path, coeff in paths[node].iteritems():
+                while coeff > 0:
+                    edge, c = edges.popitem()
+                    if coeff >= c:
+                        paths[edge[1]][path + (edge[1],)] = c
+                        coeff -= c
+                    else:
+                        paths[edge[1]][path + (edge[1],)] = coeff
+                        edges[edge] = c - coeff
+                        coeff = 0
+                    if edge[1] != end:
+                        next_nodes.add(edge[1])
+        return paths[end]

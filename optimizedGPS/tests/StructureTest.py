@@ -191,8 +191,20 @@ class StructureTest(unittest.TestCase):
         paths = set(teg_graph.iter_time_paths_from_path(("1", "2", "3")))
         self.assertEqual(
             paths,
-            {(("1", 0), ("2", 1), ("3", 2)), (("1", 0), ("2", 2), ("3", 3)), (("1", 0), ("2", 1), ("3", 3))}
+            {
+                tuple(map(lambda e: teg_graph.build_node(*e), [("1", 0), ("2", 1), ("3", 2)])),
+                tuple(map(lambda e: teg_graph.build_node(*e), [("1", 0), ("2", 2), ("3", 3)])),
+                tuple(map(lambda e: teg_graph.build_node(*e), [("1", 0), ("2", 1), ("3", 3)]))
+            }
         )
+
+    def test_paths_from_continuous_edges_description(self):
+        edge_description = {(0, 1): 0.4, (1, 3): 0.4, (0, 2): 0.6, (2, 3): 0.6, (3, 7): 0.8, (7, 8): 0.8,
+                            (3, 4): 0.1, (4, 6): 0.1, (3, 5): 0.1, (5, 6): 0.1, (6, 8): 0.2}
+        paths = Graph.get_paths_from_continuous_edge_description(0, 8, edge_description)
+
+        self.assertEqual(sum(paths.itervalues()), 1)
+        self.assertEqual(len(paths), 4)
 
 
 if __name__ == '__main__':

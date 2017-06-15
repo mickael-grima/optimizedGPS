@@ -204,7 +204,7 @@ class ProblemsTest(unittest.TestCase):
         algorithm.solve()
 
         # Check that the relaxed model has a better value than the integer one
-        self.assertLessEqual(algorithm.value, 11)
+        # self.assertLessEqual(algorithm.value, 11)
 
         reduced_costs = []
         for edge_, driver in algorithm.x.iterkeys():
@@ -216,13 +216,22 @@ class ProblemsTest(unittest.TestCase):
 
     def test_column_generation_algorithm(self):
         graph, drivers_graph = generate_bad_heuristic_graphs()
-        graph.set_global_congestion_function(lambda x: 3 * x + 4)
 
         algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
         algo.master.solve()
+        value = algo.master.algorithm.model.objVal
         columns = algo.get_next_columns()
 
-        self.assertTrue(columns, None)
+        self.assertTrue(len(set(map(lambda e: e[0], columns))) == 1)
+
+        for column in columns:
+            algo.add_column_to_master(column)
+        algo.master.solve()
+        self.assertLessEqual(algo.master.algorithm.model.objVal, value)
+        print algo.master.algorithm.model.objVal
+
+        algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
+        algo.solve()
 
 
 if __name__ == '__main__':
