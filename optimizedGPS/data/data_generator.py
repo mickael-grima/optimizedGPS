@@ -128,12 +128,14 @@ def generate_grid_graph_random_driver(length=2, width=3, nb_drivers=10):
     return graph, drivers_graph
 
 
-def generate_bad_heuristic_graphs(traffic_influence=2, annex_road_congestion=0):
+def generate_bad_heuristic_graphs(traffic_influence=2, annex_road_congestion=0, number_drivers_group=1):
     """
 
     :param traffic_influence: on the main road (0 -> 1), the congestion
     :param annex_road_congestion: on annex roads (0 -> 1 and 0 -> 2), the difference between their congestion
                               and the traffic influence
+    :param number_drivers_group: we have a schema for the drivers to add in order to get a bad heuristic.
+                                 We repeat this schema as many times as number_drivers_group
     :return:
     """
     graph = GPSGraph(name="bad_heuristic_graph:traffic_influence=%s:annex_road_length=%s"
@@ -145,8 +147,9 @@ def generate_bad_heuristic_graphs(traffic_influence=2, annex_road_congestion=0):
     graph.add_edge("3", "2", congestion_func=lambda x: traffic_influence + annex_road_congestion)
 
     drivers_graph = DriversGraph()
-    drivers_graph.add_driver(Driver("0", "3", 0))
-    drivers_graph.add_driver(Driver("0", "3", 0))
-    drivers_graph.add_driver(Driver("0", "2", 1))
+    for _ in xrange(number_drivers_group):
+        drivers_graph.add_driver(Driver("0", "3", 0))
+        drivers_graph.add_driver(Driver("0", "3", 0))
+        drivers_graph.add_driver(Driver("0", "2", 1))
 
     return graph, drivers_graph

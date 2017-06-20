@@ -230,8 +230,8 @@ class ProblemsTest(unittest.TestCase):
         self.assertLessEqual(algo.master.algorithm.model.objVal, value)
         print algo.master.algorithm.model.objVal
 
-        algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
-        algo.solve()
+        # algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
+        # algo.solve()
 
 
 if __name__ == '__main__':

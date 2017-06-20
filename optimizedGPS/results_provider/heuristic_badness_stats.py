@@ -26,5 +26,26 @@ def get_RealGPS_badness_stats(congestions=iter([])):
     return res
 
 
+def compute_realGPS_linear_approximation(nb_drivers=iter([])):
+    res = []
+    traffic_influence, annex_congestion = 2, 1
+    for nb in nb_drivers:
+        graph, drivers_graph = generate_bad_heuristic_graphs(traffic_influence, annex_congestion, nb)
+        heuristic = RealGPS(graph, drivers_graph)
+        heuristic.solve()
+
+        edge_description = {}
+        for driver in drivers_graph.get_all_drivers():
+            if driver.time == 0:
+                edge_description[driver] = ("0", "1", "3")
+            else:
+                edge_description[driver] = ("0", "2")
+        simulator = FromEdgeDescriptionSimulator(graph, drivers_graph, edge_description)
+        simulator.simulate()
+        res.append((heuristic.value / float(nb), simulator.get_sum_ending_time() / float(nb)))
+    return res
+
+
 if __name__ == "__main__":
-    print get_RealGPS_badness_stats([1, 10, 100, 1000, 10000])
+    # print get_RealGPS_badness_stats([1, 10, 100, 1000, 10000])
+    print compute_realGPS_linear_approximation(xrange(1, 10))
