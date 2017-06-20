@@ -24,6 +24,10 @@ class EdgeCharacterizationModel(Model):
     def initialize(self, **kwards):
         self.vtype = GRB.BINARY if self.binary else GRB.CONTINUOUS
 
+    def change_variables_type(self, vtype):
+        self.binary = vtype == GRB.BINARY
+        self.vtype = vtype
+
     def build_variables(self):
         self.x = defaultdict(lambda: 0)
         for edge in self.graph.edges_iter():
@@ -240,6 +244,9 @@ class TEGModel(EdgeCharacterizationModel):
         return max([self.graph.get_congestion_function(*edge)(self.drivers_graph.number_of_drivers())
                     for edge in self.graph.edges_iter()])
 
+    def has_variable(self, driver, edge, start, end):
+        return isinstance(self.x[self.TEGgraph.build_edge(edge, start, end), driver], Var)
+
     def number_of_variables(self):
         value = 0
         for driver in self.drivers_graph.get_all_drivers():
@@ -389,6 +396,9 @@ class TEGModel(EdgeCharacterizationModel):
         If the problem has already been solved, and it is a continuous model, then return the reduced cost associated
         to the given variable index.
         """
+        var = self.x[self.TEGgraph.build_edge(edge, start, end), driver]
+        if isinstance(var, Var):
+            return var.getAttr(GRB.Attr.RC)
         lambda_plus = {
             (d, i): self.get_dual_variable_from_constraint(
                 "%s:%s:%s:%s" % (labels.UPPER_WAITING_TIME, repr(d), str(edge), i)) or 0
@@ -518,6 +528,7 @@ class TEGModel(EdgeCharacterizationModel):
         )
 
     def set_optimal_solution(self):
+        self.opt_solution = {}
         paths = {}
         for (edge, driver), var in self.x.iteritems():
             paths.setdefault(driver, {})

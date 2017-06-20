@@ -305,6 +305,12 @@ class Model(Problem):
         """
         pass
 
+    def reset(self):
+        """
+        reset the problem to be rebuilt
+        """
+        self.built = False
+
     def set_parameters(self, **kwargs):
         """
         Set Gurobi parameters
@@ -388,6 +394,9 @@ class Model(Problem):
 
     def has_constraint(self, constr_name):
         return self.model.getConstrByName(constr_name) is not None
+
+    def has_variable(self, *args):
+        return False
 
     def get_dual_variable_from_constraint(self, constr_name):
         """

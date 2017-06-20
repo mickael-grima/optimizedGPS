@@ -41,5 +41,6 @@ class Solver(Problem):
         self.presolve()
         self.algorithm.build_model()
         self.algorithm.solve_with_solver()
+        self.opt_solution = {}
         for driver, path in self.algorithm.iter_optimal_solution():
             self.set_optimal_path_to_driver(driver, path)

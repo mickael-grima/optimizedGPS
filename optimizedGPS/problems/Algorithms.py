@@ -1,5 +1,10 @@
 import sys
 
+try:
+    from gurobipy import GRB, quicksum, Var
+except:
+    pass
+
 from Heuristics import RealGPS
 from Models import FixedWaitingTimeModel, TEGModel
 from Problem import Problem, SolvinType
@@ -77,6 +82,7 @@ class TEGColumnGenerationAlgorithm(Problem):
         return self.master.algorithm.TEGgraph
 
     def set_optimal_solution(self):
+        self.opt_solution = {}
         for driver, path in self.master.iter_optimal_solution():
             self.set_optimal_path_to_driver(driver, path)
 
@@ -96,7 +102,7 @@ class TEGColumnGenerationAlgorithm(Problem):
                     break
                 path = tuple(map(lambda e: e[0], extended_path))
                 n = 0
-                for path_ in teg.iter_time_paths_from_path(path):
+                for path_ in teg.iter_time_paths_from_path(path, starting_time=driver.time):
                     if n == self.graph.number_of_edges():
                         break
                     value = 0
@@ -104,16 +110,20 @@ class TEGColumnGenerationAlgorithm(Problem):
                         edge = teg.get_original_edge(edge_)
                         start = teg.get_node_layer(edge_[0])
                         end = teg.get_node_layer(edge_[1])
-                        value += self.master.algorithm.get_reduced_cost(driver, edge, start, end)
+                        if not self.master.algorithm.has_variable(driver, edge, start, end):
+                            value += self.master.algorithm.get_reduced_cost(driver, edge, start, end) or 0
                     if value < best_value:
                         best_driver, best_path = driver, path_
                         best_value = value
                     n += 1
                 n_org += 1
-        return map(
-            lambda e_: (best_driver, teg.get_original_edge(e_), teg.get_node_layer(e_[0]), teg.get_node_layer(e_[1])),
-            Graph.iter_edges_in_path(best_path)
-        )
+        try:
+            return map(
+                lambda e_: (best_driver, teg.get_original_edge(e_), teg.get_node_layer(e_[0]), teg.get_node_layer(e_[1])),
+                Graph.iter_edges_in_path(best_path)
+            )
+        except:
+            return []
 
     def add_column_to_master(self, column):
         driver, edge, start, end = column
@@ -127,7 +137,9 @@ class TEGColumnGenerationAlgorithm(Problem):
         """
         Solve the master problem with integer variables
         """
-        raise NotImplementedError()
+        self.master.algorithm.change_variables_type(GRB.BINARY)
+        self.master.algorithm.reset()
+        self.master.solve()
 
     def solve_with_solver(self):
         """
@@ -139,7 +151,6 @@ class TEGColumnGenerationAlgorithm(Problem):
         """
         while True:
             self.master.solve()
-            print self.master.algorithm.model.objVal
             next_columns = self.get_next_columns()
             if not next_columns:
                 break  # Optimality reached

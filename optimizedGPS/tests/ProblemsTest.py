@@ -205,14 +205,16 @@ class ProblemsTest(unittest.TestCase):
 
         # Check that the relaxed model has a better value than the integer one
         # self.assertLessEqual(algorithm.value, 11)
-
-        reduced_costs = []
         for edge_, driver in algorithm.x.iterkeys():
             edge = algorithm.TEGgraph.get_original_edge(edge_)
             start = algorithm.TEGgraph.get_node_layer(edge_[0])
             end = algorithm.TEGgraph.get_node_layer(edge_[1])
-            reduced_costs.append(algorithm.get_reduced_cost(driver, edge, start, end))
-        self.assertTrue(max(reduced_costs) > 0)
+
+            reduced_cost = algorithm.get_reduced_cost(driver, edge, start, end)
+            self.assertGreaterEqual(reduced_cost, 0)
+
+            algorithm.x[algorithm.TEGgraph.build_edge(edge, start, end), driver] = 0
+            self.assertEqual(reduced_cost, algorithm.get_reduced_cost(driver, edge, start, end))
 
     def test_column_generation_algorithm(self):
         graph, drivers_graph = generate_bad_heuristic_graphs()
@@ -222,16 +224,17 @@ class ProblemsTest(unittest.TestCase):
         value = algo.master.algorithm.model.objVal
         columns = algo.get_next_columns()
 
-        self.assertTrue(len(set(map(lambda e: e[0], columns))) == 1)
+        self.assertEqual(len(set(map(lambda e: e[0], columns))), 1)
 
         for column in columns:
             algo.add_column_to_master(column)
         algo.master.solve()
         self.assertLessEqual(algo.master.algorithm.model.objVal, value)
-        print algo.master.algorithm.model.objVal
 
         # algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
         # algo.solve()
+
+        # self.assertEqual(None, algo.value)
 
 
 if __name__ == '__main__':
