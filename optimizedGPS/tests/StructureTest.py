@@ -7,7 +7,7 @@ from networkx import NetworkXError
 from optimizedGPS.structure import Graph
 from optimizedGPS.structure import GPSGraph
 from optimizedGPS.structure import TimeExpandedGraph, ReducedTimeExpandedGraph
-from optimizedGPS.data.data_generator import generate_graph_from_file
+from optimizedGPS.data.data_generator import generate_graph_from_file, generate_bad_heuristic_graphs
 from optimizedGPS.structure import Driver
 from optimizedGPS.structure import DriversGraph
 from optimizedGPS.structure import DriversStructure
@@ -216,6 +216,52 @@ class StructureTest(unittest.TestCase):
         graph.add_edge(1, 2, congestion_func=lambda x: x + 1)
         times = list(graph.iter_possible_waiting_time((1, 2), max_waiting_time=3))
         self.assertEqual(times, [1, 2, 3])
+
+        # Test we constant congestion function
+        graph = GPSGraph()
+        graph.add_edge(1, 2, congestion_func=lambda x: 2)
+        times = list(graph.iter_possible_waiting_time((1, 2), max_waiting_time=3))
+        self.assertEqual(times, [2])
+
+    def test_iter_possible_time_intervals(self):
+        graph = GPSGraph()
+        graph.add_edge(1, 2, congestion_func=lambda x: 3 * x + 4)
+
+        driver = Driver(1, 2, 0)
+        drivers_graph = DriversGraph()
+        drivers_graph.add_driver(driver)
+
+        drivers_structure = DriversStructure(graph, drivers_graph, horizon=10)
+
+        times = [(0, 4), (0, 7), (0, 10), (1, 5), (1, 8), (2, 6), (2, 9), (3, 7), (3, 10), (4, 8), (5, 9), (6, 10)]
+        output_times = list(drivers_structure.iter_time_intervals(driver, (1, 2)))
+        self.assertEqual(times, output_times)
+
+    def test_bad_heuristic_graph_structure(self):
+        """
+        test the waiting times on bad heuristic graph
+        """
+        graph, drivers_graph = generate_bad_heuristic_graphs()
+        drivers_structure = DriversStructure(graph, drivers_graph, horizon=7)
+
+        edge, driver = ("0", "1"), filter(lambda d: d.time == 0, drivers_graph.get_all_drivers())[0]
+        times = drivers_structure.iter_time_intervals(driver, edge)
+        self.assertEqual(list(times), [(0, 2), (1, 3), (2, 4), (3, 5), (4, 6), (5, 7)])
+
+        edge, driver = ("0", "2"), filter(lambda d: d.time == 0, drivers_graph.get_all_drivers())[0]
+        times = drivers_structure.iter_time_intervals(driver, edge)
+        self.assertEqual(
+            list(times),
+            [(0, 2), (0, 4), (0, 6), (1, 3), (1, 5), (1, 7), (2, 4), (2, 6), (3, 5), (3, 7), (4, 6), (5, 7)]
+        )
+
+        edge, driver = ("0", "1"), filter(lambda d: d.time == 1, drivers_graph.get_all_drivers())[0]
+        times = drivers_structure.iter_time_intervals(driver, edge)
+        self.assertEqual(list(times), [(1, 3), (2, 4), (3, 5), (4, 6), (5, 7)])
+
+        edge, driver = ("0", "2"), filter(lambda d: d.time == 1, drivers_graph.get_all_drivers())[0]
+        times = drivers_structure.iter_time_intervals(driver, edge)
+        self.assertEqual(list(times), [(1, 3), (1, 5), (1, 7), (2, 4), (2, 6), (3, 5), (3, 7), (4, 6), (5, 7)])
 
 
 if __name__ == '__main__':

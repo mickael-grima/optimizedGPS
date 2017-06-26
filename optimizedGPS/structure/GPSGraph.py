@@ -134,24 +134,31 @@ class GPSGraph(Graph):
     def iter_possible_waiting_time(self, edge, traffic=0, min_waiting_time=0, max_waiting_time=options.HORIZON):
         """
         Iterate every possible waiting time on edge up to max_waiting_time
+
+        ** WARNING **: if the congestion function is constant we yield only one value
         """
         incr, nxt, func = 0, -1, self.get_congestion_function(*edge)
+        lower, upper = None, func(traffic)  # We control if the congestion function is not constant
         while True:
             # If we are on both side out of the limits, we stop the iteration
             if func(traffic + incr) > max_waiting_time and (traffic < incr or func(traffic - incr) < min_waiting_time):
                 break
+            if func(traffic + incr) == upper and func(traffic - incr) == lower:
+                break
             i = traffic + nxt * incr
             # If we are out of the left limit we go further to the right
-            if nxt < 0 and (i < 0 or func(i) < min_waiting_time):
+            if nxt < 0 and (i < 0 or func(i) < min_waiting_time or func(i) == lower):
                 nxt = 1
                 incr += 1
                 continue
             # If we are out of the right limit we go further to the left
-            elif nxt > 0 and (func(i) > max_waiting_time):
+            elif nxt > 0 and (func(i) > max_waiting_time or func(i) == upper):
                 nxt = -1
                 continue
             if min_waiting_time <= func(i) <= max_waiting_time:
                 yield func(i)
+                lower = func(i) if nxt < 0 else lower
+                upper = func(i) if nxt > 0 else upper
             nxt *= -1
             if nxt > 0:  # We increment only when we go to the right, the we don't forget ny index on both side
                 incr += 1

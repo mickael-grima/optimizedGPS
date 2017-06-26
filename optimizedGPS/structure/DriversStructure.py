@@ -55,7 +55,7 @@ class DriversStructure(object):
 
     def iter_starting_times(self, driver, edge):
         times = self.starting_times[driver][edge]
-        times = times if times is not None else xrange(self.horizon + 1)
+        times = times if times is not None else xrange(driver.time, self.horizon + 1)
         for starting_time in times:
             yield starting_time
 
@@ -65,6 +65,14 @@ class DriversStructure(object):
         for ending_time in times:
             if ending_time > starting_time:
                 yield ending_time
+
+    def iter_time_intervals(self, driver, edge):
+        ending_times = self.ending_times[driver][edge]
+        ending_times = set(ending_times) if ending_times is not None else None
+        for starting_time in self.iter_starting_times(driver, edge):
+            for wtime in self.graph.iter_possible_waiting_time(edge, max_waiting_time=self.horizon - starting_time):
+                if ending_times is None or starting_time + wtime in ending_times:
+                    yield starting_time, starting_time + wtime
 
     def get_possible_ending_times_on_node(self, driver, node):
         times, has_predecessors = set(), False

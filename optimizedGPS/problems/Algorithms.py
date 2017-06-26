@@ -1,4 +1,5 @@
 import sys
+import time
 
 try:
     from gurobipy import GRB, quicksum, Var
@@ -45,9 +46,19 @@ class ConstantModelAlgorithm(Problem):
 
 
 class TEGColumnGenerationAlgorithm(Problem):
-    def __init__(self, graph, drivers_graph, drivers_structure=None, heuristic=None, **kwargs):
+    PATH_COLUMN_GENERATION = "path"
+    UNIQUE_COLUMN_GENERATION = "unique"
+
+    def __init__(self, graph, drivers_graph, drivers_structure=None, heuristic=None, column_generation_type=None,
+                 **kwargs):
         super(TEGColumnGenerationAlgorithm, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
                                                            **kwargs)
+        if column_generation_type in [None, self.UNIQUE_COLUMN_GENERATION]:
+            self.column_generation_type = self.UNIQUE_COLUMN_GENERATION
+        elif column_generation_type == self.PATH_COLUMN_GENERATION:
+            self.column_generation_type = self.PATH_COLUMN_GENERATION
+        else:
+            raise TypeError("colum generation type should be one of the clas column generation possibilities")
         self.heuristic = heuristic if heuristic is not None else RealGPS(graph, drivers_graph)
         sub_drivers_structure = self.get_initial_structures()
         self.master = Solver(self.graph, drivers_graph, TEGModel, drivers_structure=sub_drivers_structure, binary=False)
@@ -86,7 +97,7 @@ class TEGColumnGenerationAlgorithm(Problem):
         for driver, path in self.master.iter_optimal_solution():
             self.set_optimal_path_to_driver(driver, path)
 
-    def get_next_columns(self):
+    def get_paths_as_next_columns(self):
         """
         We minimize the reduced cost (see master) over a specified set of paths for each driver.
         """
@@ -119,11 +130,31 @@ class TEGColumnGenerationAlgorithm(Problem):
                 n_org += 1
         try:
             return map(
-                lambda e_: (best_driver, teg.get_original_edge(e_), teg.get_node_layer(e_[0]), teg.get_node_layer(e_[1])),
+                lambda e_: (
+                best_driver, teg.get_original_edge(e_), teg.get_node_layer(e_[0]), teg.get_node_layer(e_[1])),
                 Graph.iter_edges_in_path(best_path)
             )
         except:
             return []
+
+    def get_unique_column(self):
+        best_driver, best_edge, best_start, best_end, reduced_cost = None, None, None, None, sys.maxint
+        for driver in self.drivers_graph.get_all_drivers():
+            for edge in self.graph.edges_iter():
+                for start, end in self.master.drivers_structure.iter_time_intervals(driver, edge):
+                    if not self.master.algorithm.has_variable(driver, edge, start, end):
+                        rc = self.master.algorithm.get_reduced_cost(driver, edge, start, end)
+                        if rc < reduced_cost:
+                            best_driver, best_edge, best_start, best_end, reduced_cost = driver, edge, start, end, rc
+        res = (best_driver, best_edge, best_start, best_end)
+        if all(map(lambda e: e is not None, res)):
+            return res
+
+    def get_next_columns(self):
+        if self.column_generation_type == self.PATH_COLUMN_GENERATION:
+            return self.get_paths_as_next_columns()
+        elif self.column_generation_type == self.UNIQUE_COLUMN_GENERATION:
+            return self.get_unique_column()
 
     def add_column_to_master(self, column):
         driver, edge, start, end = column
@@ -156,6 +187,7 @@ class TEGColumnGenerationAlgorithm(Problem):
                 break  # Optimality reached
             update = False
             for column in next_columns:
+                time.sleep(1)
                 update = update or self.add_column_to_master(column)
             if update is False:
                 break

@@ -23,7 +23,8 @@ setup(
         'requests',
         'osmapi',
         'sortedcontainers',
-        'mock'
+        'mock',
+        'pytest'
     ],
     zip_safe=False
 )
