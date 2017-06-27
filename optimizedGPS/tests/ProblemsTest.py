@@ -1,24 +1,49 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
+from optimizedGPS.logger import configure
+configure()
+
 import unittest
 from collections import defaultdict
 
 try:
-    from gurobipy import Var
+    from gurobipy import Var, GRB
 except ImportError:
-    Var = None
+    Var, GRB = None, None
 
 from optimizedGPS import labels
+from optimizedGPS.problems import labels as mlabels
 from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers, generate_bad_heuristic_graphs
 from optimizedGPS.problems.Heuristics import RealGPS
 from optimizedGPS.problems.Models import TEGModel
 from optimizedGPS.problems.Algorithms import TEGColumnGenerationAlgorithm
 from optimizedGPS.problems.simulator import FromEdgeDescriptionSimulator
+from optimizedGPS.problems.Solver import Solver
 from optimizedGPS.structure import Driver, DriversGraph, GPSGraph
 
 
 class ProblemsTest(unittest.TestCase):
+    def test_problems_main_functionnalities(self):
+        """
+        We test here global method in main classes Problem, Model
+        """
+        graph = GPSGraph()
+        graph.add_edge(1, 2, congestion_func=lambda x: 4 * x + 3)
+        graph.add_edge(1, 3, congestion_func=lambda x: 2)
+        graph.add_edge(3, 2, congestion_func=lambda x: 2)
+
+        driver0, driver1 = Driver(1, 2, 0), Driver(1, 2, 1)
+        drivers_graph = DriversGraph()
+        drivers_graph.add_driver(driver0)
+        drivers_graph.add_driver(driver1)
+
+        heuristic = RealGPS(graph, drivers_graph)
+        heuristic.solve()
+        variable_indexes = [(driver0, (1, 2), 0, 3), (driver1, (1, 3), 1, 3), (driver1, (3, 2), 3, 5)]
+        self.assertEqual(set(heuristic.iter_variable_indexes_from_optimal_solution()), set(variable_indexes))
+        self.assertEqual(len(list(heuristic.iter_variable_indexes_from_optimal_solution())), 3)
+
     @unittest.skipIf(Var is None, "gurobipy dependency not satisfied")
     def testTEGModel(self):
         # 1 driver
@@ -187,6 +212,34 @@ class ProblemsTest(unittest.TestCase):
 
         self.assertEqual(2 * traffic_influence + 7, simulator.get_sum_ending_time())
 
+    def test_solver_shared_memory(self):
+        """
+        Some data are shared with the algorithm inside solver (e.g. drivers_structure)
+        Check whether this sharing is really working
+        """
+        graph, drivers_graph = generate_bad_heuristic_graphs()
+        solver = Solver(graph, drivers_graph, TEGModel)
+
+        # check the adresses
+        self.assertEqual(id(solver.drivers_structure), id(solver.algorithm.drivers_structure))
+        self.assertEqual(id(solver.graph), id(solver.algorithm.graph))
+        self.assertEqual(id(solver.drivers_graph), id(solver.algorithm.drivers_graph))
+
+        # if we update the drivers_structure, are the changes updated everywhere ?
+        driver = solver.drivers_graph.get_all_drivers().next()
+        edge = solver.graph.edges()[0]
+        solver.drivers_structure.add_starting_times(driver, edge, 0, 1, 4)
+        self.assertEqual(
+            list(solver.drivers_structure.get_starting_times(driver, edge)),
+            list(solver.algorithm.drivers_structure.get_starting_times(driver, edge))
+        )
+
+        solver.drivers_structure.set_unreachable_edge_to_driver(driver, edge)
+        self.assertEqual(
+            list(solver.drivers_structure.get_possible_edges_for_driver(driver)),
+            list(solver.algorithm.drivers_structure.get_possible_edges_for_driver(driver))
+        )
+
     @unittest.skipIf(Var is None, "gurobipy dependency not satisfied")
     def test_TEGModel_vs_RealGPS(self):
         traffic_influence, annex_road_congestion = 2, 10
@@ -200,6 +253,29 @@ class ProblemsTest(unittest.TestCase):
         algorithm.solve()
 
         self.assertEqual(heuristic.value - algorithm.value, annex_road_congestion + 2)
+
+    @unittest.skipIf(Var is None, "gurobipy dependency not satisfied")
+    def test_TEGModel_feasibility(self):
+        graph, drivers_graph = generate_bad_heuristic_graphs()
+        algorithm = TEGModel(graph, drivers_graph, horizon=12, binary=False)
+        algorithm.build_model()
+        algorithm.solve()
+
+        for edge_, driver in algorithm.x.iterkeys():
+            edge = algorithm.TEGgraph.get_original_edge(edge_)
+            start = algorithm.TEGgraph.get_node_layer(edge_[0])
+            end = algorithm.TEGgraph.get_node_layer(edge_[1])
+
+            var_value = algorithm.x[edge_, driver].X if isinstance(algorithm.x[edge_, driver], Var) else 0
+            self.assertIn(var_value, [0, 1])
+
+            # Test the mu constraint: for one given edge and driver, there is at most one variable which is equal to 1
+            if var_value == 1:
+                for s, e in algorithm.drivers_structure.iter_time_intervals(driver, edge):
+                    if (s, e) != (start, end):
+                        v = algorithm.x[algorithm.TEGgraph.build_edge(edge, s, e), driver]
+                        v = v.X if isinstance(v, Var) else 0
+                        self.assertEqual(v, 0)
 
     @unittest.skip("Reduced costs are different any way, bug to fixed")
     def test_TEGModel_reduced_cost(self):
@@ -219,19 +295,70 @@ class ProblemsTest(unittest.TestCase):
             start = algorithm.TEGgraph.get_node_layer(edge_[0])
             end = algorithm.TEGgraph.get_node_layer(edge_[1])
 
-            reduced_cost = algorithm.get_reduced_cost(driver, edge, start, end)
-            self.assertGreaterEqual(reduced_cost, 0)
+            # test positivity of lambdas and mu
+            lambda_plus = algorithm.get_dual_variable_from_constraint(
+                "%s:%s:%s:%s" % (mlabels.UPPER_WAITING_TIME, id(driver), str(edge), start))
+            lambda_minus = algorithm.get_dual_variable_from_constraint(
+                "%s:%s:%s:%s" % (mlabels.LOWER_WAITING_TIME, id(driver), str(edge), start))
+            mu = algorithm.get_dual_variable_from_constraint(
+                "%s:%s:%s" % (mlabels.EDGE_TIME_UNICITY, id(driver), str(edge)))
+            self.assertGreaterEqual(lambda_plus, 0)
+            self.assertGreaterEqual(lambda_minus, 0)
+            self.assertGreaterEqual(mu, 0)
 
-            algorithm.x[algorithm.TEGgraph.build_edge(edge, start, end), driver] = 0
-            self.assertGreaterEqual(algorithm.get_reduced_cost(driver, edge, start, end), 0)
+            if isinstance(algorithm.x[edge_, driver], Var) and algorithm.x[edge_, driver].X == 1:
+                self.assertGreater(lambda_plus, 0)
+                self.assertGreater(lambda_minus, 0)
+                self.assertGreater(mu, 0)
+
+            # reduced_cost = algorithm.get_reduced_cost(driver, edge, start, end)
+            # self.assertGreaterEqual(reduced_cost, 0)
+
+            # algorithm.x[algorithm.TEGgraph.build_edge(edge, start, end), driver] = 0
+            # self.assertGreaterEqual(algorithm.get_reduced_cost(driver, edge, start, end), 0)
 
     @unittest.skipIf(Var is None, "gurobipy dependency not satisfied")
     def test_column_generation_algorithm(self):
         graph, drivers_graph = generate_bad_heuristic_graphs()
 
-        algo = TEGColumnGenerationAlgorithm(graph, drivers_graph)
+        algo = TEGColumnGenerationAlgorithm(graph, drivers_graph, horizon=7)
+        algo.master.presolve()
+        algo.master.algorithm.build_model()
+
+        # Check number of initial variables
+        number_vars = len(filter(lambda v: isinstance(v, Var), algo.master.algorithm.x.itervalues()))
+        self.assertEqual(number_vars, 5)
+
+        # Check the number of new variables: is the drivers_structure of algo different from the one used by algo.master
+        count = sum([1 for driver in algo.drivers_graph.get_all_drivers() for edge in algo.graph.edges_iter()
+                     for _, _ in algo.drivers_structure.iter_time_intervals(driver, edge)])
+        self.assertEqual(count, 104)
+        count_master = sum([1 for driver in algo.master.drivers_graph.get_all_drivers()
+                            for edge in algo.master.drivers_structure.get_possible_edges_for_driver(driver)
+                            for _, _ in algo.master.drivers_structure.iter_time_intervals(driver, edge)])
+        self.assertEqual(count_master, 5)
+
+        # Is the heuristic solution transform into variables for master ?
+        heuristic = RealGPS(graph, drivers_graph)
+        heuristic.solve()
+        for column in heuristic.iter_variable_indexes_from_optimal_solution():
+            self.assertTrue(algo.master.algorithm.has_variable(*column))
+
+        algo = TEGColumnGenerationAlgorithm(graph, drivers_graph, horizon=7)
         algo.solve()
 
+        # Are the heuristic's initial variables still in the master problem ?
+        x = defaultdict(lambda: 0)
+        for column in heuristic.iter_variable_indexes_from_optimal_solution():
+            self.assertTrue(algo.master.algorithm.has_variable(*column))
+            x[algo.master.algorithm.TEGgraph.build_edge(*column[1:]), column[0]] = 1
+        # self.assertEqual(list(heuristic.iter_variable_indexes_from_optimal_solution()), 0)
+        self.assertTrue(algo.master.algorithm.check_feasibility(x))
+
+        # The solution should always be better than the heuristic
+        self.assertLessEqual(algo.value, heuristic.value)
+
+        # Is the solution optimal
         opt_algo = TEGModel(graph, drivers_graph, horizon=10)
         opt_algo.build_model()
         opt_algo.solve()

@@ -125,15 +125,6 @@ class Problem(object):
         if self.drivers_structure is not None:
             return self.drivers_structure.get_possible_edges_for_driver(driver)
 
-    def iter_start_end_times_for_driver(self, driver, edge):
-        """
-        Iterate every possible couple of start ,end for driver on edge considering drivers_structure
-        """
-        for starting_time in self.drivers_structure.iter_starting_times(driver, edge):
-            for ending_time in self.drivers_structure.iter_ending_times(driver, edge):
-                if ending_time > starting_time:
-                    yield starting_time, ending_time
-
     def iter_optimal_solution(self):
         """ yield for each driver his assigned path
         """
@@ -256,6 +247,18 @@ class Problem(object):
             self.graph.iter_edges_in_path(self.get_optimal_driver_path(driver))
         ))
         return opt_driving_time - no_traffic_driving_time
+
+    def iter_variable_indexes_from_optimal_solution(self):
+        """
+        For every driver and visited edge, compute starting and ending time
+        yield (driver, edge, starting time, ending time)
+        """
+        for driver, time_path in self.iter_complete_optimal_solution():
+            i = 0
+            while i < len(time_path) - 1:
+                yield driver, time_path[i][0], time_path[i][1], time_path[i + 1][1]
+                i += 1
+            yield driver, time_path[i][0], time_path[i][1], driver.time + self.get_driver_driving_time(driver)
 
 
 class SimulatorProblem(Problem):

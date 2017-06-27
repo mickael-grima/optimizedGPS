@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
+from optimizedGPS.logger import configure
+configure()
+
 import unittest
 
 from networkx import NetworkXError

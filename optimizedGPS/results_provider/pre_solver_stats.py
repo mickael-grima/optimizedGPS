@@ -17,7 +17,7 @@ def get_simple_stats():
     m = p.map_reachable_edges_for_drivers()
     stats = {
         "drivers": {
-            repr(driver): {
+            id(driver): {
                 "info": (driver.start, driver.end, driver.time),
                 "stats": {
                     "edge_ratio": "%s%%" % get_percentage(len(m[driver]), graph.number_of_edges())

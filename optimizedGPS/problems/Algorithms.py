@@ -58,10 +58,10 @@ class TEGColumnGenerationAlgorithm(Problem):
         elif column_generation_type == self.PATH_COLUMN_GENERATION:
             self.column_generation_type = self.PATH_COLUMN_GENERATION
         else:
-            raise TypeError("colum generation type should be one of the clas column generation possibilities")
+            raise TypeError("colum generation type should be one of the class column generation possibilities")
         self.heuristic = heuristic if heuristic is not None else RealGPS(graph, drivers_graph)
-        sub_drivers_structure = self.get_initial_structures()
-        self.master = Solver(self.graph, drivers_graph, TEGModel, drivers_structure=sub_drivers_structure, binary=False)
+        self.master = Solver(
+            self.graph, drivers_graph, TEGModel, drivers_structure=self.get_initial_structures(), binary=False)
 
     def get_initial_structures(self):
         """
@@ -76,8 +76,10 @@ class TEGColumnGenerationAlgorithm(Problem):
         drivers_structure = DriversStructure(self.graph, self.drivers_graph)
         for driver, opt_solution in self.heuristic.iter_complete_optimal_solution():
             i, edge = 0, None
+            edges = set()
             while edge is None or edge[1] != driver.end:
                 edge, starting_time = opt_solution[i]
+                edges.add(edge)
                 drivers_structure.add_starting_times(driver, edge, starting_time)
                 try:
                     drivers_structure.add_ending_times(driver, edge, opt_solution[i + 1][1])
@@ -86,6 +88,8 @@ class TEGColumnGenerationAlgorithm(Problem):
                 i += 1
             drivers_structure.add_ending_times(
                 driver, edge, driver.time + self.heuristic.get_driver_driving_time(driver))
+            drivers_structure.set_unreachable_edge_to_driver(
+                driver, *filter(lambda e: e not in edges, self.graph.edges_iter()))
 
         return drivers_structure
 
@@ -141,14 +145,14 @@ class TEGColumnGenerationAlgorithm(Problem):
         best_driver, best_edge, best_start, best_end, reduced_cost = None, None, None, None, sys.maxint
         for driver in self.drivers_graph.get_all_drivers():
             for edge in self.graph.edges_iter():
-                for start, end in self.master.drivers_structure.iter_time_intervals(driver, edge):
+                for start, end in self.drivers_structure.iter_time_intervals(driver, edge):
                     if not self.master.algorithm.has_variable(driver, edge, start, end):
                         rc = self.master.algorithm.get_reduced_cost(driver, edge, start, end)
                         if rc < reduced_cost:
                             best_driver, best_edge, best_start, best_end, reduced_cost = driver, edge, start, end, rc
         res = (best_driver, best_edge, best_start, best_end)
         if all(map(lambda e: e is not None, res)):
-            return res
+            return [res]
 
     def get_next_columns(self):
         if self.column_generation_type == self.PATH_COLUMN_GENERATION:
@@ -158,6 +162,7 @@ class TEGColumnGenerationAlgorithm(Problem):
 
     def add_column_to_master(self, column):
         driver, edge, start, end = column
+        self.master.drivers_structure.set_reachable_edge_to_driver(driver, edge)
         self.master.drivers_structure.add_starting_times(driver, edge, start)
         self.master.drivers_structure.add_ending_times(driver, edge, end)
         update = self.master.algorithm.generate_variables(driver, edge, [(start, end)])
@@ -168,8 +173,10 @@ class TEGColumnGenerationAlgorithm(Problem):
         """
         Solve the master problem with integer variables
         """
-        self.master.algorithm.change_variables_type(GRB.BINARY)
-        self.master.algorithm.reset()
+        graph = self.master.graph
+        drivers_graph = self.master.drivers_graph
+        drivers_structure = self.master.drivers_structure
+        self.master = Solver(graph, drivers_graph, TEGModel, drivers_structure=drivers_structure, binary=True)
         self.master.solve()
 
     def solve_with_solver(self):
@@ -187,8 +194,7 @@ class TEGColumnGenerationAlgorithm(Problem):
                 break  # Optimality reached
             update = False
             for column in next_columns:
-                time.sleep(1)
-                update = update or self.add_column_to_master(column)
+                update = self.add_column_to_master(column)
             if update is False:
                 break
         self.solve_master_as_integer()

@@ -5,7 +5,7 @@ For each edge and each driver, the time interval in which the driver can be on t
 import sys
 from collections import defaultdict
 
-from sortedcontainers import SortedList
+from sortedcontainers import SortedSet
 
 
 class DriversStructure(object):
@@ -35,12 +35,12 @@ class DriversStructure(object):
 
     def add_starting_times(self, driver, edge, *starting_times):
         if self.starting_times[driver][edge] is None:
-            self.starting_times[driver][edge] = SortedList()
+            self.starting_times[driver][edge] = SortedSet()
         self.starting_times[driver][edge].update(starting_times)
 
     def add_ending_times(self, driver, edge, *ending_times):
         if self.ending_times[driver][edge] is None:
-            self.ending_times[driver][edge] = SortedList()
+            self.ending_times[driver][edge] = SortedSet()
         self.ending_times[driver][edge].update(ending_times)
 
     def get_starting_times(self, driver, edge):
