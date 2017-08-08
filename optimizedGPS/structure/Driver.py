@@ -4,9 +4,15 @@
 __all__ = ['Driver']
 
 
+"""
+This script defines objects representing the drivers
+"""
+
+
 class Driver(object):
     """
-    Represent a Driver
+    Represent a Driver. 3 properties are mandatory: starting time, starting and ending nodes.
+    For continuous solution, a traffic weight can be specified: between 0 and 1
     """
     def __init__(self, start, end, time, traffic_weight=1):
         """

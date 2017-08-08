@@ -1,5 +1,6 @@
 """
-Class representing the drivers inside a graph
+Class representing the drivers.
+As a graph since we want to study the influence between drivers as well.
 """
 import networkx as nx
 
@@ -11,15 +12,24 @@ class DriversGraph(nx.Graph):
         super(DriversGraph, self).__init__(*args, **kwargs)
 
     def add_node(self, driver, attr_dict=None, **kwargs):
+        """
+        Add a driver
+        """
         if isinstance(driver, Driver):
             super(DriversGraph, self).add_node(driver, attr_dict=attr_dict, **kwargs)
         else:
             raise TypeError("Only drivers are accepted as node")
 
     def has_driver(self, driver):
+        """
+        return True if driver exists in graph
+        """
         return self.has_node(driver)
 
     def add_driver(self, driver, attr_dict=None, **kwargs):
+        """
+        Add a driver
+        """
         self.add_node(driver, attr_dict=attr_dict, **kwargs)
 
     def get_drivers(self, start, end, starting_time=None):
@@ -75,4 +85,7 @@ class DriversGraph(nx.Graph):
         return sorted(self.get_all_drivers(), key=lambda d: d.time)
 
     def get_all_drivers(self):
+        """
+        Iterate every drivers
+        """
         return self.nodes_iter()
