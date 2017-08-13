@@ -5,6 +5,12 @@ For each edge and each driver, the time interval in which the driver can be on t
 This script is useful to specify the structure of drivers inside the graph:
    - when do they reach an edge, when do they leave an edge
    - can an edge be reached by drivers
+
+We specify the safety and presence interval here as well:
+   - A presence interval is specified for each driver and edge. It ensures that, if driver takes a path containing this
+   edge, then driver will drive on this edge during an interval which contains this presence interval.
+   - A safety interval is specified for each driver and edge. It ensures that, if driver takes a path containing this
+   edge, then driver will drive on this edge during an interval which is contained in this safety interval.
 """
 import sys
 from collections import defaultdict
@@ -23,6 +29,10 @@ class DriversStructure(object):
         self.starting_times = defaultdict(lambda: defaultdict(lambda: None))
         # for every driver and edge, if the value is not None, it represents the only possible ending times
         self.ending_times = defaultdict(lambda: defaultdict(lambda: None))
+
+        # For every driver and edge, we specify a pair of int
+        self.presence_interval = defaultdict(lambda: defaultdict(lambda: (None, None)))
+        self.safety_interval = defaultdict(lambda: defaultdict(lambda: (None, None)))
 
     def set_unreachable_edge_to_driver(self, driver, *edges):
         """
@@ -56,6 +66,26 @@ class DriversStructure(object):
             self.ending_times[driver][edge] = SortedSet()
         self.ending_times[driver][edge].update(ending_times)
 
+    def add_safety_interval(self, driver, edge, start=None, end=None):
+        """
+        If start or end is None, we don't modify the actual value
+        """
+        safety_interval = (
+            self.safety_interval[driver][edge][0] if start is None else start,
+            self.safety_interval[driver][edge][1] if end is None else end
+        )
+        self.safety_interval[driver][edge] = safety_interval
+
+    def add_presence_interval(self, driver, edge, start=None, end=None):
+        """
+        If start or end is None, we don't modify the actual value
+        """
+        presence_interval = (
+            self.presence_interval[driver][edge][0] if start is None else start,
+            self.presence_interval[driver][edge][1] if end is None else end
+        )
+        self.presence_interval[driver][edge] = presence_interval
+
     def get_starting_times(self, driver, edge):
         """ Return the possible starting times for driver on edge. If None return every integer up to horizon """
         if self.starting_times[driver][edge] is None:
@@ -68,19 +98,28 @@ class DriversStructure(object):
             return range(self.horizon + 1)
         return self.ending_times[driver][edge]
 
+    def get_safety_interval(self, driver, edge):
+        return self.safety_interval[driver][edge]
+
+    def get_presence_interval(self, driver, edge):
+        return self.presence_interval[driver][edge]
+
     def iter_starting_times(self, driver, edge):
         """ iteration version of get_starting_times """
+        min_starting_time = self.safety_interval[driver][edge][0] or 0
         times = self.starting_times[driver][edge]
         times = times if times is not None else xrange(driver.time, self.horizon + 1)
         for starting_time in times:
-            yield starting_time
+            if starting_time >= min_starting_time:
+                yield starting_time
 
     def iter_ending_times(self, driver, edge, starting_time=-1):
         """ iteration version of get_ending_times """
+        max_ending_time = self.safety_interval[driver][edge][1] or self.horizon
         times = self.ending_times[driver][edge]
         times = times if times is not None else xrange(self.horizon + 1)
         for ending_time in times:
-            if ending_time > starting_time:
+            if starting_time < ending_time <= max_ending_time:
                 yield ending_time
 
     def iter_time_intervals(self, driver, edge):
