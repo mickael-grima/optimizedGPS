@@ -266,6 +266,15 @@ class StructureTest(unittest.TestCase):
         times = drivers_structure.iter_time_intervals(driver, edge)
         self.assertEqual(list(times), [(1, 3), (1, 5), (1, 7), (2, 4), (2, 6), (3, 5), (3, 7), (4, 6), (5, 7)])
 
+    def test_safety_and_presence_interval_algorithm(self):
+        graph, drivers_graph = generate_bad_heuristic_graphs()
+        drivers_structure = DriversStructure(graph, drivers_graph, horizon=30)
+        drivers_structure.compute_optimal_safety_intervals()
+
+        # driver = drivers_graph.get_all_drivers().next()
+        # edge = graph.edges()[0]
+        # self.assertEqual(drivers_structure.get_safety_interval(driver, edge), -1)
+
 
 if __name__ == '__main__':
     unittest.main()

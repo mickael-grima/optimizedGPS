@@ -104,6 +104,18 @@ class DriversStructure(object):
     def get_presence_interval(self, driver, edge):
         return self.presence_interval[driver][edge]
 
+    def get_safety_starting_time(self, driver, edge):
+        return self.get_safety_interval(driver, edge)[0] or 0
+
+    def get_safety_ending_time(self, driver, edge):
+        return self.get_safety_interval(driver, edge)[1] or self.horizon
+
+    def get_presence_starting_time(self, driver, edge):
+        return self.get_safety_interval(driver, edge)[0] or self.horizon
+
+    def get_presence_ending_time(self, driver, edge):
+        return self.get_safety_interval(driver, edge)[1] or 0
+
     def iter_starting_times(self, driver, edge):
         """ iteration version of get_starting_times """
         min_starting_time = self.safety_interval[driver][edge][0] or 0
@@ -158,3 +170,107 @@ class DriversStructure(object):
         for edge in self.graph.edges_iter():
             if self.is_edge_reachable_by_driver(driver, edge):
                 yield edge
+
+    def compute_minimum_traffics(self):
+        min_traffics = defaultdict(lambda: defaultdict(lambda: 0))
+        for driver in self.drivers_graph.get_all_drivers():
+            for edge in self.graph.edges_iter():
+                if not self.is_edge_reachable_by_driver(driver, edge):
+                    continue
+                min_traffics[driver][edge] = min(
+                    [
+                        sum([
+                            1 * (self.get_presence_starting_time(d, edge) < s <= self.get_presence_ending_time(d, edge))
+                            for d in self.drivers_graph.get_all_drivers() if d != driver
+                        ])
+                        for s in xrange(
+                            self.get_safety_starting_time(driver, edge),
+                            self.get_presence_starting_time(driver, edge) + 1
+                        )
+                    ]
+                )
+        return min_traffics
+
+    def compute_maximum_traffics(self):
+        max_traffics = defaultdict(lambda: defaultdict(lambda: 0))
+        for driver in self.drivers_graph.get_all_drivers():
+            for edge in self.graph.edges_iter():
+                if not self.is_edge_reachable_by_driver(driver, edge):
+                    continue
+                max_traffics[driver][edge] = max(
+                    [
+                        sum([
+                            1 * (self.get_safety_starting_time(d, edge) < s <= self.get_safety_ending_time(d, edge))
+                            for d in self.drivers_graph.get_all_drivers() if d != driver
+                        ])
+                        for s in xrange(
+                            self.get_safety_starting_time(driver, edge),
+                            self.get_presence_starting_time(driver, edge) + 1
+                        )
+                    ]
+                )
+        return max_traffics
+
+    def compute_minimum_starting_time(self, driver, edge, min_traffics):
+        """
+        Compute the shortest path from starting node of driver to edge, and return the driving time on this path
+        considering the minimal traffic
+        """
+        return sum(
+            map(
+                lambda e: self.graph.get_congestion_function(*e)(min_traffics[driver][e]),
+                self.graph.iter_edges_in_path(self.graph.get_shortest_path(
+                    driver.start, edge[0],
+                    key=lambda *x: self.graph.get_congestion_function(*x)(min_traffics[driver][x]),
+                    next_choice=lambda *x: self.is_edge_reachable_by_driver(driver, x)
+                ))
+            )
+        )
+
+    def compute_maximum_starting_time(self, driver, edge, max_traffics):
+        """
+        Compute the longest path from starting node of driver to edge, and return the driving time on this path
+        considering the maximal traffic
+        """
+        return sum(
+            map(
+                lambda e: self.graph.get_congestion_function(*e)(max_traffics[driver][e]),
+                self.graph.iter_edges_in_path(self.graph.get_shortest_path(
+                    driver.start, edge[0],
+                    key=lambda *x: - self.graph.get_congestion_function(*x)(max_traffics[driver][x]),
+                    next_choice=lambda *x: self.is_edge_reachable_by_driver(driver, x)
+                ))
+            )
+        )
+
+    def update_intervals(self, driver, edge, min_traffics, max_traffics):
+        cong_function = self.graph.get_congestion_function(*edge)
+        min_starting_time = self.compute_minimum_starting_time(driver, edge, min_traffics)
+        max_starting_time = self.compute_maximum_starting_time(driver, edge, max_traffics)
+        min_ending_time = min_starting_time + cong_function(min_traffics[driver][edge])
+        max_ending_time = max_starting_time + cong_function(max_traffics[driver][edge])
+
+        safety_interval = self.get_safety_interval(driver, edge)
+        presence_interval = self.get_presence_interval(driver, edge)
+        self.add_safety_interval(driver, edge, min_starting_time, max_ending_time)
+        self.add_presence_interval(driver, edge, max_starting_time, min_ending_time)
+
+        return safety_interval != self.get_safety_interval(driver, edge) or \
+               presence_interval != self.get_presence_interval(driver, edge)
+
+    def compute_optimal_safety_intervals(self):
+        """
+        The objective is to reduce the safety_interval as much as possible.
+        In a time iterations loop, considering the actual presence and safety intervals,
+        we compute the minimal and maximal possible traffic on a given edge for a given driver.
+        From these traffics, we can update the safety and presence intervals.
+        """
+        is_update_possible = True  # Boolean to know if we can still run the update
+        while is_update_possible is True:
+            is_update_possible = False
+            min_traffics = self.compute_minimum_traffics()
+            max_traffics = self.compute_maximum_traffics()
+            for driver in self.drivers_graph.get_all_drivers():
+                for edge in self.graph.edges_iter():
+                    is_update_possible = is_update_possible or self.update_intervals(
+                        driver, edge, min_traffics, max_traffics)
