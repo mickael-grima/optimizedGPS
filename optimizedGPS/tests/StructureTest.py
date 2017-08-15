@@ -267,13 +267,52 @@ class StructureTest(unittest.TestCase):
         self.assertEqual(list(times), [(1, 3), (1, 5), (1, 7), (2, 4), (2, 6), (3, 5), (3, 7), (4, 6), (5, 7)])
 
     def test_safety_and_presence_interval_algorithm(self):
-        graph, drivers_graph = generate_bad_heuristic_graphs()
-        drivers_structure = DriversStructure(graph, drivers_graph, horizon=30)
-        drivers_structure.compute_optimal_safety_intervals()
+        graph = GPSGraph()
+        graph.add_edge(0, 1, congestion_func=lambda x: x + 1)
+        graph.add_edge(1, 2, congestion_func=lambda x: x + 2)
+        graph.add_edge(0, 2, congestion_func=lambda x: 2 * x + 2)
+        drivers_graph = DriversGraph()
+        driver0, driver1, driver2 = Driver(0, 2, 0), Driver(0, 2, 1), Driver(0, 2, 2)
+        drivers_graph.add_driver(driver0)
+        drivers_graph.add_driver(driver1)
+        drivers_graph.add_driver(driver2)
+        drivers_structure = DriversStructure(graph, drivers_graph, horizon=9)
 
-        # driver = drivers_graph.get_all_drivers().next()
-        # edge = graph.edges()[0]
-        # self.assertEqual(drivers_structure.get_safety_interval(driver, edge), -1)
+        min_traffics = drivers_structure.compute_minimum_traffics()
+        max_traffics = drivers_structure.compute_maximum_traffics()
+        self.assertEqual(min_traffics[driver0][0, 1], 0)
+        self.assertEqual(max_traffics[driver0][0, 1], 2)
+
+        update = False
+        for driver in drivers_graph.get_all_drivers():
+            for edge in graph.edges():
+                update = drivers_structure.update_intervals(driver, edge, min_traffics, max_traffics) or update
+        self.assertEqual(drivers_structure.get_safety_interval(driver1, (0, 1)), (1, 4))
+        self.assertEqual(drivers_structure.get_presence_interval(driver1, (0, 1)), (1, 2))
+        self.assertTrue(update)
+
+        self.assertEqual(drivers_structure.get_safety_starting_time(driver0, (0, 1)), 0)
+        self.assertEqual(drivers_structure.get_presence_starting_time(driver0, (0, 1)), 0)
+
+        min_traffics = drivers_structure.compute_minimum_traffics()
+        max_traffics = drivers_structure.compute_maximum_traffics()
+        self.assertEqual(max_traffics[driver0][0, 1], 0)
+
+        update = False
+        for driver in drivers_graph.get_all_drivers():
+            for edge in graph.edges():
+                update = drivers_structure.update_intervals(driver, edge, min_traffics, max_traffics) or update
+        self.assertEqual(drivers_structure.get_safety_interval(driver0, (0, 1)), (0, 1))
+        self.assertEqual(drivers_structure.get_safety_interval(driver0, (0, 2)), (0, 2))
+        self.assertTrue(update)
+
+        min_traffics = drivers_structure.compute_minimum_traffics()
+        max_traffics = drivers_structure.compute_maximum_traffics()
+
+        for driver in drivers_graph.get_all_drivers():
+            for edge in graph.edges():
+                drivers_structure.update_intervals(driver, edge, min_traffics, max_traffics)
+        self.assertEqual(drivers_structure.get_safety_interval(driver2, (0, 1)), (2, 4))
 
 
 if __name__ == '__main__':
