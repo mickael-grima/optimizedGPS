@@ -20,10 +20,11 @@ from sortedcontainers import SortedSet
 
 class DriversStructure(object):
     def __init__(self, graph, drivers_graph, horizon=sys.maxint):
-        self.graph = graph
-        self.drivers_graph = drivers_graph
+        self.graph = graph  # road network structure
+        self.drivers_graph = drivers_graph  # drivers graph
         self.horizon = horizon  # no possible time greater than this value
 
+        # set of edges unreachable for driver
         self.unreachable_edges = defaultdict(lambda: defaultdict(lambda: 0))
         # for every driver and edge, if the value is not None, it represents the only possible starting times
         self.starting_times = defaultdict(lambda: defaultdict(lambda: None))
@@ -99,27 +100,33 @@ class DriversStructure(object):
         return self.ending_times[driver][edge]
 
     def get_safety_interval(self, driver, edge):
+        """ return the safety interval for driver and edge """
         return self.safety_interval[driver][edge]
 
     def get_presence_interval(self, driver, edge):
+        """ return the presence interval for driver and edge """
         return self.presence_interval[driver][edge]
 
     def get_safety_starting_time(self, driver, edge):
+        """ return the starting time of the safety interval for driver and edge """
         return self.get_safety_interval(driver, edge)[0] or 0
 
     def get_safety_ending_time(self, driver, edge):
+        """ return the ending time of the safety interval for driver and edge """
         ending_time = self.get_safety_interval(driver, edge)[1]
         return ending_time if ending_time is not None else self.horizon
 
     def get_presence_starting_time(self, driver, edge):
+        """ return the starting time of the presence interval for driver and edge """
         starting_time = self.get_safety_interval(driver, edge)[0]
         return starting_time if starting_time is not None else self.horizon
 
     def get_presence_ending_time(self, driver, edge):
+        """ return the ending time of the presence interval for driver and edge """
         return self.get_safety_interval(driver, edge)[1] or 0
 
     def iter_starting_times(self, driver, edge):
-        """ iteration version of get_starting_times """
+        """ iterator version of get_starting_times """
         min_starting_time = self.safety_interval[driver][edge][0] or 0
         times = self.starting_times[driver][edge]
         times = times if times is not None else xrange(driver.time, self.horizon + 1)
@@ -128,7 +135,7 @@ class DriversStructure(object):
                 yield starting_time
 
     def iter_ending_times(self, driver, edge, starting_time=-1):
-        """ iteration version of get_ending_times """
+        """ iterator version of get_ending_times """
         max_ending_time = self.safety_interval[driver][edge][1] or self.horizon
         times = self.ending_times[driver][edge]
         times = times if times is not None else xrange(self.horizon + 1)
@@ -174,6 +181,10 @@ class DriversStructure(object):
                 yield edge
 
     def compute_minimum_traffics(self):
+        """
+        Considering the presence and safety interval of every driver, we compute for a driver and an edge the minimum
+        traffic that this driver could see on this edge
+        """
         min_traffics = defaultdict(lambda: defaultdict(lambda: 0))
         for driver in self.drivers_graph.get_all_drivers():
             for edge in self.graph.edges_iter():
@@ -194,6 +205,10 @@ class DriversStructure(object):
         return min_traffics
 
     def compute_maximum_traffics(self):
+        """
+        Considering the presence and safety interval of every driver, we compute for a driver and an edge the maximum
+        traffic that this driver could see on this edge
+        """
         max_traffics = defaultdict(lambda: defaultdict(lambda: 0))
         for driver in self.drivers_graph.get_all_drivers():
             for edge in self.graph.edges_iter():
@@ -246,6 +261,12 @@ class DriversStructure(object):
         )
 
     def update_intervals(self, driver, edge, min_traffics, max_traffics):
+        """
+        Given the minimum and maximum traffics, compute the minimum/maximum starting/ending time for driver on edge.
+        Then replace the old presence and safety intervals by the new values.
+
+        return True if the new values are different to the old ones.
+        """
         cong_function = self.graph.get_congestion_function(*edge)
         min_starting_time = self.compute_minimum_starting_time(driver, edge, min_traffics)
         max_starting_time = self.compute_maximum_starting_time(driver, edge, max_traffics)

@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 class Graph(DiGraph):
     """
     This class represents the static part of the data.
-    It inherits from :class:``DiGraph <networkx.DiGraph>``, so the created graph is always directed.
+    It inherits from networkx.DiGraph, so the created graph is always directed.
 
     **Example:**
 
@@ -71,9 +71,11 @@ class Graph(DiGraph):
     def add_node(self, n, lat=None, lon=None, attr_dict=None, **attr):
         """
         Add `n` as node on position (`lat`, `lon`). Other attributes can also be added. It calls the super method
-        :func:`networkx.DiGraph.add_node <networkx.DiGraph.add_node>`
+        networkx.DiGraph.add_node`
 
-        :param n: node to add
+        If lon or lat are not specified we ad the default values given by labels
+
+        n is the node to add
 
         * options:
 
@@ -196,10 +198,9 @@ class Graph(DiGraph):
     def add_edge(self, u, v, distance=None, lanes=None, attr_dict=None, **attr):
         """
         Add a directed edge between `u` and `v`. If one or both nodes don't exist, we add it before.
-        It calls the super-method :func:``networkx.DiGraph.add_edge <networkx.DiGraph.add_edge>``.
+        It calls the super-method networkx.DiGraph.add_edge
 
-        :param u: node source
-        :param v: node target
+        u and v are respectively the source and target nodes
 
         * options:
 
@@ -267,8 +268,6 @@ class Graph(DiGraph):
     def successors_with_property(self, node, props=set()):
         """
         iterator which yield only the successors' nodes which have one of the given properties
-
-        :param node: node
 
         * options:
 
@@ -341,6 +340,10 @@ class Graph(DiGraph):
             * ``length=0``: if 0 stops when a path from start to end has been discovered (shortest path).
                             if length > 0 stop when every paths whose length is the shortest path's length + `length`
                                 have been discovered
+            * ``edge_property=labels.DISTANCE``: the property "dictance" we take from edge to compute the distance
+            * ``key=None``: If not None, used to return the distance of each edge
+            * ``next_choice=None``: next_choice always return True for the visited edges. If an edge has value False
+                                    by next_choice, we can't visit it.
 
         :return: a dictionnary with length as key and associated set of paths as value
         """
@@ -418,55 +421,10 @@ class Graph(DiGraph):
 
         return {n: set([path for path in ps if path[-2] == end]) for n, ps in paths.iteritems()}
 
-    def djikstra_rec(self, start, end, paths={}):
-        """
-        recursive version of djikstra algorithm
-        iterate the path with the following properties:
-
-        * options:
-
-            * ``length=0``: if 0 stops when a path from start to end has been discovered (shortest path).
-                            if length > 0 stop when every paths whose length is the shortest path's length + `length`
-                                have been discovered
-
-        :return: an iterator
-        """
-        if start != end:
-            for n in self.successors_iter(start):
-                rec = False
-                for path in paths.get(start, []):
-                    if n not in path:
-                        paths.setdefault(n, set())
-                        if path + (n,) not in paths[n]:
-                            paths[n].add(path + (n,))
-                            rec = True
-                            if n == end:
-                                yield path + (n,)
-                if rec:
-                    for path in self.djikstra_rec(n, end, paths=paths):
-                        yield path
-
-    def get_all_paths_without_cycle(self, start, end):
-        """
-        yield every path from start to end without cycle
-
-        :param start: source node
-        :param end: target node
-
-        :return: an iterator
-        """
-        for path in self.djikstra_rec(start, end, paths={start: {(start,)}}):
-            yield path
-
     def get_paths_from_to(self, start, end, length=0, edge_property=labels.DISTANCE, key=None, next_choice=None):
         """
-        yield every path from start to end
-
-        * options:
-
-            * ``length=0``: if 0 stops when a path from start to end has been discovered (shortest path).
-                            if length > 0 stop when every paths whose length is the shortest path's length + `length`
-                                have been discovered
+        yield every path from start to end.
+        To see details about the given parameters, give a look to Graph.djikstra
 
         :return: an iterator
         """
@@ -491,7 +449,8 @@ class Graph(DiGraph):
         """
         return self.get_paths_from_to(start, end, edge_property=edge_property, key=key, next_choice=next_choice).next()
 
-    def generate_path_from_edges(self, start, end, edges):
+    @classmethod
+    def generate_path_from_edges(cls, start, end, edges):
         """
         Starting at `start` and ending at `end`, we build a path using only the edge in `edges`.
         It raises an Exception if no path can be built
@@ -591,11 +550,12 @@ class Graph(DiGraph):
     @classmethod
     def get_paths_from_continuous_edge_description(cls, start, end, edge_description):
         """
-        From thos edge description we build a set of paths and we associate to each path a coefficient representing
+        From this edge description we build a set of paths and we associate to each path a coefficient representing
         the quantity of flow driving on it.
         We suppose that each path is without cycle
 
         :param start: node
+        :param end: node
         :param edge_description: dictionary containing edge as key and a coefficient in (0,1] as value
         :return: dict
         """

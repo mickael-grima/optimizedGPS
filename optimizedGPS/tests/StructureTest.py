@@ -126,11 +126,6 @@ class StructureTest(unittest.TestCase):
         self.assertEqual(('1', '6', '7'), graph.get_paths_from_to('1', '7').next())
         self.assertEqual({('1', '6', '7'), ('1', '4', '5', '7')},
                          set(graph.get_paths_from_to('1', '7', length=1)))
-        self.assertEqual({('1', '6', '7'), ('1', '4', '5', '7'), ('1', '4', '5', '6', '7'),
-                              ('1', '4', '3', '5', '7'), ('1', '4', '3', '5', '6', '7'),
-                              ('1', '2', '3', '5', '7'), ('1', '2', '3', '5', '6', '7'),
-                              ('1', '6', '2', '3', '5', '7')},
-                         set(graph.get_all_paths_without_cycle('1', '7')))
 
     def testGeneratePathFromEdges(self):
         graph = generate_graph_from_file('static/djikstra-test.graphml', distance_default=1.0)

@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
 
+"""
+This script allows to load graphml files and to convert it to Graph instance. The other way around is also possible.
+"""
+
 import logging
 import math
 from xml.dom import minidom
@@ -60,7 +64,8 @@ class GraphMLParser(object):
             log.error(e.message)
             raise KeyError(e.message)
 
-    def create_element(self, doc, element_name, **attributes):
+    @classmethod
+    def create_element(cls, doc, element_name, **attributes):
         element = doc.create_element(element_name)
         for key, value in attributes.iteritems():
             if not isinstance(key, str) and not isinstance(key, unicode):
@@ -72,25 +77,25 @@ class GraphMLParser(object):
             element.setAttribute(key, value)
         return element
 
-    def create_node_element(self, doc, node_name, **kwards):
+    def create_node_element(self, doc, node_name, **kwargs):
         node = self.create_element(doc, 'node', id=node_name)
         data = self.create_element(doc, 'data', key='d6')
-        shapeNode = self.create_element(doc, 'y:ShapeNode')
+        shape_node = self.create_element(doc, 'y:ShapeNode')
 
         # fill
         fill = self.create_element(doc, 'y:Fill', color='#FFCC00', transparent='false')
-        shapeNode.appendChild(fill)
+        shape_node.appendChild(fill)
         # shape
         shape = self.create_element(doc, 'y:Shape', type='ellipse')
-        shapeNode.appendChild(shape)
+        shape_node.appendChild(shape)
         # geometry
-        x = str(kwards.get('data', {}).get('x') or 0.0)
-        y = str(kwards.get('data', {}).get('y') or 0.0)
+        x = str(kwargs.get('data', {}).get('x') or 0.0)
+        y = str(kwargs.get('data', {}).get('y') or 0.0)
         node_size = self._conf['geometry']['node-size']
         geometry = self.create_element(doc, 'y:Geometry', height=str(node_size), width=str(node_size), x=x, y=y)
-        shapeNode.appendChild(geometry)
+        shape_node.appendChild(geometry)
 
-        data.appendChild(shapeNode)
+        data.appendChild(shape_node)
         node.appendChild(data)
         return node
 
@@ -217,11 +222,10 @@ class GraphMLParser(object):
         f = open(fname, 'w')
         f.write(doc.toprettyxml(indent='    '))
 
-    def parse(self, fname, distance_factor=1.0, distance_default=0.0, traffic_limit=1):
+    @classmethod
+    def parse(cls, fname, distance_factor=1.0, distance_default=0.0, traffic_limit=1):
         """
         read a .graphml file and convert it into a GPSGraph.
-
-        :param fname: file name
 
         * options:
 

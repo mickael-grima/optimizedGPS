@@ -18,23 +18,28 @@ log = logging.getLogger(__name__)
 class GPSGraph(Graph):
     """
     This class allows to add drivers on the graph
-    It inherits from :class:``Graph <optimizedGPS.Graph>``, and contains the drivers
+    It inherits from the class Graph, and contains the drivers
 
-    drivers are stored as a tuple (starting node, ending node, starting time) to which we associate a number
-    which represents how many drivers we have
+    >>> from optimizedGPS import GPSGraph
+    >>>
+    >>> graph = GPSGraph(name='test')
+    >>> graph.add_node('node0', 0, 1)  # Add node on position (0, 1)
+    >>> graph.add_node('node1', 1, 1)  # Add node on position (1, 1)
+    >>> graph.add_node('node2', 1, 2)  # Add node on position (1, 1)
+    >>> # Add an edge with given congestion function
+    >>> graph.add_edge('node0', 'node1', **{labels.CONGESTION_FUNC: lambda x: x + 1})
+    >>> graph.add_edge('node0', 'node2', **{labels.CONGESTION_FUNC: lambda x: 2})
+    >>> graph.add_edge('node2', 'node1', **{labels.CONGESTION_FUNC: lambda x: 3 * x + 2})
+    >>>
+    >>> cong = graph.get_congestion_function("node0", "node1")
+    >>> print "driving time with traffic=4: %s" % cong(4) #doctest: +NORMALIZE_WHITESPACE
+    # driving time with traffic=4: 5 #
     """
     PROPERTIES = Graph.PROPERTIES
     PROPERTIES['edges'].update({
         labels.TRAFFIC_LIMIT: constants[labels.TRAFFIC_LIMIT],
         labels.MAX_SPEED: constants[labels.MAX_SPEED]
     })
-
-    def __init__(self, name='graph', data=None, **attr):
-        super(GPSGraph, self).__init__(name=name, data=data, **attr)
-        """
-        set of drivers
-        """
-        self.__drivers = defaultdict(lambda: defaultdict())
 
     # ----------------------------------------------------------------------------------------
     # ---------------------------------- EDGES -----------------------------------------------
@@ -43,10 +48,9 @@ class GPSGraph(Graph):
     def add_edge(self, u, v, distance=None, lanes=None, traffic_limit=None, max_speed=None, attr_dict=None,
                  **attr):
         """
-        Call the super-method :func:``add_node <Graph.add_node>`` with some more parameters.
+        Call the super-method Graph.add_node with some more parameters.
 
-        :param u: source node
-        :param v: target node
+        u and v are respectively the source and target node.
 
         * options:
 
@@ -71,7 +75,7 @@ class GPSGraph(Graph):
 
     def compute_traffic_limit(self, source, target, **data):
         """
-        Considering the length of the edge (see :func:``get_edge_length <Graph.get_edge_length>``) and
+        Considering the length of the edge (see Graph.get_edge_length) and
         the number of lanes we return the limit traffic which represents a limit before a congestion traffic
         appears on it.
 
@@ -86,7 +90,10 @@ class GPSGraph(Graph):
     def get_congestion_function(self, source, target):
         """
         return the congestion function concerning the edge (`source`, `target`).
-        See also :func:``congestion_function <utils.tools.congestion_function>``
+
+        The congestion function is either stored as an edge's property under the key labels.CONGESTION_FUNC,
+        or is computed using the different properties stored for edge: lane, max speed, etc...
+        The formula for the congestion function is returned by utils.tools.congestion_function
 
         :param source: source node
         :param target: target node
@@ -183,10 +190,10 @@ class GPSGraph(Graph):
         compute the shortest path for driver containing edge.
         If edge is unreachable for driver, we return None.
 
-        :param driver:
-        :param edge:
+        :param driver: driver object
+        :param edge: a tuple containing two nodes
         :param edge_property: value on edge to consider for computing the shortest path
-        :param key:
+        :param key: if not None, give the value to consider during the walk into the graph
         :return: path (tuple of nodes)
         """
         try:
@@ -331,6 +338,7 @@ class GPSGraph(Graph):
     def enrich_traffic_with_driver_history(cls, traffic, driver_history):
         """
         Add the driver's history into the traffic
+        :return: a traffic history
         """
         for i in range(len(driver_history) - 1):
             node, t = driver_history[i]
