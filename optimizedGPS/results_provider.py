@@ -14,17 +14,17 @@ def get_results_for_grid_graph():
     results_handler = ResultsHandler()
 
     # set the bounds and algorithm
-    results_handler.appendAlgorithm(BestPathTrafficModel)
+    results_handler.append_algorithm(BestPathTrafficModel)
 
     # append the graphs
     for length in range(3, 10):
         for width in range(3, 10):
             for driver in range(10, 100, 10):
                 graph = generate_grid_graph_random_driver(length=length, width=width, nb_drivers=driver)
-                results_handler.appendGraphs(graph)
+                results_handler.append_graphs(graph)
 
     # write in a file
-    results_handler.writeIntoFile(results_handler.compare())
+    results_handler.write_into_file(results_handler.compare())
 
 
 if __name__ == '__main__':

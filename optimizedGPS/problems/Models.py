@@ -21,6 +21,9 @@ log = logging.getLogger(__name__)
 
 
 class EdgeCharacterizationModel(Model):
+    """
+    Super class for every models using the Time Continuous Model structure
+    """
     def initialize(self, **kwards):
         self.vtype = GRB.BINARY if self.binary else GRB.CONTINUOUS
 
@@ -29,6 +32,7 @@ class EdgeCharacterizationModel(Model):
         self.vtype = vtype
 
     def build_variables(self):
+        """ x is nothing but an edges-description """
         self.x = defaultdict(lambda: 0)
         for edge in self.graph.edges_iter():
             for driver in self.drivers_graph.get_all_drivers():
@@ -36,6 +40,9 @@ class EdgeCharacterizationModel(Model):
                                                          vtype=self.vtype)
 
     def set_optimal_solution(self):
+        """
+        Considering the edges-description x, we attribute to each driver his optimal path
+        """
         paths = {}
         for (edge, driver), var in self.x.iteritems():
             paths.setdefault(driver, [])
@@ -50,7 +57,9 @@ class EdgeCharacterizationModel(Model):
 
 
 class MainContinuousTimeModel(EdgeCharacterizationModel):
-    """ Main Model: do not try to solve, one constraint is neither linear nor convex nor continuous
+    """
+    Main Model: do not try to solve, one constraint is neither linear nor convex nor continuous
+    Time Continuous Model implementation
     """
     def build_variables(self):
         # add here variables
@@ -200,6 +209,9 @@ class BestPathTrafficModel(EdgeCharacterizationModel):
 
 
 class FixedWaitingTimeModel(MainContinuousTimeModel):
+    """
+    Model computed from the main Continuous Time Model, but with constant congestion functions
+    """
     def initialize(self, **kwargs):
         super(FixedWaitingTimeModel, self).initialize()
         C, self.C = kwargs.get('waiting_times', {}), {}
@@ -236,6 +248,9 @@ class FixedWaitingTimeModel(MainContinuousTimeModel):
 
 
 class TEGModel(EdgeCharacterizationModel):
+    """
+    Time Expanded Graph Model
+    """
     def initialize(self, **kwargs):
         self.TEGgraph = TEG(self.graph, self.horizon)
         super(TEGModel, self).initialize(**kwargs)
@@ -248,6 +263,9 @@ class TEGModel(EdgeCharacterizationModel):
         return isinstance(self.x[self.TEGgraph.build_edge(edge, start, end), driver], Var)
 
     def number_of_variables(self):
+        """
+        Compute the number of variables
+        """
         value = 0
         for driver in self.drivers_graph.get_all_drivers():
             for edge in self.get_edges_for_driver(driver):
@@ -255,6 +273,9 @@ class TEGModel(EdgeCharacterizationModel):
         return value
 
     def number_of_constraints(self):
+        """
+        Compute the number of constraints
+        """
         value = 0
         for driver in self.drivers_graph.get_all_drivers():
             value += 1
@@ -265,6 +286,14 @@ class TEGModel(EdgeCharacterizationModel):
         return value
 
     def generate_variables(self, driver, edge, times):
+        """
+        Generate the corresponding variables
+
+        :param driver:
+        :param edge:
+        :param times: set of (starting time, ending time)
+        :return:
+        """
         for i, j in times:
             _edge = self.TEGgraph.build_edge(edge, i, j)
             if not isinstance(self.x[_edge, driver], Var):
@@ -273,6 +302,14 @@ class TEGModel(EdgeCharacterizationModel):
         self.model.update()
 
     def generate_constraints(self, driver, edge, times):
+        """
+        Generate the corresponding constraints
+
+        :param driver:
+        :param edge:
+        :param times: set of (starting time, ending time)
+        :return:
+        """
         for i, _ in times:
             constr_name = "%s:%s:%s:%s" % (labels.UPPER_WAITING_TIME, id(driver), str(edge), i)
             if not self.has_constraint(constr_name):
@@ -339,6 +376,9 @@ class TEGModel(EdgeCharacterizationModel):
                 )
 
     def check_feasibility(self, x):
+        """
+        Check whether the solution x is feasible. Return True if feasible
+        """
         for driver in self.drivers_graph.get_all_drivers():
             res = sum(
                 sum(
@@ -526,6 +566,9 @@ class TEGModel(EdgeCharacterizationModel):
         )
 
     def get_objective_from_solution(self, x):
+        """
+        Return the objective value associated to solution x
+        """
         return quicksum(
             time * x[(s, self.TEGgraph.build_node(driver.end, time)), driver]
             for driver in self.drivers_graph.get_all_drivers()

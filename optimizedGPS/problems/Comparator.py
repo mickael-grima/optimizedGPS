@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
+"""
+Comparator classes are found here.
+"""
 
 import logging
 from datetime import datetime
@@ -7,20 +10,13 @@ from collections import namedtuple
 
 from Heuristics import ShortestPathTrafficFree, RealGPS
 from optimizedGPS import options
-from utils.utils import SafeOpen
+from utils.utils import SafeOpen, around
 
 __all__ = ["Comparator", "MultipleGraphComparator", "LowerBound", "UpperBound", "BoundsHandler", "ResultsHandler"]
 
 log = logging.getLogger(__name__)
 
 Graphs = namedtuple("Graphs", ["graph", "drivers_graph"])
-
-
-def around(number):
-    if number is not None:
-        return int(number * 1000) / 1000.
-    else:
-        return None
 
 
 class Comparator(object):
@@ -33,6 +29,7 @@ class Comparator(object):
         self.values = {}
         self.running_times = {}
         self.status = {}
+        self.graphs = Graphs(None, None)
 
     def set_graphs(self, graph, drivers_graph):
         self.graphs = Graphs(graph, drivers_graph)
@@ -50,7 +47,7 @@ class Comparator(object):
                         algorithm.__name__)
 
     def solve(self):
-        """ solve algo stored
+        """ solve the stored algorithms on the set input
         """
         for algo in self.algorithms:
             log.info("algorithm %s is being solved" % algo.algo.__name__)
@@ -60,7 +57,7 @@ class Comparator(object):
                 self.values.setdefault(algo.algo.__name__, a.get_optimal_value())
                 self.running_times.setdefault(algo.algo.__name__, a.get_running_time())
                 self.status.setdefault(algo.algo.__name__, a.get_status())
-            except:
+            except Exception:
                 self.values.setdefault(algo.algo.__name__, None)
                 self.running_times.setdefault(algo.algo.__name__, None)
                 self.status.setdefault(algo.algo.__name__, options.FAILED)
@@ -84,6 +81,9 @@ class Comparator(object):
 
 
 class MultipleGraphComparator(Comparator):
+    """
+    Compare different algorithms on several inputs
+    """
     def __init__(self):
         super(MultipleGraphComparator, self).__init__()
         self.graphs = []
@@ -100,6 +100,9 @@ class MultipleGraphComparator(Comparator):
         self.graphs = []
 
     def compare(self):
+        """
+        Compare on every inputs
+        """
         res = []
         for graph in self.graphs:
             self.set_graphs(graph.graph, graph.drivers_graph)
@@ -110,7 +113,10 @@ class MultipleGraphComparator(Comparator):
     def get_algorithms(self):
         return map(lambda el: el.algo.__name__, self.algorithms)
 
-    def writeIntoFile(self, results):
+    def write_into_file(self, results):
+        """
+        Write the obtained results into a file
+        """
         with SafeOpen(self.__file, 'w') as f:
             algos = self.get_algorithms()
             f.write('%s\n' % '\t\t'.join(['\t'.join([''] + algos) for _ in range(3)]))
@@ -121,6 +127,9 @@ class MultipleGraphComparator(Comparator):
 
 
 class Bound(Comparator):
+    """
+    Bound handler
+    """
     DEFAULT_BOUND = None
 
     def __init__(self, default=True):
@@ -162,6 +171,9 @@ class Bound(Comparator):
 
 
 class LowerBound(Bound):
+    """
+    For lower bound
+    """
     DEFAULT_BOUND = ShortestPathTrafficFree
 
     def set_best_bound(self):
@@ -175,6 +187,9 @@ class LowerBound(Bound):
 
 
 class UpperBound(Bound):
+    """
+    For upper bound
+    """
     DEFAULT_BOUND = RealGPS
 
     def set_best_bound(self):
@@ -188,6 +203,9 @@ class UpperBound(Bound):
 
 
 class BoundsHandler(object):
+    """
+    Handle the upper and lower bounds
+    """
     def __init__(self, default=True):
         self.lower = LowerBound(default=default)
         self.upper = UpperBound(default=default)
@@ -233,6 +251,9 @@ class BoundsHandler(object):
 
 
 class ResultsHandler(MultipleGraphComparator, BoundsHandler):
+    """
+    Compare several algorithm to lower and upper bounds on different inputs
+    """
     def __init__(self, default=True):
         MultipleGraphComparator.__init__(self)
         BoundsHandler.__init__(self, default=default)

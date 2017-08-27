@@ -44,7 +44,11 @@ class PreSolver(object):
             for driver in self.drivers_graph.get_all_drivers()
         }
 
+
 class HorizonPresolver(PreSolver):
+    """
+    Compute the minimum horizon
+    """
     def solve(self):
         from optimizedGPS.problems.Heuristics import RealGPS
         problem = RealGPS(self.graph, self.drivers_graph)

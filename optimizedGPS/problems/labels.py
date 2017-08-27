@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
+"""
+Set of labels useful for the problems
+Constraints names are stored here.
+"""
 
 VARIABLES = 'variables'
 

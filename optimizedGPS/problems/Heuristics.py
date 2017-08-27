@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
+"""
+Every Heuristic is implemented here
+"""
 
 import logging
 import sys
@@ -18,7 +21,9 @@ log = logging.getLogger(__name__)
 
 
 class ShortestPathHeuristic(SimulatorProblem):
-    """ We handle here the heuristics
+    """
+    For each driver, we compute his shortest path.
+    We obtain an edge description and we use the Simulator to compute a final solution.
     """
     def __init__(self, graph, drivers_graph, drivers_structure=None, timeout=sys.maxint):
         super(ShortestPathHeuristic, self).__init__(graph, drivers_graph, drivers_structure=drivers_structure,
@@ -45,8 +50,9 @@ class ShortestPathHeuristic(SimulatorProblem):
 
 
 class ShortestPathTrafficFree(Problem):
-    """ We give each drivers his shortest path, and we simulate considering no interaction between drivers
-        Return a lower bound of our problem
+    """
+    We give each drivers his shortest path, and we simulate considering no interaction between drivers
+    Return a lower bound of our problem
     """
     def __init__(self, graph, drivers_graph, **kwargs):
         kwargs["solving_type"] = SolvinType.HEURISTIC
@@ -79,6 +85,11 @@ class ShortestPathTrafficFree(Problem):
 
 
 class RealGPS(Problem):
+    """
+    We sort the drivers considering their starting times.
+    And taking the drivers in this order, we attribute to them a shortest path
+    considering the other already scheduled drivers.
+    """
     def __init__(self, graph, drivers_graph, **kwargs):
         kwargs["solving_type"] = SolvinType.HEURISTIC
         super(RealGPS, self).__init__(graph, drivers_graph, **kwargs)

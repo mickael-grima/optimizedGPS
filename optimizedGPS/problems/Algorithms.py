@@ -1,5 +1,4 @@
 import sys
-import time
 
 try:
     from gurobipy import GRB, quicksum, Var
@@ -15,6 +14,11 @@ from optimizedGPS.structure.Graph import Graph
 
 
 class ConstantModelAlgorithm(Problem):
+    """
+    We set to every edge a constant congestion function.
+    As seen in the related study, the model is solvable in polynomial time.
+    We display here such an algorithm.
+    """
     def __init__(self, graph, drivers_graph, **kwargs):
         self.model = FixedWaitingTimeModel(graph, drivers_graph, **kwargs)
         for driver in self.model.drivers_graph.get_all_drivers():
@@ -46,6 +50,9 @@ class ConstantModelAlgorithm(Problem):
 
 
 class TEGColumnGenerationAlgorithm(Problem):
+    """
+    Column generation algorithm using as master problem the TEGModel.
+    """
     PATH_COLUMN_GENERATION = "path"
     UNIQUE_COLUMN_GENERATION = "unique"
 

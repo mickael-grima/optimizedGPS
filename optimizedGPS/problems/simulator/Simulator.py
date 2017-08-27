@@ -45,30 +45,33 @@ class Simulator(object):
         self.initialize_clocks()
 
     def initialize_clocks(self):
+        """
+        Initialize drivers' clocks with the drivers' starting times
+        """
         for driver in self.drivers_graph.get_all_drivers():
             self.add_clock(driver, driver.time)
 
-    def add_clock(self, driver, time):
+    def add_clock(self, driver, clock):
         """
         Add a clock for driver.
         This method should be preferred each time one wants to add a clock for a driver.
 
         :param driver: Driver object
-        :param time: Current time in the simulation
+        :param clock: Current time in the simulation
         :return:
         """
-        self.clocks.add(self.Time(object=driver, time=time))
+        self.clocks.add(self.Time(object=driver, time=clock))
 
-    def add_event(self, driver, edge, time):
+    def add_event(self, driver, edge, clock):
         """
         Save the event for driver on edge at time
 
         :param driver: driver object
         :param edge: edge in graph
-        :param time: current time in the simulation
+        :param clock: current time in the simulation
         :return:
         """
-        self.events[driver].add(self.Time(object=edge, time=time))
+        self.events[driver].add(self.Time(object=edge, time=clock))
 
     def get_current_edge(self, driver):
         """
@@ -283,7 +286,7 @@ class Simulator(object):
             waiting_times[previous_edge] = self.get_ending_time(driver) - waiting_times[previous_edge]
         return waiting_times
 
-    def get_traffic(self, edge, time):
+    def get_traffic(self, edge, _time):
         """
         Return the traffic on edge at time
         """
@@ -291,11 +294,11 @@ class Simulator(object):
         for driver, path_clocks in self.events.iteritems():
             i, visited = 0, False
             while i < len(path_clocks) - 1:
-                if path_clocks[i].object == edge and path_clocks[i].time < time <= path_clocks[i + 1].time:
+                if path_clocks[i].object == edge and path_clocks[i].time < _time <= path_clocks[i + 1].time:
                     visited = True
                     break
                 i += 1
-            if path_clocks[i].object == edge and path_clocks[i].time < time:
+            if path_clocks[i].object == edge and path_clocks[i].time < _time:
                 visited = True
             traffic += visited * driver.traffic_weight
         return traffic
@@ -315,17 +318,27 @@ class FromEdgeDescriptionSimulator(Simulator):
             self.add_clock(driver, driver.time)
 
     def get_next_edge(self, driver):
+        """
+        We return the next edge in the edges-description considering the driver's current edge.
+        If driver has reached his target, we return None
+        """
+        # We ensure that the driver exists in the edges-description
         if driver not in self.edge_description:
             message = "Driver %s doesn't have associated path" % str(driver)
             log.error(message)
             raise KeyError(message)
         current_edge = self.get_current_edge(driver)
         edge_iterator = self.graph.iter_edges_in_path(self.edge_description[driver])
+
+        # If no current edge, it means that driver just starts driving into the graph.
+        # We return the first edge in edges-description
         if current_edge is None:
             try:
                 return edge_iterator.next()
             except StopIteration:
                 return None
+
+        # We iterate over every edge until we find the current edge. We return the next one.
         while True:
             try:
                 if edge_iterator.next() == current_edge:

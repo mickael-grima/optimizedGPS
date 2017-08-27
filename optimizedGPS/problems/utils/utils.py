@@ -5,6 +5,9 @@ import os
 
 
 class SafeOpen(object):
+    """
+    A safe opening: if the directory doesn't exist, create it, and then open
+    """
     def __init__(self, filename, mode):
         self.filename = filename
         self.mode = mode
@@ -22,3 +25,13 @@ class SafeOpen(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.file.close()
+
+
+def around(number):
+    """
+    Truncate a float to the third decimal
+    """
+    if number is not None:
+        return int(number * 1000) / 1000.
+    else:
+        return None

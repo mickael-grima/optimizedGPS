@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # !/bin/env python
+"""
+Super classes for models, heuristics and algorithms
+"""
 
 import logging
 import sys
@@ -27,7 +30,8 @@ class SolvinType:
 
 
 class Problem(object):
-    """ Initialize the problems' classes
+    """
+    Initialize the problems' classes
     """
     def __init__(self, graph, drivers_graph, drivers_structure=None, horizon=sys.maxint,
                  timeout=sys.maxint, solving_type=SolvinType.SOLVER,):
@@ -40,7 +44,7 @@ class Problem(object):
         self.timeout = timeout  # After this time we stop the algorithms
         self.solving_type = solving_type
         self.status = options.NOT_RUN  # status
-        self.horizon = horizon
+        self.horizon = horizon  # horizon
 
         self.simulator = FromEdgeDescriptionSimulator
 
@@ -262,7 +266,8 @@ class Problem(object):
 
 
 class SimulatorProblem(Problem):
-    """ Initialize algorithm which use a simulator.
+    """
+    Initialize algorithm which use a simulator.
     The attribute simulator  should be instantiate in each subclass.
     The simulator should inherits from the super class Simulator
     """
@@ -335,9 +340,10 @@ class Model(Problem):
         pass
 
     def add_constraint(self, constraint, name=None):
-        """ constraint: constraint to add
-            name: name of the constraint. For counting we split this name wrt ":".
-            after ":" the words are here only to make the constraint unique inside Gurobipy
+        """
+        constraint: constraint to add
+        name: name of the constraint. For counting we split this name wrt ":".
+        after ":" the words are here only to make the constraint unique inside Gurobipy
         """
         if name is None:
             name = 0
