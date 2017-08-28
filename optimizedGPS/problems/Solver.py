@@ -6,7 +6,7 @@ We merge here every steps of the solving procedure:
 """
 import sys
 
-from optimizedGPS.problems.PreSolver import HorizonPresolver
+from optimizedGPS.problems.PreSolver import HorizonPresolver, SafetyIntervalsPresolver
 from optimizedGPS.problems.Problem import Problem
 from optimizedGPS import options
 
@@ -37,6 +37,11 @@ class Solver(Problem):
 
         self.algorithm.set_horizon(self.horizon)
 
+        if SafetyIntervalsPresolver.__name__ in self.presolvers:
+            presolver = SafetyIntervalsPresolver(self.graph, self.drivers_graph, self.drivers_structure,
+                                                 horizon=self.horizon)
+            presolver.solve()
+
     def solve_with_solver(self):
         self.presolve()
         self.algorithm.build_model()
@@ -44,3 +49,4 @@ class Solver(Problem):
         self.opt_solution = {}
         for driver, path in self.algorithm.iter_optimal_solution():
             self.set_optimal_path_to_driver(driver, path)
+        self.set_status(options.SUCCESS)

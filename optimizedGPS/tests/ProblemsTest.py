@@ -13,7 +13,6 @@ except ImportError:
     Var, GRB = None, None
 
 from optimizedGPS import labels
-from optimizedGPS.problems import labels as mlabels
 from optimizedGPS.data.data_generator import generate_grid_data, generate_random_drivers, generate_bad_heuristic_graphs
 from optimizedGPS.problems.Heuristics import RealGPS
 from optimizedGPS.problems.Models import TEGModel

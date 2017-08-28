@@ -7,6 +7,7 @@ Comparator classes are found here.
 import logging
 from datetime import datetime
 from collections import namedtuple
+import time
 
 from Heuristics import ShortestPathTrafficFree, RealGPS
 from optimizedGPS import options
@@ -53,9 +54,11 @@ class Comparator(object):
             log.info("algorithm %s is being solved" % algo.algo.__name__)
             a = algo.algo(self.graphs.graph, self.graphs.drivers_graph, *algo.args, **algo.kwargs)
             try:
+                start = time.time()
                 a.solve()
+                running_time = time.time() - start
                 self.values.setdefault(algo.algo.__name__, a.get_optimal_value())
-                self.running_times.setdefault(algo.algo.__name__, a.get_running_time())
+                self.running_times.setdefault(algo.algo.__name__, running_time)
                 self.status.setdefault(algo.algo.__name__, a.get_status())
             except Exception:
                 self.values.setdefault(algo.algo.__name__, None)
@@ -86,7 +89,7 @@ class MultipleGraphComparator(Comparator):
     """
     def __init__(self):
         super(MultipleGraphComparator, self).__init__()
-        self.graphs = []
+        self.graphs_list = []
         self.__file = 'output/results/%s-%s.csv' % (self.__class__.__name__, datetime.now().strftime('%Y%m%d-%H%M%S'))
 
     def append_graphs(self, *graphs):
@@ -94,17 +97,17 @@ class MultipleGraphComparator(Comparator):
         Graphs parameters should be tuple of one graph and one drivers' graph
         """
         for graph in graphs:
-            self.graphs.append(Graphs(graph[0], graph[1]))
+            self.graphs_list.append(Graphs(graph[0], graph[1]))
 
     def delete_graphs(self):
-        self.graphs = []
+        self.graphs_list = []
 
     def compare(self):
         """
         Compare on every inputs
         """
         res = []
-        for graph in self.graphs:
+        for graph in self.graphs_list:
             self.set_graphs(graph.graph, graph.drivers_graph)
             res.append(super(MultipleGraphComparator, self).compare())
             self.reinitialize()
@@ -121,7 +124,7 @@ class MultipleGraphComparator(Comparator):
             algos = self.get_algorithms()
             f.write('%s\n' % '\t\t'.join(['\t'.join([''] + algos) for _ in range(3)]))
             for i in range(len(results)):
-                g, res = self.graphs[i].graph.name, results[i]
+                g, res = self.graphs_list[i].graph.name, results[i]
                 f.write('%s\n' % '\t\t'.join(['\t'.join([g] + map(lambda a: str(res[a][i]), algos)) for i in range(3)]))
             f.write('%s\n' % '\t\t'.join(['\t'.join(['' for _ in range(len(algos) + 1)]) for _ in range(3)]))
 
@@ -268,7 +271,7 @@ class ResultsHandler(MultipleGraphComparator, BoundsHandler):
 
     def compare(self):
         res = []
-        for graph in self.graphs:
+        for graph in self.graphs_list:
             self.set_graphs(graph.graph, graph.drivers_graph)
             r = super(MultipleGraphComparator, self).compare()
             self.compute_bounds()

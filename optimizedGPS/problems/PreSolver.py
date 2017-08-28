@@ -57,3 +57,11 @@ class HorizonPresolver(PreSolver):
 
     def get_horizon(self):
         return self.drivers_structure.horizon
+
+
+class SafetyIntervalsPresolver(PreSolver):
+    """
+    Compute the smallest possible safety intervals
+    """
+    def solve(self):
+        self.drivers_structure.compute_optimal_safety_intervals()

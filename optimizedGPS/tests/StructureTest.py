@@ -207,7 +207,7 @@ class StructureTest(unittest.TestCase):
     def test_iter_possible_waiting_time(self):
         graph = GPSGraph()
         graph.add_edge(1, 2, congestion_func=lambda x: 3 * x + 4)
-        times = list(graph.iter_possible_waiting_time((1, 2), traffic=2, min_waiting_time=0, max_waiting_time=22))
+        times = list(graph.iter_possible_waiting_time((1, 2), traffic=2, min_waiting_time=0, max_waiting_time=23))
         self.assertEqual(times, [10, 13, 7, 16, 4, 19, 22])
 
         graph = GPSGraph()

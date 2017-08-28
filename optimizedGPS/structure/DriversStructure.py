@@ -233,32 +233,38 @@ class DriversStructure(object):
         Compute the shortest path from starting node of driver to edge, and return the driving time on this path
         considering the minimal traffic
         """
-        return driver.time + sum(
-            map(
-                lambda e: self.graph.get_congestion_function(*e)(min_traffics[driver][e]),
-                self.graph.iter_edges_in_path(self.graph.get_shortest_path(
-                    driver.start, edge[0],
-                    key=lambda *x: self.graph.get_congestion_function(*x)(min_traffics[driver][x]),
-                    next_choice=lambda *x: self.is_edge_reachable_by_driver(driver, x)
-                ))
+        try:
+            return driver.time + sum(
+                map(
+                    lambda e: self.graph.get_congestion_function(*e)(min_traffics[driver][e]),
+                    self.graph.iter_edges_in_path(self.graph.get_shortest_path(
+                        driver.start, edge[0],
+                        key=lambda *x: self.graph.get_congestion_function(*x)(min_traffics[driver][x]),
+                        next_choice=lambda *x: self.is_edge_reachable_by_driver(driver, x)
+                    ))
+                )
             )
-        )
+        except StopIteration:
+            return None
 
     def compute_maximum_starting_time(self, driver, edge, max_traffics):
         """
         Compute the longest path from starting node of driver to edge, and return the driving time on this path
         considering the maximal traffic
         """
-        return driver.time + sum(
-            map(
-                lambda e: self.graph.get_congestion_function(*e)(max_traffics[driver][e]),
-                self.graph.iter_edges_in_path(self.graph.get_shortest_path(
-                    driver.start, edge[0],
-                    key=lambda *x: - self.graph.get_congestion_function(*x)(max_traffics[driver][x]),
-                    next_choice=lambda *x: self.is_edge_reachable_by_driver(driver, x)
-                ))
+        try:
+            return driver.time + sum(
+                map(
+                    lambda e: self.graph.get_congestion_function(*e)(max_traffics[driver][e]),
+                    self.graph.iter_edges_in_path(self.graph.get_shortest_path(
+                        driver.start, edge[0],
+                        key=lambda *x: - self.graph.get_congestion_function(*x)(max_traffics[driver][x]),
+                        next_choice=lambda *x: self.is_edge_reachable_by_driver(driver, x)
+                    ))
+                )
             )
-        )
+        except StopIteration:
+            return None
 
     def update_intervals(self, driver, edge, min_traffics, max_traffics):
         """
@@ -270,8 +276,14 @@ class DriversStructure(object):
         cong_function = self.graph.get_congestion_function(*edge)
         min_starting_time = self.compute_minimum_starting_time(driver, edge, min_traffics)
         max_starting_time = self.compute_maximum_starting_time(driver, edge, max_traffics)
-        min_ending_time = min_starting_time + cong_function(min_traffics[driver][edge])
-        max_ending_time = max_starting_time + cong_function(max_traffics[driver][edge])
+        if min_starting_time is not None:
+            min_ending_time = min_starting_time + cong_function(min_traffics[driver][edge])
+        else:
+            min_ending_time = None
+        if max_starting_time is not None:
+            max_ending_time = max_starting_time + cong_function(max_traffics[driver][edge])
+        else:
+            max_ending_time = None
 
         safety_interval = self.get_safety_interval(driver, edge)
         presence_interval = self.get_presence_interval(driver, edge)
