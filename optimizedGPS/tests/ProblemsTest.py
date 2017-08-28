@@ -277,46 +277,6 @@ class ProblemsTest(unittest.TestCase):
                         v = v.X if isinstance(v, Var) else 0
                         self.assertEqual(v, 0)
 
-    @unittest.skip("Reduced costs are different any way, bug to fixed")
-    def test_TEGModel_reduced_cost(self):
-        """
-        We solve the TEGModel on a simple instance, as a continuous model, then we compute the reduce cost for some
-        variables
-        """
-        graph, drivers_graph = generate_bad_heuristic_graphs()
-        algorithm = TEGModel(graph, drivers_graph, horizon=12, binary=False)
-        algorithm.build_model()
-        algorithm.solve()
-
-        # Check that the relaxed model has a better value than the integer one
-        # self.assertLessEqual(algorithm.value, 11)
-        for edge_, driver in algorithm.x.iterkeys():
-            edge = algorithm.TEGgraph.get_original_edge(edge_)
-            start = algorithm.TEGgraph.get_node_layer(edge_[0])
-            end = algorithm.TEGgraph.get_node_layer(edge_[1])
-
-            # test positivity of lambdas and mu
-            lambda_plus = algorithm.get_dual_variable_from_constraint(
-                "%s:%s:%s:%s" % (mlabels.UPPER_WAITING_TIME, id(driver), str(edge), start))
-            lambda_minus = algorithm.get_dual_variable_from_constraint(
-                "%s:%s:%s:%s" % (mlabels.LOWER_WAITING_TIME, id(driver), str(edge), start))
-            mu = algorithm.get_dual_variable_from_constraint(
-                "%s:%s:%s" % (mlabels.EDGE_TIME_UNICITY, id(driver), str(edge)))
-            self.assertGreaterEqual(lambda_plus, 0)
-            self.assertGreaterEqual(lambda_minus, 0)
-            self.assertGreaterEqual(mu, 0)
-
-            if isinstance(algorithm.x[edge_, driver], Var) and algorithm.x[edge_, driver].X == 1:
-                self.assertGreater(lambda_plus, 0)
-                self.assertGreater(lambda_minus, 0)
-                self.assertGreater(mu, 0)
-
-            # reduced_cost = algorithm.get_reduced_cost(driver, edge, start, end)
-            # self.assertGreaterEqual(reduced_cost, 0)
-
-            # algorithm.x[algorithm.TEGgraph.build_edge(edge, start, end), driver] = 0
-            # self.assertGreaterEqual(algorithm.get_reduced_cost(driver, edge, start, end), 0)
-
     @unittest.skipIf(Var is None, "gurobipy dependency not satisfied")
     def test_column_generation_algorithm(self):
         graph, drivers_graph = generate_bad_heuristic_graphs()

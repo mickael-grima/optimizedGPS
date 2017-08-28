@@ -374,6 +374,18 @@ class TEGModel(EdgeCharacterizationModel):
                     ) == 1,
                     name=constr_name
                 )
+            constr_name = "%s:%s" % (labels.ENDING_NODE, id(driver))
+            if not self.has_constraint(constr_name):
+                self.add_constraint(
+                    quicksum(
+                        quicksum(
+                            self.x[(self.TEGgraph.build_node(driver.end, time), s), driver]
+                            for s in self.TEGgraph.successors_iter(self.TEGgraph.build_node(driver.end, time))
+                        )
+                        for time in self.drivers_structure.get_possible_ending_times_on_node(driver, driver.end)
+                    ) == 0,
+                    name=constr_name
+                )
 
     def check_feasibility(self, x):
         """
@@ -389,6 +401,16 @@ class TEGModel(EdgeCharacterizationModel):
             ) == 1
             if res is False:
                 log.warning("Failed for constraint: %s:%s" % (labels.ENDING_TIME, id(driver)))
+                return False
+            res = sum(
+                sum(
+                    x[(self.TEGgraph.build_node(driver.end, time), s), driver]
+                    for s in self.TEGgraph.successors_iter(self.TEGgraph.build_node(driver.end, time))
+                )
+                for time in self.drivers_structure.get_possible_ending_times_on_node(driver, driver.end)
+            ) == 0
+            if res is False:
+                log.warning("Failed for constraint: %s:%s" % (labels.ENDING_NODE, id(driver)))
                 return False
             for node in self.graph.nodes_iter():
                 if node != driver.end:
@@ -466,7 +488,8 @@ class TEGModel(EdgeCharacterizationModel):
             "%s:%s:%s:%s" % (labels.TRANSFERT, id(driver), str(edge[0]), start)) or 0
         tau_end = - self.get_dual_variable_from_constraint(
             "%s:%s:%s:%s" % (labels.TRANSFERT, id(driver), str(edge[1]), start)) or 0
-        omega = self.get_dual_variable_from_constraint("%s:%s" % (labels.ENDING_TIME, id(driver))) or 0
+        omega_plus = self.get_dual_variable_from_constraint("%s:%s" % (labels.ENDING_TIME, id(driver))) or 0
+        omega_minus = self.get_dual_variable_from_constraint("%s:%s" % (labels.ENDING_NODE, id(driver))) or 0
 
         func = self.graph.get_congestion_function(*edge)
         alpha = func(1) - func(0)
@@ -478,7 +501,7 @@ class TEGModel(EdgeCharacterizationModel):
                         for i in self.drivers_structure.get_starting_times(d, edge)
                         if start < i <= end) + \
             mu + (driver.end != edge[1]) * tau_end - (driver.end != edge[0]) * tau_start - \
-            (driver.end == edge[1]) * (omega - start)
+            (driver.end == edge[0]) * omega_minus - (driver.end == edge[1]) * (omega_plus - start)
 
         return reduced_cost
 
@@ -502,6 +525,16 @@ class TEGModel(EdgeCharacterizationModel):
                     for time in self.drivers_structure.get_possible_ending_times_on_node(driver, driver.end)
                 ) == 1,
                 name="%s:%s" % (labels.ENDING_TIME, id(driver))
+            )
+            self.add_constraint(
+                quicksum(
+                    quicksum(
+                        self.x[(self.TEGgraph.build_node(driver.end, time), s), driver]
+                        for s in self.TEGgraph.successors_iter(self.TEGgraph.build_node(driver.end, time))
+                    )
+                    for time in self.drivers_structure.get_possible_ending_times_on_node(driver, driver.end)
+                ) == 0,
+                name="%s:%s" % (labels.ENDING_NODE, id(driver))
             )
             for node in self.graph.nodes_iter():
                 if node != driver.end:

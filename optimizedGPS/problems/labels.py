@@ -15,6 +15,7 @@ VISITED_EDGES = 'visited-edges-constraints'
 STARTING_ENDING = 'starting-ending'
 TRANSFERT = 'transfert'
 ENDING_TIME = 'ending-time'
+ENDING_NODE = 'ending-node'
 NO_CYCLE = 'no-cycle'
 
 ONE_DRIVER_PER_EDGE = "one-driver-per-edge"
