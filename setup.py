@@ -17,14 +17,14 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        'pyyaml',
-        'networkx',
-        'matplotlib',
-        'requests',
-        'osmapi',
-        'sortedcontainers',
-        'mock',
-        'pytest'
+        'pyyaml==3.12',
+        'networkx==1.11',
+        'matplotlib==1.5.3',
+        'requests==2.12.3',
+        'osmapi==0.8.1',
+        'sortedcontainers==1.5.7',
+        'mock==2.0.0',
+        'pytest==3.1.2'
     ],
     zip_safe=False
 )
