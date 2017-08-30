@@ -211,6 +211,7 @@ class ProblemsTest(unittest.TestCase):
 
         self.assertEqual(2 * traffic_influence + 7, simulator.get_sum_ending_time())
 
+    @unittest.skipIf(Var is None, "gurobipy dependency not satisfied")
     def test_solver_shared_memory(self):
         """
         Some data are shared with the algorithm inside solver (e.g. drivers_structure)

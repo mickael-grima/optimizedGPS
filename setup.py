@@ -19,7 +19,6 @@ setup(
     install_requires=[
         'pyyaml==3.12',
         'networkx==1.11',
-        'matplotlib==1.5.3',
         'requests==2.12.3',
         'osmapi==0.8.1',
         'sortedcontainers==1.5.7',
